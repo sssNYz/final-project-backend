@@ -1,0 +1,18 @@
+image.pngservices:
+  db:
+    image: mysql:8.4
+    container_name: final_project_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "s31122546"
+      MYSQL_DATABASE: "final_project_db"
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  db-data:
+    driver: local
+
+

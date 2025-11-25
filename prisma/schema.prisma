@@ -1,0 +1,223 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// USER_ACCOUNT
+model UserAccount {
+  userId       Int       @id @default(autoincrement()) @map("USER_ID")
+  email        String    @unique @map("USER_EMAIL")
+  password     String    @map("USER_PASSWORD")
+  lastLogin    DateTime? @map("LAST_LOGIN")
+  createdAt    DateTime  @default(now()) @map("CREATE_AT")
+  deletedAt    DateTime? @map("DELETED_AT")
+  updatedAt    DateTime  @updatedAt @map("UPDATE_AT")
+  tutorialDone Boolean   @default(false) @map("TUTORIAL_DONE")
+  role         Role      @default(User) @map("ROLE")
+
+  // Relations
+  profiles            UserProfile[]       @relation("UserToProfile")
+  requests            UserRequest[]       @relation("UserRequests")
+  handledRequests     UserRequest[]       @relation("AdminRequests")
+  ownedRelationships  UserRelationship[]  @relation("OwnerUser")
+  viewedRelationships UserRelationship[]  @relation("ViewerUser")
+
+  @@map("USER_ACCOUNT")
+}
+
+/// USER_PROFILE
+model UserProfile {
+  profileId      Int     @id @default(autoincrement()) @map("PROFILE_ID")
+  userId         Int     @map("USER_ID")
+  profileName    String  @map("PROFILE_NAME")
+  profilePicture String? @map("PROFILE_PICTURE")
+
+  // Relations
+  user           UserAccount       @relation("UserToProfile", fields: [userId], references: [userId])
+  medicationLogs MedicationLog[]
+  regimens       UserMedicineRegimen[]
+
+  @@map("USER_PROFILE")
+}
+
+/// MEDICINE_DATABASE
+model MedicineDatabase {
+  mediId        Int            @id @default(autoincrement()) @map("MEDI_ID")
+  mediThName    String         @map("MEDI_TH_NAME")
+  mediEnName    String         @map("MEDI_EN_NAME")
+  mediTradeName String?        @map("MEDI_TRADE_NAME")
+  mediType      MedicineType   @map("MEDI_TYPE")
+  mediUse       String?        @map("MEDI_USE")
+  mediGuide     String?        @map("MEDI_GUIDE")
+  mediEffects   String?        @map("MEDI_EFFECTS")
+  mediNoUse     String?        @map("MEDI_NO_USE")
+  mediWarning   String?        @map("MEDI_WARNING")
+  mediStore     String?        @map("MEDI_STORE")
+  mediPicture   String?        @map("MEDI_PICTURE")
+  createdAt     DateTime       @default(now()) @map("CREATED_AT")
+  updatedAt     DateTime       @updatedAt @map("UPDATE_AT")
+  deletedAt     DateTime?      @map("DELETED_AT")
+  adminId       Int?           @map("ADMIN_ID")
+
+  // Relations
+  regimens      UserMedicineRegimen[]
+
+  @@map("MEDICINE_DATABASE")
+}
+
+/// USER_REQUEST
+model UserRequest {
+  requestId      Int            @id @default(autoincrement()) @map("REQUEST_ID")
+  userId         Int            @map("USER_ID")
+  requestType    RequestType    @map("REQUEST_TYPE")
+  requestTitle   String         @map("REQUEST_TITLE")
+  requestDetails String         @map("REQUEST_DETAILS")
+  status         RequestStatus  @default(PENDING) @map("STATUS")
+  adminId        Int?           @map("ADMIN_ID")
+  createdAt      DateTime       @default(now()) @map("CREATED_AT")
+  updatedAt      DateTime       @updatedAt @map("UPDATED_AT")
+  picture        String?        @map("PICTURE")
+
+  // Relations
+  user  UserAccount @relation("UserRequests", fields: [userId], references: [userId])
+  admin UserAccount? @relation("AdminRequests", fields: [adminId], references: [userId])
+
+  @@map("USER_REQUEST")
+}
+
+/// USER_RELATIONSHIP
+model UserRelationship {
+  relationshipId  Int           @id @default(autoincrement()) @map("RELATIONSHIP_ID")
+  ownerUserId     Int           @map("OWNER_USER_ID")
+  viewerUserId    Int           @map("VIEWER_USER_ID")
+  isReceiverEmail String        @map("IS_RECEIVER_EMAIL")
+  profileIds      Json?         @map("PROFILE_IDS")
+  status          RelationshipStatus @default(PENDING) @map("STATUS")
+  createdAt       DateTime      @default(now()) @map("CREATED_AT")
+  updatedAt       DateTime      @updatedAt @map("UPDATED_AT")
+
+  // Relations
+  ownerUser  UserAccount @relation("OwnerUser", fields: [ownerUserId], references: [userId])
+  viewerUser UserAccount @relation("ViewerUser", fields: [viewerUserId], references: [userId])
+
+  @@map("USER_RELATIONSHIP")
+}
+
+/// MEDICATION_LOG
+model MedicationLog {
+  logId          Int              @id @default(autoincrement()) @map("LOG_ID")
+  profileId      Int              @map("PROFILE_ID")
+  mediRegimenId  Int              @map("MEDI_REGIMEN_ID")
+  scheduleTime   DateTime         @map("SCHEDULE_TIME")
+  isReceived     Boolean          @map("IS_RECEIVED")
+  responseStatus ResponseStatus?  @map("RESPONSE_STATUS")
+  responseAt     DateTime?        @map("RESPONSE_AT")
+  snoozedCount   Int?             @map("SNOOZED_COUNT")
+  note           String?          @map("NOTE")
+
+  // Relations
+  profile    UserProfile         @relation(fields: [profileId], references: [profileId])
+  regimen    UserMedicineRegimen @relation(fields: [mediRegimenId], references: [mediRegimenId])
+
+  @@map("MEDICATION_LOG")
+}
+
+/// USER_MEDICINE_REGIMEN
+model UserMedicineRegimen {
+  mediRegimenId      Int                 @id @default(autoincrement()) @map("MEDI_REGIMEN_ID")
+  profileId          Int                 @map("PROFILE_ID")
+  mediId             Int                 @map("MEDI_ID")
+  mediNickname       String?             @map("MEDI_NICKNAME")
+  scheduleType       ScheduleType        @map("SCHEDULE_TYPE")
+  startDate          DateTime            @map("START_DATE")
+  endDate            DateTime?           @map("END_DATE")
+  daysOfWeek         String?             @map("DAYS_OF_WEEK")
+  intervalDays       Int?                @map("INTERVAL_DAYS")
+  nextOccurrenceAt   DateTime?           @map("NEXT_OCCURRENCE_AT")
+  cycleOnDays        Int?                @map("CYCLE_ON_DAYS")
+  cycleBreakDays     Int?                @map("CYCLE_BREAK_DAYS")
+  cycleAnchorDate    DateTime?           @map("CYCLE_ANCHOR_DATE")
+  pictureOption      String?             @map("PICTURE_OPTION")
+
+  // Relations
+  profile      UserProfile        @relation(fields: [profileId], references: [profileId])
+  medicine     MedicineDatabase   @relation(fields: [mediId], references: [mediId])
+  times        UserMedicineRegimenTime[]
+  logs         MedicationLog[]
+
+  @@map("USER_MEDICINE_REGIMEN")
+}
+
+/// USER_MEDICINE_REGIMEN_TIME
+model UserMedicineRegimenTime {
+  timeId        Int         @id @default(autoincrement()) @map("TIME_ID")
+  mediRegimenId Int         @map("MEDI_REGIMEN_ID")
+  time          DateTime    @map("TIME")
+  dose          Int         @map("DOSE")
+  unit          String      @map("UNIT")
+  mealRelation  MealRelation @map("MEAL_RELATION")
+  mealOffsetMin Int?        @map("MEAL_OFFSET_MINUTES")
+
+  // Relations
+  regimen UserMedicineRegimen @relation(fields: [mediRegimenId], references: [mediRegimenId])
+
+  @@map("USER_MEDICINE_REGIMEN_TIME")
+}
+
+// ENUMS
+
+enum Role {
+  SuperAdmin
+  Admin
+  User
+}
+
+enum MedicineType {
+  ORAL
+  TOPICAL
+}
+
+enum RequestType {
+  PROBLEM
+  HELP
+  IMPROVEMENT
+  ADD_MEDICINE
+}
+
+enum RequestStatus {
+  PENDING
+  REJECTED
+  DONE
+}
+
+enum RelationshipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ResponseStatus {
+  TAKE
+  SKIP
+  SNOOZ
+}
+
+enum ScheduleType {
+  DAILY
+  WEEKLY
+  INTERVAL
+  CYCLE
+}
+
+enum MealRelation {
+  BEFORE_MEAL
+  AFTER_MEAL
+  WITH_MEAL
+  NONE
+}
