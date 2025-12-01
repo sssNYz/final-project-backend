@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,15 +9,17 @@ datasource db {
 
 /// USER_ACCOUNT
 model UserAccount {
-  userId       Int       @id @default(autoincrement()) @map("USER_ID")
-  email        String    @unique @map("USER_EMAIL")
-  password     String    @map("USER_PASSWORD")
-  lastLogin    DateTime? @map("LAST_LOGIN")
-  createdAt    DateTime  @default(now()) @map("CREATE_AT")
-  deletedAt    DateTime? @map("DELETED_AT")
-  updatedAt    DateTime  @updatedAt @map("UPDATE_AT")
-  tutorialDone Boolean   @default(false) @map("TUTORIAL_DONE")
-  role         Role      @default(User) @map("ROLE")
+  userId         Int       @id @default(autoincrement()) @map("USER_ID")
+  email          String    @unique @map("USER_EMAIL")
+  password       String?   @map("USER_PASSWORD")
+  supabaseUserId String?   @unique @map("SUPABASE_USER_ID")
+  provider       String?   @map("PROVIDER")
+  lastLogin      DateTime? @map("LAST_LOGIN")
+  createdAt      DateTime  @default(now()) @map("CREATE_AT")
+  deletedAt      DateTime? @map("DELETED_AT")
+  updatedAt      DateTime  @updatedAt @map("UPDATE_AT")
+  tutorialDone   Boolean   @default(false) @map("TUTORIAL_DONE")
+  role           Role      @default(User) @map("ROLE")
 
   // Relations
   profiles            UserProfile[]       @relation("UserToProfile")
