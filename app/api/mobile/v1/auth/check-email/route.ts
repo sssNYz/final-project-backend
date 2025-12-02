@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { ServiceError } from "@/server/common/errors";
+import { checkEmailStatus } from "@/server/auth/auth.service";
 
 /**
- * POST /api/auth/check-email
+ * POST /api/mobile/v1/auth/check-email
  * Check if an email already exists in the database
  * This is used before Google OAuth to ask user for merge confirmation
  */
@@ -21,27 +20,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if email exists in database
-    const existingUser = await prisma.userAccount.findUnique({
-      where: { email: email.toLowerCase().trim() },
-    });
+    const status = await checkEmailStatus(email);
+    return NextResponse.json({ status });
+  } catch (error: unknown) {
+    console.error("Error checking email:", error);
 
-    if (existingUser) {
-      return NextResponse.json({ status: "existing" });
+    if (error instanceof ServiceError) {
+      return NextResponse.json(error.body, { status: error.statusCode });
     }
 
-    return NextResponse.json({ status: "new" });
-  } catch (error) {
-    console.error("Error checking email:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-
-
-
 
 
 

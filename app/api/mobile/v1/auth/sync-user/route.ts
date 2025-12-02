@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { requireAuth } from "@/lib/auth";
+import { AuthProvider, syncUserAccount } from "@/server/auth/auth.service";
+import { ServiceError } from "@/server/common/errors";
 
-const prisma = new PrismaClient();
+const ALLOWED_PROVIDERS: AuthProvider[] = ["email", "google", "both"];
 
 /**
- * GET /api/auth/sync-user
+ * GET /api/mobile/v1/auth/sync-user
  * Returns API documentation and usage information
  */
 export async function GET() {
   return NextResponse.json({
     message: "API Usage Information",
-    endpoint: "/api/auth/sync-user",
+    endpoint: "/api/mobile/v1/auth/sync-user",
     method: "POST",
     description: "Sync or create user in Prisma database after Supabase authentication",
     requiredHeaders: {
@@ -50,7 +51,7 @@ export async function GET() {
 }
 
 /**
- * POST /api/auth/sync-user
+ * POST /api/mobile/v1/auth/sync-user
  * Sync or create user in Prisma database after Supabase authentication
  * Handles account merging with user permission
  */
@@ -72,109 +73,36 @@ export async function POST(request: Request) {
     }
 
     // Validate provider value
-    if (!["email", "google", "both"].includes(provider)) {
+    if (!ALLOWED_PROVIDERS.includes(provider as AuthProvider)) {
       return NextResponse.json(
         { error: "provider must be 'email', 'google', or 'both'" },
         { status: 400 }
       );
     }
 
-    // Verify that the token matches the request data
-    if (supabaseUser.id !== supabaseUserId || supabaseUser.email !== email) {
-      return NextResponse.json(
-        { error: "Token does not match provided user data" },
-        { status: 403 }
-      );
-    }
+    const providerValue = provider as AuthProvider;
 
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // Look for existing user by supabaseUserId or email
-    let existingUser = await prisma.userAccount.findFirst({
-      where: {
-        OR: [
-          { supabaseUserId: supabaseUserId },
-          { email: normalizedEmail }
-        ]
-      }
+    const result = await syncUserAccount({
+      supabaseUser,
+      supabaseUserId,
+      email,
+      provider: providerValue,
+      allowMerge,
     });
 
-    // If no user exists, create a new one
-    if (!existingUser) {
-      const newUser = await prisma.userAccount.create({
-        data: {
-          email: normalizedEmail,
-          supabaseUserId: supabaseUserId,
-          provider: provider,
-          password: null, // No password for OAuth users
-          lastLogin: new Date(),
-        },
-      });
-
-      return NextResponse.json({
-        message: "User created successfully",
-        user: {
-          userId: newUser.userId,
-          email: newUser.email,
-          provider: newUser.provider,
-          supabaseUserId: newUser.supabaseUserId,
-          role: newUser.role,
-          tutorialDone: newUser.tutorialDone,
-          createdAt: newUser.createdAt,
-        },
-      }, { status: 201 });
-    }
-
-    // User exists - check if merge is needed
-    const existingProvider = existingUser.provider;
-    let needsMerge = false;
-    let newProvider = provider;
-
-    // Determine if this is a merge case
-    if (existingProvider && existingProvider !== provider) {
-      needsMerge = true;
-      newProvider = "both";
-    }
-
-    // If merge is needed but not allowed, return error
-    if (needsMerge && allowMerge !== true) {
-      return NextResponse.json(
-        { 
-          error: "Account merge required but not allowed",
-          message: "This email is already registered with a different login method. Please allow account merge to continue."
-        },
-        { status: 409 }
-      );
-    }
-
-    // Update existing user
-    const updatedUser = await prisma.userAccount.update({
-      where: { userId: existingUser.userId },
-      data: {
-        supabaseUserId: supabaseUserId,
-        provider: newProvider,
-        lastLogin: new Date(),
+    return NextResponse.json(
+      {
+        message: result.message,
+        user: result.user,
       },
-    });
+      { status: result.statusCode }
+    );
 
-    return NextResponse.json({
-      message: needsMerge ? "Accounts merged successfully" : "User updated successfully",
-      user: {
-        userId: updatedUser.userId,
-        email: updatedUser.email,
-        provider: updatedUser.provider,
-        supabaseUserId: updatedUser.supabaseUserId,
-        role: updatedUser.role,
-        tutorialDone: updatedUser.tutorialDone,
-        createdAt: updatedUser.createdAt,
-      },
-    });
-
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error syncing user:", error);
 
     // Handle auth errors
-    if (error.message === "Unauthorized") {
+    if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json(
         { 
           error: "Unauthorized - Invalid or missing token",
@@ -190,11 +118,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (error instanceof ServiceError) {
+      return NextResponse.json(error.body, { status: error.statusCode });
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-
-

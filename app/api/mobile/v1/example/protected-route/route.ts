@@ -12,19 +12,19 @@ import { withAuth } from "@/lib/apiHelpers";
 
 /**
  * Example GET endpoint with authentication
- * Try it: GET /api/example/protected-route
+ * Try it: GET /api/mobile/v1/example/protected-route
  * With header: Authorization: Bearer <your_supabase_token>
  */
 export async function GET(request: Request) {
   return withAuth(request, async (context) => {
-    const { prismaUser, supabaseUser } = context;
+    const { prismaUser } = context;
     
     // You now have access to:
     // - prismaUser.userId (use this for database queries)
     // - prismaUser.email
     // - prismaUser.role
     // - prismaUser.tutorialDone
-    // - supabaseUser.id (Supabase user ID)
+    // - context.supabaseUser.id (Supabase user ID)
     
     return NextResponse.json({
       message: "This is a protected endpoint!",
@@ -57,9 +57,6 @@ export async function POST(request: Request) {
     });
   });
 }
-
-
-
 
 
 
