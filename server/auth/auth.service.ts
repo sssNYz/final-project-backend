@@ -150,3 +150,41 @@ export async function syncUserAccount({
     user: serializeUserAccount(updatedUser),
   };
 }
+
+
+export async function syncAdminAccount(input: SyncUserInput): Promise<SyncUserResult> {
+  // 1) first, do normal user sync (create or update + provider + lastLogin)
+  const result = await syncUserAccount(input);
+
+  // 2) decide the "bigger" role
+  // roles in DB: "User" < "Admin" < "SuperAdmin"
+  const currentRole = result.user.role;
+
+  let targetRole = currentRole;
+
+  // if user is only "User", upgrade to "Admin"
+  if (currentRole === "User") {
+    targetRole = "Admin";
+  }
+
+  // if already "Admin" or "SuperAdmin", keep it (this is already the bigger role)
+
+  // 3) if role needs change, update it in DB
+  if (targetRole !== currentRole) {
+    const updatedUser = await updateUserAccount(result.user.userId, {
+      role: targetRole,
+    });
+
+    return {
+      statusCode: result.statusCode,
+      message: "Admin synced successfully",
+      user: serializeUserAccount(updatedUser),
+    };
+  }
+
+  // role did not change
+  return {
+    ...result,
+    message: "Admin synced successfully",
+  };
+}
