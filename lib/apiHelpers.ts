@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { requireAuth } from "./auth";
 import { User } from "@supabase/supabase-js";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/server/db/client";
 
 /**
  * Interface for authenticated user context
@@ -68,7 +66,7 @@ export async function withAuth(
       return NextResponse.json(
         { 
           error: "User not found in database",
-          message: "Please call /api/auth/sync-user to create your account"
+          message: "Please call /api/mobile/v1/auth/sync-user to create your account"
         },
         { status: 404 }
       );
@@ -77,11 +75,11 @@ export async function withAuth(
     // Call the handler with authenticated context
     return await handler({ supabaseUser, prismaUser });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in withAuth:", error);
 
     // Handle auth errors
-    if (error.message === "Unauthorized") {
+    if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401 }
@@ -133,5 +131,3 @@ export async function withRole(
     return await handler(context);
   });
 }
-
-
