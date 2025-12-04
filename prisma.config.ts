@@ -1,20 +1,14 @@
-import 'dotenv/config'
-import { defineConfig, env } from 'prisma/config'
+import "dotenv/config"
 
-export default defineConfig({
-  // the main entry for your schema
-  schema: 'prisma/schema.prisma',
-  // where migrations should be generated
-  // what script to run for "prisma db seed"
+// Lightweight Prisma config compatible with the current
+// Prisma 5.x dependency without importing "prisma/config".
+export default {
+  schema: "prisma/schema.prisma",
   migrations: {
-    path: 'prisma/migrations',
-    seed: 'tsx prisma/seed.ts',
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
   },
-  // The database URL 
   datasource: {
-    // Type Safe env() helper 
-    // Does not replace the need for dotenv
-    url: env('DATABASE_URL'),
+    url: process.env.DATABASE_URL,
   },
-})
-
+}

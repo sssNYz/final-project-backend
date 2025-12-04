@@ -2,12 +2,12 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -15,7 +15,6 @@ import {
   Field,
   FieldDescription,
   FieldGroup,
-  FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
@@ -32,35 +31,41 @@ export function LoginForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-  
+
     if (!email || !password) {
       setError("Please enter email and password")
       return
     }
-  
+
     try {
       setIsLoading(true)
-  
+
       const res = await fetch("/api/admin/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       })
-  
+
       const data = await res.json()
-  
+
       if (!res.ok) {
         setError(data?.error || "Login failed")
         return
       }
-  
+
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken)
       }
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken)
       }
-  
+      if (data.user?.email || email) {
+        localStorage.setItem(
+          "currentUserEmail",
+          (data.user?.email as string | undefined) ?? email,
+        )
+      }
+
       router.push("/dashboard")
     } catch (err) {
       setError("Network error. Please try again.")
@@ -70,62 +75,65 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center",
+        className,
+      )}
+      {...props}
+    >
+      <Card className="w-full max-w-md rounded-3xl border-none bg-white shadow-lg">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-center text-2xl font-bold text-slate-900">
+            LogIn
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <FieldGroup className="space-y-4">
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="Email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
+                  className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-500"
                 />
               </Field>
               <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
-                <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                disabled={isLoading} />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-500"
+                />
               </Field>
 
               {error && (
-                <p className="text-red-500 text-sm">
+                <p className="text-center text-sm text-red-500">
                   {error}
                 </p>
               )}
               <Field>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="mt-2 w-full rounded-full bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-900"
+                >
+                  {isLoading ? "Logging in..." : "Log In"}
                 </Button>
-                <Button variant="outline" type="button">
-                  Login with Google
-                </Button>
-                <FieldDescription className="text-center">
-                  Don&apos;t have an account? <Link href="/signup">Sign up</Link>
+                <FieldDescription className="mt-3 text-center text-xs text-slate-600">
+                  Don&apos;t have an account?{" "}
+                  <Link href="/signup" className="font-semibold text-sky-700">
+                    Sign up
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -133,5 +141,5 @@ export function LoginForm({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
