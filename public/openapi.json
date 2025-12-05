@@ -1,0 +1,375 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Final Project Backend API",
+    "version": "0.1.0",
+    "description": "API documentation for mobile and web clients. Most protected endpoints require a Supabase access token via Authorization: Bearer <token>."
+  },
+  "servers": [
+    { "url": "http://localhost:3000", "description": "Local Dev" }
+  ],
+  "tags": [
+    { "name": "Admin", "description": "Admin authentication and management" },
+    { "name": "Mobile Auth", "description": "Mobile authentication and account sync" },
+    { "name": "Mobile Users", "description": "Mobile user profile operations" },
+    { "name": "Examples", "description": "Example/prototype endpoints" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "PublicUserAccount": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "integer", "example": 123 },
+          "email": { "type": "string", "format": "email", "example": "user@example.com" },
+          "supabaseUserId": { "type": "string", "nullable": true, "example": "7f5c2f7a-1234-4c5a-9c8b-1c2d3e4f5a6b" },
+          "provider": { "type": "string", "nullable": true, "enum": ["email", "google", "both", null] },
+          "role": { "type": "string", "enum": ["User", "Admin", "SuperAdmin"], "example": "User" },
+          "tutorialDone": { "type": "boolean", "example": false },
+          "lastLogin": { "type": "string", "format": "date-time", "nullable": true, "example": "2024-12-01T10:00:00.000Z" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2024-11-20T08:30:00.000Z" }
+        },
+        "required": ["userId", "email", "role", "tutorialDone", "createdAt"]
+      },
+      "PublicUserAccountWithProfiles": {
+        "allOf": [
+          { "$ref": "#/components/schemas/PublicUserAccount" },
+          {
+            "type": "object",
+            "properties": {
+              "profiles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "profileId": { "type": "integer", "example": 10 },
+                    "profileName": { "type": "string", "example": "Main" },
+                    "profilePicture": { "type": "string", "nullable": true, "example": null }
+                  }
+                },
+                "example": [
+                  { "profileId": 10, "profileName": "Main", "profilePicture": null }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "SigninResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "example": "Signin success" },
+          "accessToken": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          "refreshToken": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          "user": { "$ref": "#/components/schemas/PublicUserAccount" }
+        }
+      },
+      "SyncBody": {
+        "type": "object",
+        "properties": {
+          "supabaseUserId": { "type": "string", "example": "7f5c2f7a-1234-4c5a-9c8b-1c2d3e4f5a6b" },
+          "email": { "type": "string", "format": "email", "example": "user@example.com" },
+          "provider": { "type": "string", "enum": ["email", "google", "both"], "example": "email" },
+          "allowMerge": { "type": "boolean", "example": true }
+        },
+        "required": ["supabaseUserId", "email", "provider"]
+      },
+      "UpdateUserBody": {
+        "type": "object",
+        "properties": {
+          "tutorialDone": { "type": "boolean", "description": "Mark onboarding/tutorial as completed", "example": true }
+        }
+      },
+      "CheckEmailResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["existing", "new"], "example": "existing" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/admin/signin": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Admin sign in",
+        "description": "Authenticate admin by email and password via Supabase. Returns access/refresh tokens and synced admin user.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "format": "password" }
+                },
+                "required": ["email", "password"],
+                "example": { "email": "admin@example.com", "password": "StrongP@ssw0rd" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signin success",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SigninResponse" } } }
+          },
+          "400": { "description": "Missing credentials", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Invalid email or password", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Internal server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/signup": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Admin sign up",
+        "description": "Register a new admin via Supabase (email/password).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "format": "password" }
+                },
+                "required": ["email", "password"],
+                "example": { "email": "admin@example.com", "password": "StrongP@ssw0rd" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Supabase sign-up response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "example": { "user": { "id": "7f5c2..." }, "session": null }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation or Supabase error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/verifyOtp": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Verify email OTP",
+        "description": "Verify OTP code sent to email by Supabase.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "token": { "type": "string" }
+                },
+                "required": ["email", "token"],
+                "example": { "email": "admin@example.com", "token": "123456" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "type": "object", "additionalProperties": true, "example": { "id": "7f5c2..." } }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid OTP or request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/sync-admin": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Docs for sync-admin",
+        "description": "Returns usage information for POST /api/admin/sync-admin.",
+        "responses": {
+          "200": { "description": "Usage info", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } }
+        }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Sync or create admin account",
+        "description": "Create or update an admin in Prisma after Supabase authentication. May upgrade role to Admin.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyncBody" } } } },
+        "responses": {
+          "200": { "description": "Updated or merged", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Token does not match provided user data", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "409": { "description": "Merge required but not allowed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/me": {
+      "get": {
+        "tags": ["Mobile Auth"],
+        "summary": "Get current user profile",
+        "description": "Return the authenticated user's profile (with profiles).",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Profile", "content": { "application/json": { "schema": { "type": "object", "properties": { "user": { "$ref": "#/components/schemas/PublicUserAccountWithProfiles" } } } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "User not found in DB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/sync-user": {
+      "get": {
+        "tags": ["Mobile Auth"],
+        "summary": "Docs for sync-user",
+        "description": "Returns usage information for POST /api/mobile/v1/auth/sync-user.",
+        "responses": {
+          "200": { "description": "Usage info", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } }
+        }
+      },
+      "post": {
+        "tags": ["Mobile Auth"],
+        "summary": "Sync or create mobile user",
+        "description": "Create or update a user in Prisma after Supabase authentication. Handles merge with allowMerge flag.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyncBody" } } } },
+        "responses": {
+          "200": { "description": "Updated or merged", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Token does not match provided user data", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "409": { "description": "Merge required but not allowed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/check-email": {
+      "post": {
+        "tags": ["Mobile Auth"],
+        "summary": "Check email status",
+        "description": "Check if an email already exists before Google OAuth to decide on merge UI.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "email": { "type": "string", "format": "email" } },
+                "required": ["email"],
+                "example": { "email": "user@example.com" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Email status", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckEmailResponse" } } } },
+          "400": { "description": "Invalid email", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/users/update": {
+      "patch": {
+        "tags": ["Mobile Users"],
+        "summary": "Update current user profile",
+        "description": "Update safe fields for the current authenticated user (currently only tutorialDone).",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserBody" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "User updated successfully" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "400": { "description": "No valid fields to update", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "User not found in DB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Mobile Users"],
+        "summary": "Update current user profile (POST alternative)",
+        "description": "Same as PATCH, provided for clients that prefer POST.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserBody" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "User updated successfully" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "400": { "description": "No valid fields to update", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "User not found in DB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/example/protected-route": {
+      "get": {
+        "tags": ["Examples"],
+        "summary": "Example protected GET",
+        "description": "Demonstration endpoint that requires authentication.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Success", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "This is a protected endpoint!" }, "user": { "type": "object", "properties": { "userId": { "type": "integer", "example": 123 }, "email": { "type": "string", "format": "email" }, "role": { "type": "string" } } } } } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Examples"],
+        "summary": "Example protected POST",
+        "description": "Demonstration endpoint that echoes posted data for the authenticated user.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true, "example": { "hello": "world" } } } }
+        },
+        "responses": {
+          "200": { "description": "Success", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "Data created successfully" }, "userId": { "type": "integer", "example": 123 }, "data": { "type": "object", "additionalProperties": true } } } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    }
+  }
+}
+

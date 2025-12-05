@@ -336,3 +336,60 @@ AI agents: if you add a new env var, please **document it** in `SETUP_CHECKLIST.
 This pattern must be used for **all new APIs** in this project.
 
 
+## API Docs (Swagger / OpenAPI)
+
+- Live docs: `http://localhost:3000/api-doc`
+- Spec file: `public/openapi.json`
+- Rule: When you create or change any API in `app/api/**`, you must update the OpenAPI spec so docs are always correct for both clients (mobile and admin).
+
+Categories (tags)
+- Use these tags to keep docs easy to scan for each client:
+  - `Admin` → for endpoints under `/api/admin/...`
+  - `Mobile Auth` or `Mobile Users` → for endpoints under `/api/mobile/...`
+
+Protected endpoints
+- If an endpoint requires a Supabase access token, add security: `"security": [{ "bearerAuth": [] }]`.
+- The `bearerAuth` scheme is already defined in `components.securitySchemes`.
+
+How to add a new endpoint to the spec
+1. Open `public/openapi.json`.
+2. Add or update an item under `paths` that matches your route path.
+3. For each HTTP method you support (`get`, `post`, `patch`, etc.):
+   - Set `tags` (choose from the list above).
+   - Add a concise `summary` and a clear `description`.
+   - If the route is protected, include `security` with `bearerAuth`.
+   - Define `requestBody` with `application/json` schema and an `example`.
+   - Define `responses` for success and errors. Reuse shared schemas when possible (`ErrorResponse`, `PublicUserAccount`, etc.).
+4. Save and visit `http://localhost:3000/api-doc` to verify.
+
+Template (copy/paste and edit)
+```json
+"/api/mobile/v1/feature/action": {
+  "post": {
+    "tags": ["Mobile Users"],
+    "summary": "One‑line summary",
+    "description": "Clear description of what this does.",
+    "security": [{ "bearerAuth": [] }],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": { "type": "object", "properties": {"field": {"type": "string"}}, "required": ["field"] },
+          "example": { "field": "value" }
+        }
+      }
+    },
+    "responses": {
+      "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object" } } } },
+      "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+    }
+  }
+}
+```
+
+Notes
+- Keep examples realistic so mobile and web devs can try requests directly in the UI.
+- Use `Admin` for `/api/admin/...` endpoints and `Mobile Auth`/`Mobile Users` for `/api/mobile/...`.
+- If you add new reusable models, prefer updating `components.schemas` and reference them with `$ref`.
+
