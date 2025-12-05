@@ -1,5 +1,6 @@
 // ... existing code at top ...
 "use client"
+import { apiUrl } from "@/lib/apiClient"
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { GalleryVerticalEnd } from "lucide-react"
@@ -50,7 +51,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
     try {
       setIsLoading(true)
 
-      const res = await fetch("/api/admin/verifyOtp", {
+      const res = await fetch(apiUrl("/api/admin/verifyOtp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -84,7 +85,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       }
 
       // 4) Call /api/admin/sync-admin
-      const syncRes = await fetch("/api/admin/sync-admin", {
+      const syncRes = await fetch(apiUrl("/api/admin/sync-admin"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
