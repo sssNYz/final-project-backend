@@ -35,7 +35,7 @@ model UserAccount {
 model UserProfile {
   profileId      Int     @id @default(autoincrement()) @map("PROFILE_ID")
   userId         Int     @map("USER_ID")
-  p rofileName    String  @map("PROFILE_NAME")
+  profileName    String  @map("PROFILE_NAME")
   profilePicture String? @map("PROFILE_PICTURE")
 
   // Relations

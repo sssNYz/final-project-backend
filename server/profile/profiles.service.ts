@@ -1,5 +1,5 @@
 import { ServiceError } from "../common/errors";
-import { createUserProfile, listProfilesByUserId } from "./profile.repository";
+import { createUserProfile, listProfilesByUserId, saveProfilePicture } from "./profile.repository";
 
 function toStringOrNull(value: unknown): string | null {
     if (typeof value !== "string") return null;
@@ -9,35 +9,52 @@ function toStringOrNull(value: unknown): string | null {
 
 export async function createProfileForUser(params: {
     userId: number;
-    body: Record<string, unknown>;
+    profileName: string;
+    profilePictureFile?: { buffer: Buffer; originalFilename: string } | null;
+    profilePictureUrl?: string | null;
 }) {
-    const { userId, body } = params;
+    const { userId, profileName, profilePictureFile, profilePictureUrl } = params;
 
-    const profileName = toStringOrNull(body.profileName);
-    if (!profileName) {
-        throw new ServiceError(400, {
-            error: "profileName is required",
-        });
+    let finalPictureUrl: string | null = null;
+
+    if (profilePictureFile) {
+        const fileExtension = profilePictureFile.originalFilename.split(".").pop()?.toLowerCase();
+        const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
+
+        if (!isValidImage) {
+            throw new ServiceError(400, {
+                error: "Only image files are allowed (jpg, jpeg, png, webp)",
+            });
+        }
+
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (profilePictureFile.buffer.length > maxSize) {
+            throw new ServiceError(400, {
+                error: "File size must be less than 5MB",
+            });
+        }
+
+        finalPictureUrl = await saveProfilePicture(profilePictureFile, userId);
+    } else if (profilePictureUrl) {
+        finalPictureUrl = toStringOrNull(profilePictureUrl);
     }
-
-    const profilePicture = toStringOrNull (body.profilePicture?? null);
 
     const profile = await createUserProfile({
         userId,
         profileName,
-        profilePicture,
+        profilePicture: finalPictureUrl,
     });
+
     return {
         profileId: profile.profileId,
         profileName: profile.profileName,
-        profilePicture: profile.profilePicture, 
+        profilePicture: profile.profilePicture,
     };
-    }
-    
-    export async function listProfilesForUser(userId: number) {
-        const profiles = await listProfilesByUserId(userId);
+}
 
-        return {
-            profiles,
-        };
-    }
+export async function listProfilesForUser(userId: number) {
+    const profiles = await listProfilesByUserId(userId);
+    return {
+        profiles,
+    };
+}

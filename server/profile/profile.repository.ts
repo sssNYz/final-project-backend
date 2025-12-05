@@ -1,4 +1,6 @@
 import { prisma } from "../db/client";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 export async function createUserProfile(params: {
     userId: number;
@@ -28,4 +30,21 @@ export async function listProfilesByUserId(userId: number) {
             profileId: "asc",
         },
     });
+}
+
+export async function saveProfilePicture(
+  file: { buffer: Buffer; originalFilename: string },
+  userId: number
+): Promise<string> {
+  const uploadDir = join(process.cwd(), "public", "uploads", "profile-pictures");
+  await mkdir(uploadDir, { recursive: true });
+
+  const timestamp = Date.now();
+  const extension = file.originalFilename.split(".").pop() || "jpg";
+  const fileName = `${userId}_${timestamp}.${extension}`;
+  const filePath = join(uploadDir, fileName);
+
+  await writeFile(filePath, file.buffer);
+
+  return `/uploads/profile-pictures/${fileName}`;
 }
