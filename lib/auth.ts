@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { createClient } from "./supabase/client";
 import { User } from "@supabase/supabase-js";
 
 /**
@@ -6,6 +6,8 @@ import { User } from "@supabase/supabase-js";
  * @param request - The Next.js request object
  * @returns The Supabase user or null if invalid
  */
+
+const supabase = createClient();
 export async function getSupabaseUser(request: Request): Promise<User | null> {
   try {
     // Get the Authorization header
