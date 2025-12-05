@@ -4,6 +4,7 @@ import type { CSSProperties } from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
+import { apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,6 @@ import {
   Field,
   FieldDescription,
   FieldGroup,
-  FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -29,25 +29,50 @@ export default function NewAdminPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [active, setActive] = useState(true)
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
 
-    if (!email || !password) {
-      setError("กรุณากรอกอีเมลและรหัสผ่าน")
+    if (!email || !password || !confirmPassword) {
+      setError("กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน")
       return
     }
 
-    // ยังไม่เชื่อมฐานข้อมูล: แสดง alert แล้วพากลับหน้ารายการ
-    window.alert(
-      `จำลองการสร้างบัญชีผู้ดูแลระบบสำเร็จ\n\nสถานะ: ${
-        active ? "ใช้งานได้" : "ไม่ให้ใช้งาน"
-      }`,
-    )
-    router.push("/dashboard/accounts")
+    if (password !== confirmPassword) {
+      setError("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน")
+      return
+    }
+
+    if (password.length < 8) {
+      setError("รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+
+      const res = await fetch(apiUrl("/api/admin/signup"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setError(data?.error || "ไม่สามารถเพิ่มบัญชีผู้ดูแลระบบได้")
+        return
+      }
+
+      router.push(`/otp?email=${encodeURIComponent(email)}`)
+    } catch (err) {
+      setError("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -69,10 +94,6 @@ export default function NewAdminPage() {
                 <CardTitle className="text-center text-xl font-bold text-slate-900">
                   เพิ่มบัญชีผู้ดูแลระบบ
                 </CardTitle>
-                <p className="mt-2 text-center text-xs text-slate-600">
-                  เพิ่มบัญชีผู้ดูแลระบบ โดยกำหนดอีเมล รหัสผ่าน
-                  และสถานะการใช้งานระบบ
-                </p>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -85,6 +106,7 @@ export default function NewAdminPage() {
                         onChange={(event) => setEmail(event.target.value)}
                         placeholder="email"
                         required
+                        disabled={isLoading}
                         className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-400"
                       />
                     </Field>
@@ -96,40 +118,25 @@ export default function NewAdminPage() {
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="Password"
                         required
+                        disabled={isLoading}
                         className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-400"
                       />
                     </Field>
-                    <Field className="space-y-2">
-                      <FieldLabel className="text-center text-xs text-slate-700">
-                        Status
-                      </FieldLabel>
-                      <div className="flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setActive((prev) => !prev)}
-                          className={`flex items-center rounded-full px-2 py-1 text-xs font-semibold transition-colors ${
-                            active
-                              ? "bg-emerald-500 text-white"
-                              : "bg-slate-300 text-slate-700"
-                          }`}
-                          aria-pressed={active}
-                        >
-                          <span className="px-2">
-                            {active ? "ON" : "OFF"}
-                          </span>
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white">
-                            <span
-                              className={`h-3 w-3 rounded-full ${
-                                active ? "bg-emerald-500" : "bg-slate-400"
-                              }`}
-                            />
-                          </span>
-                        </button>
-                      </div>
-                      <FieldDescription className="text-center text-[11px] text-slate-500">
-                        {active
-                          ? "สถานะ: ใช้งานได้"
-                          : "สถานะ: ไม่ให้ใช้งาน"}
+                    <Field>
+                      <Input
+                        id="admin-confirm-password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(event) =>
+                          setConfirmPassword(event.target.value)
+                        }
+                        placeholder="Confirm Password"
+                        required
+                        disabled={isLoading}
+                        className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-400"
+                      />
+                      <FieldDescription className="mt-1 text-center text-[11px] text-slate-500">
+                        รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร
                       </FieldDescription>
                     </Field>
                     {error && (
@@ -140,9 +147,12 @@ export default function NewAdminPage() {
                     <Field>
                       <Button
                         type="submit"
+                        disabled={isLoading}
                         className="mt-2 w-full rounded-full bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-900"
                       >
-                        เพิ่มบัญชีผู้ดูแลระบบ
+                        {isLoading
+                          ? "กำลังเพิ่มบัญชีผู้ดูแลระบบ..."
+                          : "เพิ่มบัญชีผู้ดูแลระบบ"}
                       </Button>
                     </Field>
                   </FieldGroup>

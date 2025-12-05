@@ -2,7 +2,6 @@
 import { apiUrl } from "@/lib/apiClient"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -12,11 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-} from "@/components/ui/field"
+import { Field, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 export function LoginForm({
@@ -130,12 +125,6 @@ export function LoginForm({
                 >
                   {isLoading ? "Logging in..." : "Log In"}
                 </Button>
-                <FieldDescription className="mt-3 text-center text-xs text-slate-600">
-                  Don&apos;t have an account?{" "}
-                  <Link href="/signup" className="font-semibold text-sky-700">
-                    Sign up
-                  </Link>
-                </FieldDescription>
               </Field>
             </FieldGroup>
           </form>
