@@ -99,6 +99,15 @@
         "properties": {
           "status": { "type": "string", "enum": ["existing", "new"], "example": "existing" }
         }
+      },
+      "CreateProfileResponse": {
+        "type": "object",
+        "properties": {
+          "profileId": { "type": "integer", "example": 42 },
+          "profileName": { "type": "string", "example": "Main" },
+          "profilePicture": { "type": "string", "nullable": true, "example": "/uploads/profile-pictures/1_1733350000000.png" }
+        },
+        "required": ["profileId", "profileName"]
       }
     }
   },
@@ -344,6 +353,42 @@
         }
       }
     },
+    "/api/mobile/v1/profile/create": {
+      "post": {
+        "tags": ["Mobile Users"],
+        "summary": "Create profile",
+        "description": "Create a user profile. Send either an image file (multipart) or a public image URL.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileName": { "type": "string" },
+                  "file": { "type": "string", "format": "binary", "description": "Image file (jpg, jpeg, png, webp)" },
+                  "profilePicture": { "type": "string", "format": "uri", "description": "Public image URL (alternative to file)" }
+                },
+                "required": ["profileName"]
+              },
+              "encoding": {
+                "file": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Profile created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateProfileResponse" } } }
+          },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
     "/api/mobile/v1/example/protected-route": {
       "get": {
         "tags": ["Examples"],
@@ -372,4 +417,3 @@
     }
   }
 }
-
