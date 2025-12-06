@@ -1,4 +1,4 @@
-import { User } from "@supabase/supabase-js";
+import { AuthApiError, User } from "@supabase/supabase-js";
 import { Prisma } from "@prisma/client";
 import { ServiceError } from "@/server/common/errors";
 import {
@@ -7,6 +7,7 @@ import {
   findUserBySupabaseOrEmail,
   updateUserAccount,
 } from "@/server/users/users.repository";
+import { deleteSupabaseUser } from "@/server/supabase/admin";
 import {
   PublicUserAccount,
   serializeUserAccount,
@@ -124,7 +125,21 @@ export async function deleteAdminAccount({
   }
 
   try {
-    await deleteUserAccount(where);
+    const deletedUser = await deleteUserAccount(where);
+
+    if (deletedUser.supabaseUserId) {
+      const { error } = await deleteSupabaseUser(deletedUser.supabaseUserId);
+
+      if (
+        error &&
+        (!(error instanceof AuthApiError) || error.status !== 404)
+      ) {
+        throw new ServiceError(502, {
+          error: "ไม่สามารถลบบัญชีบน Supabase ได้",
+          supabaseError: error.message,
+        });
+      }
+    }
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
