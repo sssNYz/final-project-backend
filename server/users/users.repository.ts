@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/server/db/client";
+import { prisma } from "@/lib/prisma";
 
 function buildUserLookupWhere(
   supabaseUserId: string,

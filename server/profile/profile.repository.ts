@@ -1,4 +1,4 @@
-import { prisma } from "../db/client";
+import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 
