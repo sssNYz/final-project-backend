@@ -1,7 +1,7 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Search, Trash2, User2 } from "lucide-react"
 
@@ -39,10 +39,11 @@ import {
 type AccountRole = "admin" | "member"
 
 type AdminAccount = {
+  userId: number
   email: string
   role: AccountRole
   active: boolean
-  lastLogin: string
+  lastLogin: string | null
 }
 
 const ROLE_LABELS: Record<AccountRole, string> = {
@@ -50,41 +51,53 @@ const ROLE_LABELS: Record<AccountRole, string> = {
   member: "สมาชิก",
 }
 
-const initialAccounts: AdminAccount[] = [
-  {
-    email: "Sunny@gmail.com",
-    role: "admin",
-    active: true,
-    lastLogin: "18/03/2025",
-  },
-  {
-    email: "Dook@gmail.com",
-    role: "member",
-    active: true,
-    lastLogin: "23/02/2025",
-  },
-  {
-    email: "Deer@gmail.com",
-    role: "member",
-    active: true,
-    lastLogin: "01/05/2024",
-  },
-  {
-    email: "Cartoon@gmail.com",
-    role: "member",
-    active: false,
-    lastLogin: "16/01/2024",
-  },
-]
-
 const PAGE_SIZE = 4
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<AdminAccount[]>(initialAccounts)
+  const [accounts, setAccounts] = useState<AdminAccount[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [roleFilter, setRoleFilter] = useState<"all" | AccountRole>("all")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [searchEmail, setSearchEmail] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    async function fetchAccounts() {
+      try {
+        setIsLoading(true)
+        setLoadError(null)
+
+        const res = await fetch("/api/admin/v1/accounts/list")
+
+        const data = await res.json().catch(() => null)
+
+        if (!res.ok) {
+          setLoadError(
+            (data && (data.error as string | undefined)) ||
+              "โหลดข้อมูลบัญชีผู้ใช้ไม่สำเร็จ",
+          )
+          return
+        }
+
+        const items = (data?.accounts ?? []) as {
+          userId: number
+          email: string
+          role: AccountRole
+          active: boolean
+          lastLogin: string | null
+        }[]
+
+        setAccounts(items)
+      } catch {
+        setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลบัญชีผู้ใช้")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAccounts()
+  }, [])
 
   const filteredAccounts = useMemo(() => {
     const search = searchEmail.trim().toLowerCase()
@@ -129,25 +142,51 @@ export default function AccountsPage() {
     setCurrentPage(page)
   }
 
-  function handleToggleStatus(email: string) {
+  function handleToggleStatus(userId: number) {
     setAccounts((current) =>
       current.map((account) =>
-        account.email === email
+        account.userId === userId
           ? { ...account, active: !account.active }
           : account,
       ),
     )
   }
 
-  function handleDeleteAccount(email: string) {
+  async function handleDeleteAccount(account: AdminAccount) {
     const confirmed = window.confirm(
-      `ต้องการลบบัญชีผู้ใช้ ${email} หรือไม่?`,
+      `ต้องการลบบัญชีผู้ใช้ ${account.email} หรือไม่?`,
     )
     if (!confirmed) return
 
-    setAccounts((current) =>
-      current.filter((account) => account.email !== email),
-    )
+    setLoadError(null)
+
+    try {
+      const validId =
+        typeof account.userId === "number" && Number.isInteger(account.userId) && account.userId > 0
+          ? String(account.userId)
+          : "0"
+      const deleteUrl = `/api/admin/v1/accounts/${validId}?email=${encodeURIComponent(account.email)}`
+
+      const res = await fetch(deleteUrl, {
+        method: "DELETE",
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setLoadError(
+          (data && (data.error as string | undefined)) ||
+            "ไม่สามารถลบบัญชีผู้ใช้งานได้",
+        )
+        return
+      }
+
+      setAccounts((current) =>
+        current.filter((item) => item.userId !== account.userId),
+      )
+    } catch {
+      setLoadError("เกิดข้อผิดพลาดในการลบบัญชีผู้ใช้งาน")
+    }
   }
 
   return (
@@ -239,11 +278,17 @@ export default function AccountsPage() {
 
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
                   <p>
-                    พบผู้ใช้ทั้งหมด{" "}
-                    <span className="font-semibold text-slate-800">
-                      {filteredAccounts.length}
-                    </span>{" "}
-                    บัญชี
+                    {isLoading ? (
+                      <span>กำลังโหลดข้อมูลบัญชีผู้ใช้งาน...</span>
+                    ) : (
+                      <>
+                        พบผู้ใช้ทั้งหมด{" "}
+                        <span className="font-semibold text-slate-800">
+                          {filteredAccounts.length}
+                        </span>{" "}
+                        บัญชี
+                      </>
+                    )}
                   </p>
                   <Button
                     size="sm"
@@ -257,6 +302,10 @@ export default function AccountsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {loadError && (
+              <p className="text-sm text-red-500">{loadError}</p>
+            )}
 
             <Card className="overflow-hidden">
               <CardContent className="p-0">
@@ -283,7 +332,7 @@ export default function AccountsPage() {
                   <TableBody>
                     {paginatedAccounts.map((account) => (
                       <TableRow
-                        key={account.email}
+                        key={account.userId}
                         className="even:bg-slate-50/70"
                       >
                         <TableCell className="px-4 py-3 text-sm font-medium text-slate-800">
@@ -296,7 +345,7 @@ export default function AccountsPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              handleToggleStatus(account.email)
+                              handleToggleStatus(account.userId)
                             }
                             className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors ${
                               account.active
@@ -324,7 +373,7 @@ export default function AccountsPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              handleDeleteAccount(account.email)
+                              handleDeleteAccount(account)
                             }
                             className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200"
                             aria-label={`ลบบัญชีผู้ใช้ ${account.email}`}
@@ -334,7 +383,7 @@ export default function AccountsPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {paginatedAccounts.length === 0 && (
+                    {!isLoading && paginatedAccounts.length === 0 && (
                       <TableRow>
                         <TableCell
                           colSpan={5}

@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export function SiteHeader() {
-  const [userEmail] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-    return window.localStorage.getItem("currentUserEmail")
-  })
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const storedEmail = window.localStorage.getItem("currentUserEmail")
+    setUserEmail(storedEmail)
+  }, [])
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b bg-gradient-to-r from-slate-600 to-sky-600 text-white transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">

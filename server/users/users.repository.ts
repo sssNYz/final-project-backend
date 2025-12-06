@@ -36,3 +36,19 @@ export async function updateUserAccount(
     data,
   });
 }
+
+export async function findAllUserAccounts() {
+  return prisma.userAccount.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+export async function deleteUserAccount(
+  where: Prisma.UserAccountWhereUniqueInput
+) {
+  return prisma.userAccount.delete({
+    where,
+  });
+}
