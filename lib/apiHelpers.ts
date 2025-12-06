@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "./auth";
 import { User } from "@supabase/supabase-js";
-import { prisma } from "@/server/db/client";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Interface for authenticated user context

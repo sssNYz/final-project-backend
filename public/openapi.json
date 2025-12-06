@@ -108,6 +108,36 @@
           "profilePicture": { "type": "string", "nullable": true, "example": "/uploads/profile-pictures/1_1733350000000.png" }
         },
         "required": ["profileId", "profileName"]
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "profileId": { "type": "integer", "example": 10 },
+          "profileName": { "type": "string", "example": "Main" },
+          "profilePicture": { "type": "string", "nullable": true, "example": "/uploads/profile-pictures/1_1733350000000.png" }
+        },
+        "required": ["profileId", "profileName"]
+      },
+      "ListProfilesResponse": {
+        "type": "object",
+        "properties": {
+          "profiles": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserProfile" },
+            "example": [
+              { "profileId": 1, "profileName": "Main", "profilePicture": null },
+              { "profileId": 2, "profileName": "Work", "profilePicture": "/uploads/profile-pictures/1_1733351234567.png" }
+            ]
+          }
+        },
+        "required": ["profiles"]
+      },
+      "DeleteProfileResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "example": "Profile deleted successfully" }
+        },
+        "required": ["message"]
       }
     }
   },
@@ -412,6 +442,85 @@
         "responses": {
           "200": { "description": "Success", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "Data created successfully" }, "userId": { "type": "integer", "example": 123 }, "data": { "type": "object", "additionalProperties": true } } } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    }
+    ,
+    "/api/mobile/v1/profile/list": {
+      "get": {
+        "tags": ["Mobile Users"],
+        "summary": "List current user's profiles",
+        "description": "Returns all profiles for the authenticated user.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Profiles list",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ListProfilesResponse" } } }
+          },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/profile/update": {
+      "patch": {
+        "tags": ["Mobile Users"],
+        "summary": "Update a profile",
+        "description": "Update a profile's name or picture. Send either an image file (multipart) or a public image URL. At least one of profileName, file, profilePicture must be provided.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer", "format": "int32" },
+                  "profileName": { "type": "string" },
+                  "file": { "type": "string", "format": "binary", "description": "Image file (jpg, jpeg, png, webp)" },
+                  "profilePicture": { "type": "string", "format": "uri", "description": "Public image URL (alternative to file)" }
+                },
+                "required": ["profileId"]
+              },
+              "encoding": {
+                "file": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateProfileResponse" } } }
+          },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Profile not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/profile/delete": {
+      "delete": {
+        "tags": ["Mobile Users"],
+        "summary": "Delete a profile",
+        "description": "Delete a profile by ID.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "description": "Profile ID to delete",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32", "example": 2 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteProfileResponse" } } } },
+          "400": { "description": "Invalid profileId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Profile not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
     }
