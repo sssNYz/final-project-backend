@@ -36,7 +36,7 @@ export function LoginForm({
     try {
       setIsLoading(true)
 
-      const res = await fetch(apiUrl("/api/admin/signin"), {
+      const res = await fetch(apiUrl("/api/admin/v1/signin"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

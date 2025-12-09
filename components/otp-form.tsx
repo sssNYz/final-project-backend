@@ -51,7 +51,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
     try {
       setIsLoading(true)
 
-      const res = await fetch(apiUrl("/api/admin/verifyOtp"), {
+      const res = await fetch(apiUrl("/api/admin/v1/verifyOtp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -85,7 +85,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       }
 
       // 4) Call /api/admin/sync-admin
-      const syncRes = await fetch(apiUrl("/api/admin/sync-admin"), {
+      const syncRes = await fetch(apiUrl("/api/admin/v1/sync-admin"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

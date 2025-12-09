@@ -11,8 +11,17 @@ services:
     volumes:
       - db-data:/var/lib/mysql
 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    environment:
+      - PMA_HOST=db          # ← Change from "mysql" to "db"
+      - PMA_USER=root
+      - PMA_PASSWORD=s31122546  # ← Change to match MySQL password
+    ports:
+      - "8080:80"
+    depends_on:
+      - db                    # ← Add this so phpMyAdmin waits for MySQL
+
 volumes:
   db-data:
     driver: local
-
-
