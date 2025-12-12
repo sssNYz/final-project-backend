@@ -368,7 +368,7 @@ export default function MedicinesPage() {
                                 event.target.value,
                               )
                             }
-                            className="h-9 rounded-full bg-white text-xs"
+                            className="h-9  bg-white text-xs"
                             placeholder="เช่น https://.../medicine.png"
                           />
                           <p className="text-[11px] text-slate-400">

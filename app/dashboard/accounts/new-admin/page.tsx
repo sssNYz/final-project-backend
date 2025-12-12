@@ -55,7 +55,7 @@ export default function NewAdminPage() {
     try {
       setIsLoading(true)
 
-      const res = await fetch(apiUrl("/api/admin/signup"), {
+      const res = await fetch(apiUrl("/api/admin/v1/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

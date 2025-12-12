@@ -68,7 +68,7 @@ export default function AccountsPage() {
         setIsLoading(true)
         setLoadError(null)
 
-        const res = await fetch("/api/admin/v1/accounts/list")
+        const res = await fetch("/api/admin/v1/users/list")
 
         const data = await res.json().catch(() => null)
 
@@ -165,7 +165,7 @@ export default function AccountsPage() {
         typeof account.userId === "number" && Number.isInteger(account.userId) && account.userId > 0
           ? String(account.userId)
           : "0"
-      const deleteUrl = `/api/admin/v1/accounts/${validId}?email=${encodeURIComponent(account.email)}`
+      const deleteUrl = `/api/admin/v1/users/${validId}?email=${encodeURIComponent(account.email)}`
 
       const res = await fetch(deleteUrl, {
         method: "DELETE",

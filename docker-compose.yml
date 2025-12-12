@@ -14,13 +14,23 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     environment:
-      - PMA_HOST=db          # ← Change from "mysql" to "db"
-      - PMA_USER=root
-      - PMA_PASSWORD=s31122546  # ← Change to match MySQL password
+      - PMA_HOST=db          # ← Change from "mysql" to "db" 
     ports:
       - "8080:80"
     depends_on:
-      - db                    # ← Add this so phpMyAdmin waits for MySQL
+      - db       
+
+  nginx:
+    image: nginx:alpine
+    container_name: final_project_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"  # Main port for all services
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - phpmyadmin             
 
 volumes:
   db-data:
