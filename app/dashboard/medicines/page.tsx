@@ -334,16 +334,16 @@ export default function MedicinesPage() {
           />
           <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <Card className="shadow-sm">
-              <CardHeader className="pb-3">
+              {/* <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold text-slate-800">
                   Filter
                 </CardTitle>
-              </CardHeader>
+              </CardHeader> */}
               <CardContent className="space-y-4 pt-1">
-                <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
+                {/* <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
                   <Pill className="h-4 w-4" />
                   <span>ข้อมูลยา</span>
-                </div>
+                </div> */}
                 {editingId && (
                   <form
                     onSubmit={handleFormSubmit}
@@ -578,65 +578,61 @@ export default function MedicinesPage() {
                   </form>
                 )}
 
-                <div className="space-y-3 text-sm">
-                  <div className="w-full max-w-xs">
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        placeholder="ชื่อสามัญทางยาไทยและอังกฤษ/ชื่อการค้า"
-                        value={searchTerm}
-                        onChange={(event) => {
-                          setSearchTerm(event.target.value)
-                          setCurrentPage(1)
-                        }}
-                        className="w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
-                      />
-                      <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      size="sm"
-                      className="rounded-full bg-slate-700 px-5 text-xs font-semibold text-white hover:bg-slate-800"
-                      type="button"
-                    >
-                      <Pill className="h-4 w-4" />
-                      ข้อมูลยา
-                    </Button>
-
-                    <Select
-                      value={usageFilter}
-                      onValueChange={(value) => {
-                        setUsageFilter(value as "all" | UsageType)
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="ชื่อสามัญทางยาไทยและอังกฤษ/ชื่อการค้า"
+                      value={searchTerm}
+                      onChange={(event) => {
+                        setSearchTerm(event.target.value)
                         setCurrentPage(1)
                       }}
-                    >
-                      <SelectTrigger className="h-9 rounded-full border-none bg-slate-700/90 px-4 text-xs font-medium text-white hover:bg-slate-800/90">
-                        <SelectValue placeholder="รูปแบบการใช้" />
-                      </SelectTrigger>
-                      <SelectContent align="start">
-                        <SelectItem value="oral">
-                          ยากิน
-                        </SelectItem>
-                        <SelectItem value="topical">
-                          ยาใช้ภายนอก
-                        </SelectItem>
-                        <SelectItem value="all">
-                          ทั้งหมด
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Button
-                      size="sm"
-                      className="rounded-full bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"
-                      type="button"
-                      onClick={openCreateForm}
-                    >
-                      + เพิ่มยาใหม่
-                    </Button>
+                      className="w-80 max-w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
+                    />
+                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                   </div>
+
+                  {/* <Button
+                    size="sm"
+                    className="rounded-full bg-slate-700 px-5 text-xs font-semibold text-white hover:bg-slate-800"
+                    type="button"
+                  >
+                    <Pill className="h-4 w-4" />
+                    ข้อมูลยา
+                  </Button> */}
+
+                  <Select
+                    value={usageFilter}
+                    onValueChange={(value) => {
+                      setUsageFilter(value as "all" | UsageType)
+                      setCurrentPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="h-9 rounded-full border-none bg-slate-700/90 px-4 text-xs font-medium text-white hover:bg-slate-800/90">
+                      <SelectValue placeholder="รูปแบบการใช้" />
+                    </SelectTrigger>
+                    <SelectContent align="start">
+                      <SelectItem value="oral">
+                        ยากิน
+                      </SelectItem>
+                      <SelectItem value="topical">
+                        ยาใช้ภายนอก
+                      </SelectItem>
+                      <SelectItem value="all">
+                        ทั้งหมด
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    size="sm"
+                    className="rounded-full bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"
+                    type="button"
+                    onClick={openCreateForm}
+                  >
+                    + เพิ่มยาใหม่
+                  </Button>
                 </div>
                 <div className="text-sm text-slate-600">
                   พบข้อมูลยา{" "}

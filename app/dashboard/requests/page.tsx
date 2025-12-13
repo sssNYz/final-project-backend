@@ -304,18 +304,19 @@ export default function RequestsPage() {
           />
           <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-slate-800">
-                  Filter
-                </CardTitle>
-              </CardHeader>
               <CardContent className="space-y-3 pt-1">
                 <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-400 text-[11px]">
-                      !
-                    </span>
-                    <span>คำร้องจากผู้ใช้</span>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="อีเมลผู้ส่งคำร้อง"
+                      value={searchEmail}
+                      onChange={(event) =>
+                        setSearchEmail(event.target.value)
+                      }
+                      className="w-80 max-w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
+                    />
+                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                   </div>
 
                   <Select
@@ -374,45 +375,30 @@ export default function RequestsPage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-
-                  <div className="relative ml-auto">
-                    <Input
-                      type="text"
-                      placeholder="อีเมลผู้ส่งคำร้อง"
-                      value={searchEmail}
-                      onChange={(event) =>
-                        setSearchEmail(event.target.value)
-                      }
-                      className="w-64 rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
-                    />
-                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
-                  <span>เริ่มต้นที่</span>
-                  <div className="relative">
-                    <Input
-                      type="date"
-                      value={fromDate}
-                      onChange={(event) =>
-                        setFromDate(event.target.value)
-                      }
-                      className="w-40 rounded-full bg-slate-100 pr-10 text-xs"
-                    />
-                    <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                  </div>
-                  <span>จนถึง</span>
-                  <div className="relative">
-                    <Input
-                      type="date"
-                      value={toDate}
-                      onChange={(event) =>
-                        setToDate(event.target.value)
-                      }
-                      className="w-40 rounded-full bg-slate-100 pr-10 text-xs"
-                    />
-                    <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                 <span>วันที่ส่งคำร้อง</span>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        value={fromDate}
+                        onChange={(event) => setFromDate(event.target.value)}
+                        className="w-40 rounded-full bg-slate-100"
+                      />
+                      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                    <span>ถึง</span>
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        value={toDate}
+                        onChange={(event) => setToDate(event.target.value)}
+                        className="w-40 rounded-full bg-slate-100"
+                      />
+                      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -424,44 +410,77 @@ export default function RequestsPage() {
                   รายการคำร้อง
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4 pt-1 md:flex-row">
-                <div className="flex w-full flex-row gap-3 md:w-56 md:flex-col">
-                  <div className="flex flex-1 items-center gap-3 rounded-r-full bg-orange-500 px-4 py-2 text-xs font-semibold text-white">
-                    <span className="h-10 w-2 rounded-full bg-orange-300" />
-                    <div className="flex flex-col">
-                      <span className="text-lg font-bold leading-tight">
-                        {pendingCount}
-                      </span>
-                      <span className="text-[11px] leading-tight">
-                        รอยืนยัน
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-1 items-center gap-3 rounded-r-full bg-red-500 px-4 py-2 text-xs font-semibold text-white">
-                    <span className="h-10 w-2 rounded-full bg-red-300" />
-                    <div className="flex flex-col">
-                      <span className="text-lg font-bold leading-tight">
-                        {rejectedCount}
-                      </span>
-                      <span className="text-[11px] leading-tight">
-                        ปฏิเสธ
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-1 items-center gap-3 rounded-r-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-white">
-                    <span className="h-10 w-2 rounded-full bg-emerald-300" />
-                    <div className="flex flex-col">
-                      <span className="text-lg font-bold leading-tight">
-                        {completedCount}
-                      </span>
-                      <span className="text-[11px] leading-tight">
-                        เสร็จสิ้น
-                      </span>
-                    </div>
-                  </div>
+              <CardContent className="space-y-3 pt-1">
+                <div className="grid gap-3 text-xs font-semibold sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter((current) =>
+                        current === "pending" ? "all" : "pending",
+                      )
+                      setCurrentPage(1)
+                    }}
+                    aria-pressed={statusFilter === "pending"}
+                    className={`flex flex-col items-center justify-center rounded-xl border px-4 py-3 transition ${
+                      statusFilter === "pending"
+                        ? "border-orange-500 bg-orange-100 text-orange-800 shadow-sm"
+                        : "border-orange-200 bg-orange-50 text-orange-700 hover:border-orange-400 hover:bg-orange-100"
+                    }`}
+                  >
+                    <span className="text-lg font-bold leading-tight">
+                      {pendingCount}
+                    </span>
+                    <span className="mt-1 text-[11px] leading-tight">
+                      รอยืนยัน
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter((current) =>
+                        current === "rejected" ? "all" : "rejected",
+                      )
+                      setCurrentPage(1)
+                    }}
+                    aria-pressed={statusFilter === "rejected"}
+                    className={`flex flex-col items-center justify-center rounded-xl border px-4 py-3 transition ${
+                      statusFilter === "rejected"
+                        ? "border-red-500 bg-red-100 text-red-800 shadow-sm"
+                        : "border-red-200 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100"
+                    }`}
+                  >
+                    <span className="text-lg font-bold leading-tight">
+                      {rejectedCount}
+                    </span>
+                    <span className="mt-1 text-[11px] leading-tight">
+                      ปฏิเสธ
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter((current) =>
+                        current === "completed" ? "all" : "completed",
+                      )
+                      setCurrentPage(1)
+                    }}
+                    aria-pressed={statusFilter === "completed"}
+                    className={`flex flex-col items-center justify-center rounded-xl border px-4 py-3 transition ${
+                      statusFilter === "completed"
+                        ? "border-emerald-500 bg-emerald-100 text-emerald-800 shadow-sm"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-100"
+                    }`}
+                  >
+                    <span className="text-lg font-bold leading-tight">
+                      {completedCount}
+                    </span>
+                    <span className="mt-1 text-[11px] leading-tight">
+                      เสร็จสิ้น
+                    </span>
+                  </button>
                 </div>
 
-                <div className="flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-700">

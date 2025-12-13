@@ -68,12 +68,31 @@ export function AccountUsageTable({
   }
 
   const hasSelection = selectedNames.length > 0
+  const allSelected = rows.length > 0 && selectedNames.length === rows.length
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedNames([])
+    } else {
+      setSelectedNames(rows.map((row) => row.name))
+    }
+  }
 
   return (
     <>
       <Table>
         <TableHeader>
           <TableRow className="bg-slate-700">
+            {selectable && (
+              <TableHead className="w-10 px-4 py-3 text-center text-xs font-semibold text-white">
+                <input
+                  type="checkbox"
+                  aria-label="เลือกทั้งหมด"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                />
+              </TableHead>
+            )}
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
               ชื่อบัญชี
             </TableHead>

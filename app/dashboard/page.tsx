@@ -9,7 +9,6 @@ import { CalendarDays, ChartBar } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -38,7 +37,6 @@ const initialAccountRows: AccountRow[] = [
 
 export default function Page() {
   const [rows, setRows] = useState(initialAccountRows)
-  const [selectionMode, setSelectionMode] = useState(false)
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
 
@@ -59,17 +57,6 @@ export default function Page() {
       return afterFrom && beforeTo
     })
   }, [rows, fromDate, toDate])
-
-  function handleDeleteAll() {
-    if (rows.length === 0) return
-    const confirmed = window.confirm("ต้องการลบข้อมูลทั้งหมดหรือไม่?")
-    if (!confirmed) return
-    setRows([])
-  }
-
-  function toggleSelectionMode() {
-    setSelectionMode((prev) => !prev)
-  }
 
   function handleDeleteSelected(names: string[]) {
     setRows((current) =>
@@ -96,16 +83,7 @@ export default function Page() {
           />
           <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <Card className="shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-slate-800">
-                  Filter
-                </CardTitle>
-              </CardHeader>
               <CardContent className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
-                  <ChartBar className="h-4 w-4" />
-                  <span>ปริมาณข้อมูล</span>
-                </div>
                 <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
                   <span>วันที่รับประทานยา</span>
                   <div className="flex items-center gap-2">
@@ -129,29 +107,6 @@ export default function Page() {
                       <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     </div>
                   </div>
-                  <div className="ml-auto flex flex-wrap items-center gap-2">
-                    <Button
-                      size="sm"
-                      className="rounded-full bg-orange-500 px-4 text-xs font-semibold text-white hover:bg-orange-600"
-                      type="button"
-                      onClick={handleDeleteAll}
-                    >
-                      ลบข้อมูลทั้งหมด
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      type="button"
-                      onClick={toggleSelectionMode}
-                      className={`rounded-full border-orange-400 px-4 text-xs font-semibold hover:bg-orange-200 ${
-                        selectionMode
-                          ? "bg-orange-200 text-orange-800"
-                          : "bg-orange-100 text-orange-700"
-                      }`}
-                    >
-                      ลบข้อมูลทีละรายการ
-                    </Button>
-                  </div>
                 </div>
                 <p className="text-sm text-slate-600">
                   พบรายการ{" "}
@@ -163,9 +118,9 @@ export default function Page() {
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
               <Card className="flex flex-col items-center justify-center py-6">
-                <div className="text-sm font-medium text-slate-700">
+                {/* <div className="text-sm font-medium text-slate-700">
                   ปริมาณข้อมูลในระบบ
-                </div>
+                </div> */}
                 <div className="mt-4 flex items-center justify-center">
                   <div className="relative h-40 w-40">
                     <div className="h-full w-full rounded-full bg-gradient-to-br from-sky-600 via-sky-400 to-cyan-400" />
@@ -182,7 +137,7 @@ export default function Page() {
                 <CardContent className="p-0">
                   <AccountUsageTable
                     rows={filteredRows}
-                    selectable={selectionMode}
+                    selectable
                     onDeleteSelected={handleDeleteSelected}
                   />
                 </CardContent>

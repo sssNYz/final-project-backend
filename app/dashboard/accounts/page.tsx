@@ -204,22 +204,33 @@ export default function AccountsPage() {
         <main className="flex flex-1 flex-col bg-background">
           <DashboardPageHeader
             title="บัญชีผู้ใช้งาน"
-            description="จัดการสิทธิการใช้งานและสถานะของบัญชีผู้ดูแลระบบ"
+            description="จัดการสิทธิการใช้งานและสถานะของบัญชี"
           />
           <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <Card className="shadow-sm">
-              <CardHeader className="pb-1">
+              {/* <CardHeader className="pb-1">
                 <CardTitle className="text-base font-semibold text-slate-800">
                   Filter
                 </CardTitle>
-              </CardHeader>
+              </CardHeader> */}
               <CardContent className="space-y-4 pt-0">
                 <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
+                  {/* <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
                     <User2 className="h-4 w-4" />
                     <span>บัญชีผู้ใช้งาน</span>
+                  </div> */}
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="อีเมลสมาชิก"
+                      value={searchEmail}
+                      onChange={(event) =>
+                        setSearchEmail(event.target.value)
+                      }
+                      className="w-80 max-w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
+                    />
+                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                   </div>
-
                   <Select
                     value={roleFilter}
                     onValueChange={(value) =>
@@ -262,18 +273,15 @@ export default function AccountsPage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="relative ml-auto">
-                    <Input
-                      type="text"
-                      placeholder="อีเมลสมาชิก"
-                      value={searchEmail}
-                      onChange={(event) =>
-                        setSearchEmail(event.target.value)
-                      }
-                      className="w-56 rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
-                    />
-                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                  </div>
+                  <Button
+                    size="sm"
+                    className="rounded-full bg-orange-500 px-4 text-xs font-semibold text-white hover:bg-orange-600"
+                    asChild
+                  >
+                    <a href="/dashboard/accounts/new-admin">
+                      + เพิ่มบัญชีผู้ดูแลระบบ
+                    </a>
+                  </Button>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
@@ -290,15 +298,6 @@ export default function AccountsPage() {
                       </>
                     )}
                   </p>
-                  <Button
-                    size="sm"
-                    className="rounded-full bg-orange-500 px-4 text-xs font-semibold text-white hover:bg-orange-600"
-                    asChild
-                  >
-                    <a href="/dashboard/accounts/new-admin">
-                      + เพิ่มบัญชีผู้ดูแลระบบ
-                    </a>
-                  </Button>
                 </div>
               </CardContent>
             </Card>
