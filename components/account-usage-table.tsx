@@ -97,7 +97,7 @@ export function AccountUsageTable({
               บัญชีผู้ใช้
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              จำนวนผู้ป่วย
+              จำนวนบัญชีผู้ใช้ย่อย
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
               จำนวนรายการใช้ยา
@@ -108,7 +108,7 @@ export function AccountUsageTable({
           {paginatedRows.map((row) => (
             <TableRow key={row.name} className="even:bg-slate-50/60">
               {selectable && (
-                <TableCell className="w-10 text-center text-sm text-slate-700">
+                <TableCell className="w-10 px-4 py-3 text-center text-sm text-slate-700">
                   <input
                     type="checkbox"
                     aria-label={`เลือก ${row.name}`}
@@ -117,13 +117,13 @@ export function AccountUsageTable({
                   />
                 </TableCell>
               )}
-              <TableCell className="text-center text-sm font-medium text-slate-800">
+              <TableCell className="px-4 py-3 text-center text-sm font-medium text-slate-800">
                 {row.name}
               </TableCell>
-              <TableCell className="text-center text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
                 {row.profiles}
               </TableCell>
-              <TableCell className="text-center text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
                 {row.rows}
               </TableCell>
             </TableRow>
