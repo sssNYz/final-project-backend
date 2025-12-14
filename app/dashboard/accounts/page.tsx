@@ -162,7 +162,9 @@ export default function AccountsPage() {
 
     try {
       const validId =
-        typeof account.userId === "number" && Number.isInteger(account.userId) && account.userId > 0
+        typeof account.userId === "number" &&
+        Number.isInteger(account.userId) &&
+        account.userId > 0
           ? String(account.userId)
           : "0"
       const deleteUrl = `/api/admin/v1/users/${validId}?email=${encodeURIComponent(account.email)}`

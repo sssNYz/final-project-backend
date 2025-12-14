@@ -94,13 +94,13 @@ export function AccountUsageTable({
               </TableHead>
             )}
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              ชื่อบัญชี
+              บัญชีผู้ใช้
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              จำนวนโปรไฟล์
+              จำนวนผู้ป่วย
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              จำนวนแถวรายการโปรไฟล์
+              จำนวนรายการใช้ยา
             </TableHead>
           </TableRow>
         </TableHeader>

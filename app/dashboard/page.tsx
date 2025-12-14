@@ -2,9 +2,9 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
-import { CalendarDays, ChartBar } from "lucide-react"
+import { CalendarDays } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
@@ -12,8 +12,6 @@ import { SiteHeader } from "@/components/site-header"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -26,37 +24,78 @@ type AccountRow = {
   name: string
   profiles: number
   rows: number
-  date: string
 }
 
-const initialAccountRows: AccountRow[] = [
-  { name: "บัญชีผู้ใช้ A", profiles: 3, rows: 120, date: "2025-03-01" },
-  { name: "บัญชีผู้ใช้ B", profiles: 5, rows: 240, date: "2025-03-10" },
-  { name: "บัญชีผู้ใช้ C", profiles: 2, rows: 86, date: "2025-03-20" },
-]
-
 export default function Page() {
-  const [rows, setRows] = useState(initialAccountRows)
+  const [rows, setRows] = useState<AccountRow[]>([])
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
-  const filteredRows = useMemo(() => {
-    if (!fromDate && !toDate) {
-      return rows
+  useEffect(() => {
+    async function fetchUsage() {
+      try {
+        setIsLoading(true)
+        setLoadError(null)
+
+        const params = new URLSearchParams()
+        if (fromDate) params.set("fromDate", fromDate)
+        if (toDate) params.set("toDate", toDate)
+
+        const query = params.toString()
+        const url = query
+          ? `/api/admin/v1/dashboard/usage?${query}`
+          : "/api/admin/v1/dashboard/usage"
+
+        const accessToken =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("accessToken")
+            : null
+
+        const headers: Record<string, string> = {}
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`
+        }
+
+        const res = await fetch(url, {
+          headers,
+        })
+        const data = await res.json().catch(() => null)
+
+        if (!res.ok) {
+          setLoadError(
+            (data && (data.error as string | undefined)) ||
+              "โหลดข้อมูลปริมาณการใช้ยาไม่สำเร็จ",
+          )
+          setRows([])
+          return
+        }
+
+        const items = (data?.items ?? []) as {
+          accountId: number
+          accountLabel: string
+          patientCount: number
+          medicationLogCount: number
+        }[]
+
+        const nextRows: AccountRow[] = items.map((item) => ({
+          name: item.accountLabel,
+          profiles: item.patientCount,
+          rows: item.medicationLogCount,
+        }))
+
+        setRows(nextRows)
+      } catch {
+        setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลปริมาณการใช้ยา")
+        setRows([])
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    return rows.filter((row) => {
-      const dateValue = new Date(row.date).getTime()
-      if (Number.isNaN(dateValue)) return true
-
-      const afterFrom = fromDate
-        ? dateValue >= new Date(fromDate).getTime()
-        : true
-      const beforeTo = toDate ? dateValue <= new Date(toDate).getTime() : true
-
-      return afterFrom && beforeTo
-    })
-  }, [rows, fromDate, toDate])
+    fetchUsage()
+  }, [fromDate, toDate])
 
   function handleDeleteSelected(names: string[]) {
     setRows((current) =>
@@ -109,40 +148,33 @@ export default function Page() {
                   </div>
                 </div>
                 <p className="text-sm text-slate-600">
-                  พบรายการ{" "}
-                  <span className="font-semibold">{filteredRows.length}</span>{" "}
-                  รายการ :
+                  {isLoading ? (
+                    <span>กำลังโหลดข้อมูล...</span>
+                  ) : (
+                    <>
+                      พบรายการ{" "}
+                      <span className="font-semibold">
+                        {rows.length}
+                      </span>{" "}
+                      บัญชี
+                    </>
+                  )}
                 </p>
+                {loadError && (
+                  <p className="text-xs text-red-500">{loadError}</p>
+                )}
               </CardContent>
             </Card>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
-              <Card className="flex flex-col items-center justify-center py-6">
-                {/* <div className="text-sm font-medium text-slate-700">
-                  ปริมาณข้อมูลในระบบ
-                </div> */}
-                <div className="mt-4 flex items-center justify-center">
-                  <div className="relative h-40 w-40">
-                    <div className="h-full w-full rounded-full bg-gradient-to-br from-sky-600 via-sky-400 to-cyan-400" />
-                    <div className="absolute inset-4 flex items-center justify-center rounded-full bg-background">
-                      <span className="text-3xl font-extrabold text-sky-700">
-                        78%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="overflow-hidden">
-                <CardContent className="p-0">
-                  <AccountUsageTable
-                    rows={filteredRows}
-                    selectable
-                    onDeleteSelected={handleDeleteSelected}
-                  />
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <AccountUsageTable
+                  rows={rows}
+                  selectable
+                  onDeleteSelected={handleDeleteSelected}
+                />
+              </CardContent>
+            </Card>
           </div>
         </main>
       </SidebarInset>
