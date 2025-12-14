@@ -5,7 +5,8 @@ import { ServiceError } from "@/server/common/errors";
 
 const ALLOWED_PROVIDERS: AuthProvider[] = ["email", "google", "both"];
 
-// GET → small docs for your API (like mobile one)
+// GET /api/admin/v1/sync-admin
+// ให้ข้อมูลวิธีใช้งาน API sync-admin (สำหรับอ้างอิง / ทดลองผ่าน Postman)
 export async function GET() {
   return NextResponse.json(
     {
@@ -50,17 +51,19 @@ export async function GET() {
   );
 }
 
-// POST → real logic
+// POST /api/admin/v1/sync-admin
+// ใช้ sync หรือสร้างบัญชีแอดมินใน Prisma หลังจาก auth กับ Supabase แล้ว
+// ตรวจสอบว่า token ใน header ตรงกับข้อมูลที่ส่งมาใน body ด้วย
 export async function POST(request: Request) {
   try {
-    // 1) check Supabase token
+    // 1) ตรวจสอบ Supabase token จาก header
     const supabaseUser = await requireAuth(request);
 
-    // 2) read body
+    // 2) อ่าน body
     const body = await request.json();
     const { supabaseUserId, email, provider, allowMerge } = body;
 
-    // 3) basic validate
+    // 3) ตรวจสอบค่าที่จำเป็น
     if (!supabaseUserId || !email || !provider) {
       return NextResponse.json(
         { error: "supabaseUserId, email, and provider are required" },
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4) check provider value
+    // 4) ตรวจสอบว่า provider อยู่ในชุดที่อนุญาต
     if (!ALLOWED_PROVIDERS.includes(provider as AuthProvider)) {
       return NextResponse.json(
         { error: "provider must be 'email', 'google', or 'both'" },

@@ -57,6 +57,8 @@ const data = {
   ],
 }
 
+// Sidebar หลักของหน้า Dashboard ฝั่งแอดมิน
+// แสดงเมนูนำทางไปยังหน้าจัดการบัญชีผู้ใช้, ข้อมูลยา, ปริมาณข้อมูล และรายการคำร้อง
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>

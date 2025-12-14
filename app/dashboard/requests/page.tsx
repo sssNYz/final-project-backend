@@ -158,6 +158,8 @@ const initialRequests: RequestRow[] = [
   },
 ]
 
+// หน้า Dashboard > รายการคำร้องจากผู้ใช้
+// ใช้ดู/กรองคำร้องตามหมวดหมู่ สถานะ ช่วงวันที่ และอีเมล พร้อมทั้งเปิดดูรายละเอียดคำร้องทีละรายการ
 function formatDisplayDate(isoDate: string) {
   const [year, month, day] = isoDate.split("-")
   if (!year || !month || !day) return isoDate

@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { withRole } from "@/lib/apiHelpers"
 import { getAccountUsageStats } from "@/server/dashboard/dashboard.service"
 
+// GET /api/admin/v1/dashboard/usage
+// ดึงสถิติการใช้ยาของผู้ใช้แต่ละบัญชี (จำนวนโปรไฟล์และจำนวน log การใช้ยา)
+// สามารถกรองตามช่วงวันที่ด้วย fromDate / toDate และอนุญาตเฉพาะผู้ใช้ที่มีสิทธิ์ Admin ขึ้นไป
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const fromDate = searchParams.get("fromDate")
@@ -38,4 +41,3 @@ export async function GET(request: NextRequest) {
     }
   })
 }
-

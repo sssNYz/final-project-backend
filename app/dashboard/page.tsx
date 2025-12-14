@@ -26,6 +26,9 @@ type AccountRow = {
   rows: number
 }
 
+// หน้า Dashboard หลัก (ปริมาณข้อมูลในระบบ)
+// แสดงสรุปจำนวนโปรไฟล์ผู้ใช้และจำนวน log การใช้ยาต่อบัญชี
+// พร้อมตัวกรองช่วงวันที่ และตารางสรุป
 export default function Page() {
   const [rows, setRows] = useState<AccountRow[]>([])
   const [fromDate, setFromDate] = useState("")
@@ -33,6 +36,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
+  // ดึงข้อมูลการใช้ยาตามช่วงวันที่จาก API เมื่อตัวกรองวันที่เปลี่ยน
   useEffect(() => {
     async function fetchUsage() {
       try {
@@ -97,6 +101,7 @@ export default function Page() {
     fetchUsage()
   }, [fromDate, toDate])
 
+  // ลบแถวที่ถูกเลือกออกจาก state (ฝั่ง UI เท่านั้น ไม่เรียก API ลบจริง)
   function handleDeleteSelected(names: string[]) {
     setRows((current) =>
       current.filter((row) => !names.includes(row.name)),

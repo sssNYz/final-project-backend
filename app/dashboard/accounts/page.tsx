@@ -53,6 +53,8 @@ const ROLE_LABELS: Record<AccountRole, string> = {
 
 const PAGE_SIZE = 4
 
+// หน้า Dashboard > บัญชีผู้ใช้งาน
+// แสดงรายการบัญชีแอดมิน/สมาชิก พร้อมตัวกรองสิทธิ์/สถานะ และปุ่มเพิ่ม/ลบ
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<AdminAccount[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -62,6 +64,7 @@ export default function AccountsPage() {
   const [searchEmail, setSearchEmail] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
 
+  // โหลดรายการบัญชีผู้ใช้งานจาก API เมื่อเปิดหน้า
   useEffect(() => {
     async function fetchAccounts() {
       try {
@@ -99,6 +102,7 @@ export default function AccountsPage() {
     fetchAccounts()
   }, [])
 
+  // กรองบัญชีตาม role, สถานะ (active/inactive) และอีเมล
   const filteredAccounts = useMemo(() => {
     const search = searchEmail.trim().toLowerCase()
 
@@ -121,6 +125,7 @@ export default function AccountsPage() {
     })
   }, [accounts, roleFilter, statusFilter, searchEmail])
 
+  // คำนวณข้อมูลสำหรับแบ่งหน้า (pagination)
   const { totalPages, safePage, paginatedAccounts } = useMemo(() => {
     const total = Math.max(1, Math.ceil(filteredAccounts.length / PAGE_SIZE))
     const page = Math.min(currentPage, total)
@@ -137,11 +142,13 @@ export default function AccountsPage() {
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
 
+  // เปลี่ยนหน้าปัจจุบันของตาราง
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
   }
 
+  // สลับสถานะ active/ inactive ใน UI (ยังไม่ผูกกับ API)
   function handleToggleStatus(userId: number) {
     setAccounts((current) =>
       current.map((account) =>
@@ -152,6 +159,7 @@ export default function AccountsPage() {
     )
   }
 
+  // ลบบัญชีผู้ใช้งานผ่าน API และอัปเดต state เมื่อสำเร็จ
   async function handleDeleteAccount(account: AdminAccount) {
     const confirmed = window.confirm(
       `ต้องการลบบัญชีผู้ใช้ ${account.email} หรือไม่?`,

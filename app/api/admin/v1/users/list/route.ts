@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { listAdminAccountsForDashboard } from "@/server/users/users.service";
 
+// GET /api/admin/v1/users/list
+// ดึงรายการบัญชีผู้ใช้งานฝั่งแอดมินทั้งหมด เพื่อใช้แสดงในหน้า Dashboard > บัญชีผู้ใช้งาน
 export async function GET() {
   try {
     const accounts = await listAdminAccountsForDashboard();

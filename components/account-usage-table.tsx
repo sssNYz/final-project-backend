@@ -33,6 +33,7 @@ export function AccountUsageTable({
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedNames, setSelectedNames] = useState<string[]>([])
 
+  // คำนวณจำนวนหน้า และแบ่งข้อมูลตาม pageSize
   const { totalPages, paginatedRows } = useMemo(() => {
     const total = Math.max(1, Math.ceil(rows.length / pageSize))
     const safePage = Math.min(currentPage, total)
@@ -47,11 +48,13 @@ export function AccountUsageTable({
   const canGoPrev = currentPage > 1
   const canGoNext = currentPage < totalPages
 
+  // เปลี่ยนหน้าปัจจุบันของตาราง
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
   }
 
+  // เลือก/ยกเลิกเลือกแถวตามชื่อบัญชี (ใช้สำหรับลบหลายรายการพร้อมกัน)
   function toggleSelect(name: string) {
     setSelectedNames((prev) =>
       prev.includes(name)
@@ -60,6 +63,7 @@ export function AccountUsageTable({
     )
   }
 
+  // เรียก callback ลบรายการที่ถูกเลือก และรีเซ็ตการเลือก/หน้า
   function deleteSelected() {
     if (!onDeleteSelected || selectedNames.length === 0) return
     onDeleteSelected(selectedNames)

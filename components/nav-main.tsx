@@ -27,6 +27,7 @@ export function NavMain({
     }[]
   }[]
 }) {
+  // เมนูหลักใน Sidebar สำหรับนำทางไปยังหน้าต่าง ๆ ของ Dashboard
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
