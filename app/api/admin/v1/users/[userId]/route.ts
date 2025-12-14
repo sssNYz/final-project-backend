@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withRole } from "@/lib/apiHelpers";
 import { deleteAdminAccount } from "@/server/users/users.service";
 import { ServiceError } from "@/server/common/errors";
@@ -7,12 +7,12 @@ import { ServiceError } from "@/server/common/errors";
 // ลบบัญชีผู้ใช้งานฝั่งแอดมินจากฐานข้อมูล โดยสามารถระบุจาก userId (path/body) หรือ email (query/body)
 // ต้องเป็นผู้ใช้ที่ล็อกอินและผ่านการตรวจสอบสิทธิ์แล้ว (withAuth)
 export async function DELETE(
-  request: Request,
-  context: { params: { userId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ userId: string }> }
 ) {
   return withRole(request, "Admin", async () => {
     try {
-      const idParam = context.params?.userId;
+      const { userId: idParam } = await context.params;
       const userId = Number.parseInt(idParam, 10);
       const { searchParams } = new URL(request.url);
       const email = searchParams.get("email");

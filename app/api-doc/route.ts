@@ -34,6 +34,8 @@ export async function GET() {
       .models { display: none !important; }
       /* Keep request editor visible; only hide response examples */
       .responses-table .response-col_description .example { display: none !important; }
+      .responses-wrapper .model-example { display: none !important; }
+      .responses-wrapper .examples-select { display: none !important; }
     </style>
   </head>
   <body>
@@ -41,9 +43,9 @@ export async function GET() {
       <div class="docs-header">
         <div class="docs-title">API Docs</div>
         <div class="controls" role="group" aria-label="Quick filters">
-          <button id="filter-all" class="btn active" title="Show all endpoints">All</button>
-          <button id="filter-mobile" class="btn" title="Show Mobile endpoints only">Mobile</button>
-          <button id="filter-admin" class="btn" title="Show Admin endpoints only">Admin</button>
+          <button id="filter-all" class="btn filter-btn active" title="Show all endpoints">All</button>
+          <button id="filter-mobile" class="btn filter-btn" title="Show Mobile endpoints only">Mobile</button>
+          <button id="filter-admin" class="btn filter-btn" title="Show Admin endpoints only">Admin</button>
           <span class="docs-sub">Use quick filter or search. Paste a token to authorize.</span>
           <span class="token-input" title="Paste access token to authorize requests">
             <input id="auth-token" type="text" placeholder="Bearer eyJhbGci... or just the token" />
@@ -58,6 +60,7 @@ export async function GET() {
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
     <script>
       window.onload = () => {
+        const STORAGE_KEY = 'swagger_bearer_token';
         const ui = SwaggerUIBundle({
           url: '/api/openapi',
           dom_id: '#swagger-ui',
@@ -89,7 +92,7 @@ export async function GET() {
 
         // Quick filter buttons
         function setActive(btn) {
-          document.querySelectorAll('.controls .btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.controls .filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
         }
         document.getElementById('filter-all').addEventListener('click', (e) => { setActive(e.currentTarget); setFilter(''); });
@@ -98,15 +101,27 @@ export async function GET() {
 
         // Quick bearer auth
         const tokenInput = document.getElementById('auth-token');
+        // restore token after refresh
+        try {
+          const saved = (localStorage.getItem(STORAGE_KEY) || '').trim();
+          if (saved) {
+            tokenInput.value = saved;
+            const value = saved.startsWith('Bearer ') ? saved : 'Bearer ' + saved;
+            ui.preauthorizeApiKey('bearerAuth', value);
+          }
+        } catch (e) { console.warn('Token restore failed', e); }
+
         document.getElementById('auth-apply').addEventListener('click', () => {
           const raw = (tokenInput.value || '').trim();
           if (!raw) return;
           const value = raw.startsWith('Bearer ') ? raw : 'Bearer ' + raw;
           try { ui.preauthorizeApiKey('bearerAuth', value); } catch (e) { console.warn('Preauthorize failed', e); }
+          try { localStorage.setItem(STORAGE_KEY, raw); } catch (e) { console.warn('Token save failed', e); }
         });
         document.getElementById('auth-clear').addEventListener('click', () => {
           tokenInput.value = '';
           try { if (ui && ui.authActions) ui.authActions.logout(); } catch (e) { console.warn('Logout failed', e); }
+          try { localStorage.removeItem(STORAGE_KEY); } catch (e) { console.warn('Token clear failed', e); }
         });
       };
     </script>

@@ -6,18 +6,19 @@
     "description": "API documentation for mobile and web clients. Most protected endpoints require a Supabase access token via Authorization: Bearer <token>."
   },
   "servers": [
-    { "url": "http://localhost:3000", "description": "Local Dev" }
+    { "url": "http://82.26.104.199:3000", "description": "Server" }
   ],
   "tags": [
     { "name": "Admin - Auth", "description": "Admin authentication and management" },
     { "name": "Admin - Users", "description": "Admin user management" },
     { "name": "Admin - Medicine", "description": "Admin medicine database management" },
+    { "name": "Admin - Dashboard", "description": "Admin dashboard statistics and reporting" },
     { "name": "Mobile - Auth", "description": "Mobile authentication and account sync" },
     { "name": "Mobile - Users", "description": "Mobile user profile operations" }
   ],
   "x-tagGroups": [
     { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users"] },
-    { "name": "Admin",  "tags": ["Admin - Auth", "Admin - Users", "Admin - Medicine"] }
+    { "name": "Admin",  "tags": ["Admin - Auth", "Admin - Users", "Admin - Medicine", "Admin - Dashboard"] }
   ],
   "components": {
     "securitySchemes": {
@@ -249,6 +250,26 @@
           "message": { "type": "string" }
         },
         "required": ["message"]
+      },
+      "AdminDashboardUsageItem": {
+        "type": "object",
+        "properties": {
+          "accountId": { "type": "integer" },
+          "accountLabel": { "type": "string" },
+          "patientCount": { "type": "integer" },
+          "medicationLogCount": { "type": "integer" }
+        },
+        "required": ["accountId", "accountLabel", "patientCount", "medicationLogCount"]
+      },
+      "AdminDashboardUsageResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminDashboardUsageItem" }
+          }
+        },
+        "required": ["items"]
       }
     }
   },
@@ -404,6 +425,36 @@
               }
             }
           },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/dashboard/usage": {
+      "get": {
+        "tags": ["Admin - Dashboard"],
+        "summary": "Get dashboard usage stats",
+        "description": "Get usage stats per account (profile count and medication log count). You can filter by date range using fromDate / toDate.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "fromDate",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date" },
+            "description": "Start date (YYYY-MM-DD). Optional."
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date" },
+            "description": "End date (YYYY-MM-DD). Optional."
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdminDashboardUsageResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
