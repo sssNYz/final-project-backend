@@ -53,6 +53,8 @@ const ROLE_LABELS: Record<AccountRole, string> = {
 
 const PAGE_SIZE = 4
 
+// หน้า Dashboard > บัญชีผู้ใช้งาน
+// แสดงรายการบัญชีแอดมิน/สมาชิก พร้อมตัวกรองสิทธิ์/สถานะ และปุ่มเพิ่ม/ลบ
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<AdminAccount[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -62,6 +64,7 @@ export default function AccountsPage() {
   const [searchEmail, setSearchEmail] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
 
+  // โหลดรายการบัญชีผู้ใช้งานจาก API เมื่อเปิดหน้า
   useEffect(() => {
     async function fetchAccounts() {
       try {
@@ -99,6 +102,7 @@ export default function AccountsPage() {
     fetchAccounts()
   }, [])
 
+  // กรองบัญชีตาม role, สถานะ (active/inactive) และอีเมล
   const filteredAccounts = useMemo(() => {
     const search = searchEmail.trim().toLowerCase()
 
@@ -121,6 +125,7 @@ export default function AccountsPage() {
     })
   }, [accounts, roleFilter, statusFilter, searchEmail])
 
+  // คำนวณข้อมูลสำหรับแบ่งหน้า (pagination)
   const { totalPages, safePage, paginatedAccounts } = useMemo(() => {
     const total = Math.max(1, Math.ceil(filteredAccounts.length / PAGE_SIZE))
     const page = Math.min(currentPage, total)
@@ -137,11 +142,13 @@ export default function AccountsPage() {
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
 
+  // เปลี่ยนหน้าปัจจุบันของตาราง
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
   }
 
+  // สลับสถานะ active/ inactive ใน UI (ยังไม่ผูกกับ API)
   function handleToggleStatus(userId: number) {
     setAccounts((current) =>
       current.map((account) =>
@@ -152,6 +159,7 @@ export default function AccountsPage() {
     )
   }
 
+  // ลบบัญชีผู้ใช้งานผ่าน API และอัปเดต state เมื่อสำเร็จ
   async function handleDeleteAccount(account: AdminAccount) {
     const confirmed = window.confirm(
       `ต้องการลบบัญชีผู้ใช้ ${account.email} หรือไม่?`,
@@ -162,7 +170,9 @@ export default function AccountsPage() {
 
     try {
       const validId =
-        typeof account.userId === "number" && Number.isInteger(account.userId) && account.userId > 0
+        typeof account.userId === "number" &&
+        Number.isInteger(account.userId) &&
+        account.userId > 0
           ? String(account.userId)
           : "0"
       const deleteUrl = `/api/admin/v1/users/${validId}?email=${encodeURIComponent(account.email)}`
@@ -204,22 +214,33 @@ export default function AccountsPage() {
         <main className="flex flex-1 flex-col bg-background">
           <DashboardPageHeader
             title="บัญชีผู้ใช้งาน"
-            description="จัดการสิทธิการใช้งานและสถานะของบัญชีผู้ดูแลระบบ"
+            description="จัดการสิทธิการใช้งานและสถานะของบัญชี"
           />
           <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <Card className="shadow-sm">
-              <CardHeader className="pb-1">
+              {/* <CardHeader className="pb-1">
                 <CardTitle className="text-base font-semibold text-slate-800">
                   Filter
                 </CardTitle>
-              </CardHeader>
+              </CardHeader> */}
               <CardContent className="space-y-4 pt-0">
                 <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
+                  {/* <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
                     <User2 className="h-4 w-4" />
                     <span>บัญชีผู้ใช้งาน</span>
+                  </div> */}
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="อีเมลสมาชิก"
+                      value={searchEmail}
+                      onChange={(event) =>
+                        setSearchEmail(event.target.value)
+                      }
+                      className="w-80 max-w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
+                    />
+                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                   </div>
-
                   <Select
                     value={roleFilter}
                     onValueChange={(value) =>
@@ -262,18 +283,15 @@ export default function AccountsPage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="relative ml-auto">
-                    <Input
-                      type="text"
-                      placeholder="อีเมลสมาชิก"
-                      value={searchEmail}
-                      onChange={(event) =>
-                        setSearchEmail(event.target.value)
-                      }
-                      className="w-56 rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
-                    />
-                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                  </div>
+                  <Button
+                    size="sm"
+                    className="rounded-full bg-orange-500 px-4 text-xs font-semibold text-white hover:bg-orange-600"
+                    asChild
+                  >
+                    <a href="/dashboard/accounts/new-admin">
+                      + เพิ่มบัญชีผู้ดูแลระบบ
+                    </a>
+                  </Button>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
@@ -290,15 +308,6 @@ export default function AccountsPage() {
                       </>
                     )}
                   </p>
-                  <Button
-                    size="sm"
-                    className="rounded-full bg-orange-500 px-4 text-xs font-semibold text-white hover:bg-orange-600"
-                    asChild
-                  >
-                    <a href="/dashboard/accounts/new-admin">
-                      + เพิ่มบัญชีผู้ดูแลระบบ
-                    </a>
-                  </Button>
                 </div>
               </CardContent>
             </Card>

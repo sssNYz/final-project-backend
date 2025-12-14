@@ -8,6 +8,8 @@ type DashboardPageHeaderProps = {
   className?: string
 }
 
+// Header มุมบนของแต่ละหน้าใน Dashboard
+// แสดงชื่อหน้าหลัก (title) และคำอธิบายสั้น ๆ (description)
 export function DashboardPageHeader({
   title,
   description,
@@ -31,4 +33,3 @@ export function DashboardPageHeader({
     </header>
   )
 }
-

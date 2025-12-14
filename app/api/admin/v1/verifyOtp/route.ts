@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// POST /api/admin/v1/verifyOtp
+// ตรวจสอบรหัส OTP ที่ส่งไปทาง email กับ Supabase
 export async function POST(req: Request) {
-    const supabase = await createClient();
-  
-    const { email, token } = await req.json();
+  const supabase = await createClient();
 
-    const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: "email",
-    });
+  const { email, token } = await req.json();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
 
-    return NextResponse.json({ user: data });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ user: data });
 }

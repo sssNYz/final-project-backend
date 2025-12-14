@@ -4,12 +4,14 @@ import { syncAdminAccount } from "@/server/auth/auth.service";
 import type { AuthProvider } from "@/server/auth/auth.service";
 import { ServiceError } from "@/server/common/errors";
 
-
 const EMAIL_PROVIDER: AuthProvider = "email";
 
+// POST /api/admin/v1/signin
+// ล็อกอินผู้ดูแลระบบด้วย email + password ผ่าน Supabase
+// จากนั้น sync ข้อมูลบัญชีแอดมินเข้า Prisma และคืน accessToken/refreshToken กลับไป
 export async function POST(request: Request) {
   try {
-    // 1) Read email + password from body
+    // 1) อ่าน email และ password จาก body
     const body = await request.json();
     const { email, password } = body;
 
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2) Login with Supabase by password
+    // 2) เรียก Supabase เพื่อล็อกอินแบบ email/password
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
 
     const supabaseUser = data.user;
 
-    // 3) Sync admin in Prisma DB and update lastLogin
+    // 3) sync บัญชีแอดมินใน Prisma และอัปเดต lastLogin
     const result = await syncAdminAccount({
       supabaseUser,
       supabaseUserId: supabaseUser.id,
@@ -44,25 +46,25 @@ export async function POST(request: Request) {
       allowMerge: true,
     });
 
-    // 4) Send tokens + user info back
+    // 4) ส่ง token และข้อมูลผู้ใช้กลับให้ frontend
     return NextResponse.json(
       {
         message: "Signin success",
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
-        user: result.user, // this has updated lastLogin
+        user: result.user,
       },
       { status: 200 }
     );
   } catch (error: unknown) {
     console.error("Error in /api/admin/signin:", error);
 
-    // known business error
+    // กรณี error ที่มาจาก business logic (ServiceError)
     if (error instanceof ServiceError) {
       return NextResponse.json(error.body, { status: error.statusCode });
     }
 
-    // other error
+    // error อื่น ๆ ให้ถือเป็น 500
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

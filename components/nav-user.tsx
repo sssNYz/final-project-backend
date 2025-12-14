@@ -38,6 +38,7 @@ export function NavUser({
   const router = useRouter()
   const [currentEmail, setCurrentEmail] = useState<string | null>(null)
 
+  // อ่านอีเมลผู้ใช้ปัจจุบันจาก localStorage เพื่อแสดงชื่อ/อีเมลใน Sidebar
   useEffect(() => {
     if (typeof window === "undefined") return
     const storedEmail = window.localStorage.getItem("currentUserEmail")
@@ -52,6 +53,7 @@ export function NavUser({
       ? displayName[0]?.toUpperCase()
       : "U"
 
+  // ลบ token และข้อมูลผู้ใช้ใน localStorage แล้วพากลับไปหน้า login
   function handleLogout() {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("accessToken")

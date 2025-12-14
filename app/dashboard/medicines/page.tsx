@@ -155,6 +155,8 @@ const emptyForm: FormState = {
   storage: "",
 }
 
+// หน้า Dashboard > ข้อมูลยา
+// ใช้จัดการรายการยาในระบบ (ค้นหา, กรอง, เพิ่ม/แก้ไข/ลบ และดูรายละเอียดของยาแต่ละตัว)
 export default function MedicinesPage() {
   const [medicines, setMedicines] = useState<MedicineRow[]>(initialMedicines)
   const [usageFilter, setUsageFilter] = useState<"all" | UsageType>("all")
@@ -166,6 +168,7 @@ export default function MedicinesPage() {
     null,
   )
 
+  // กรองรายการยาตามประเภทการใช้ (oral/topical) และคำค้นหา
   const filteredMedicines = useMemo(() => {
     const search = searchTerm.trim().toLowerCase()
 
@@ -334,16 +337,7 @@ export default function MedicinesPage() {
           />
           <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-slate-800">
-                  Filter
-                </CardTitle>
-              </CardHeader>
               <CardContent className="space-y-4 pt-1">
-                <div className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-1 text-xs font-semibold text-white">
-                  <Pill className="h-4 w-4" />
-                  <span>ข้อมูลยา</span>
-                </div>
                 {editingId && (
                   <form
                     onSubmit={handleFormSubmit}
@@ -416,7 +410,7 @@ export default function MedicinesPage() {
                                   event.target.value,
                                 )
                               }
-                              className="h-9 rounded-full bg-white text-xs"
+                              className="h-9 bg-white text-xs"
                               placeholder="เช่น พาราเซตามอล"
                             />
                           </div>
@@ -432,7 +426,7 @@ export default function MedicinesPage() {
                                   event.target.value,
                                 )
                               }
-                              className="h-9 rounded-full bg-white text-xs"
+                              className="h-9 bg-white text-xs"
                               placeholder="เช่น Paracetamol"
                             />
                           </div>
@@ -448,7 +442,7 @@ export default function MedicinesPage() {
                                   event.target.value,
                                 )
                               }
-                              className="h-9 rounded-full bg-white text-xs"
+                              className="h-9 bg-white text-xs"
                               placeholder="เช่น Tylenol"
                             />
                           </div>
@@ -579,14 +573,28 @@ export default function MedicinesPage() {
                 )}
 
                 <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <Button
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="ชื่อสามัญทางยาไทยและอังกฤษ/ชื่อการค้า"
+                      value={searchTerm}
+                      onChange={(event) => {
+                        setSearchTerm(event.target.value)
+                        setCurrentPage(1)
+                      }}
+                      className="w-80 max-w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
+                    />
+                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  </div>
+
+                  {/* <Button
                     size="sm"
                     className="rounded-full bg-slate-700 px-5 text-xs font-semibold text-white hover:bg-slate-800"
                     type="button"
                   >
                     <Pill className="h-4 w-4" />
                     ข้อมูลยา
-                  </Button>
+                  </Button> */}
 
                   <Select
                     value={usageFilter}
@@ -611,19 +619,6 @@ export default function MedicinesPage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="relative ml-auto">
-                    <Input
-                      type="text"
-                      placeholder="ชื่อสามัญทางยาไทยและอังกฤษ/ชื่อการค้า"
-                      value={searchTerm}
-                      onChange={(event) => {
-                        setSearchTerm(event.target.value)
-                        setCurrentPage(1)
-                      }}
-                      className="w-72 rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
-                    />
-                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                  </div>
                   <Button
                     size="sm"
                     className="rounded-full bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"

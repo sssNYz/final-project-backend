@@ -33,6 +33,7 @@ export function AccountUsageTable({
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedNames, setSelectedNames] = useState<string[]>([])
 
+  // คำนวณจำนวนหน้า และแบ่งข้อมูลตาม pageSize
   const { totalPages, paginatedRows } = useMemo(() => {
     const total = Math.max(1, Math.ceil(rows.length / pageSize))
     const safePage = Math.min(currentPage, total)
@@ -47,11 +48,13 @@ export function AccountUsageTable({
   const canGoPrev = currentPage > 1
   const canGoNext = currentPage < totalPages
 
+  // เปลี่ยนหน้าปัจจุบันของตาราง
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
   }
 
+  // เลือก/ยกเลิกเลือกแถวตามชื่อบัญชี (ใช้สำหรับลบหลายรายการพร้อมกัน)
   function toggleSelect(name: string) {
     setSelectedNames((prev) =>
       prev.includes(name)
@@ -60,6 +63,7 @@ export function AccountUsageTable({
     )
   }
 
+  // เรียก callback ลบรายการที่ถูกเลือก และรีเซ็ตการเลือก/หน้า
   function deleteSelected() {
     if (!onDeleteSelected || selectedNames.length === 0) return
     onDeleteSelected(selectedNames)
@@ -68,20 +72,39 @@ export function AccountUsageTable({
   }
 
   const hasSelection = selectedNames.length > 0
+  const allSelected = rows.length > 0 && selectedNames.length === rows.length
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedNames([])
+    } else {
+      setSelectedNames(rows.map((row) => row.name))
+    }
+  }
 
   return (
     <>
       <Table>
         <TableHeader>
           <TableRow className="bg-slate-700">
+            {selectable && (
+              <TableHead className="w-10 px-4 py-3 text-center text-xs font-semibold text-white">
+                <input
+                  type="checkbox"
+                  aria-label="เลือกทั้งหมด"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                />
+              </TableHead>
+            )}
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              ชื่อบัญชี
+              บัญชีผู้ใช้
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              จำนวนโปรไฟล์
+              จำนวนบัญชีผู้ใช้ย่อย
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              จำนวนแถวรายการโปรไฟล์
+              จำนวนรายการใช้ยา
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -89,7 +112,7 @@ export function AccountUsageTable({
           {paginatedRows.map((row) => (
             <TableRow key={row.name} className="even:bg-slate-50/60">
               {selectable && (
-                <TableCell className="w-10 text-center text-sm text-slate-700">
+                <TableCell className="w-10 px-4 py-3 text-center text-sm text-slate-700">
                   <input
                     type="checkbox"
                     aria-label={`เลือก ${row.name}`}
@@ -98,13 +121,13 @@ export function AccountUsageTable({
                   />
                 </TableCell>
               )}
-              <TableCell className="text-center text-sm font-medium text-slate-800">
+              <TableCell className="px-4 py-3 text-center text-sm font-medium text-slate-800">
                 {row.name}
               </TableCell>
-              <TableCell className="text-center text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
                 {row.profiles}
               </TableCell>
-              <TableCell className="text-center text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
                 {row.rows}
               </TableCell>
             </TableRow>
