@@ -9,10 +9,15 @@
     { "url": "http://localhost:3000", "description": "Local Dev" }
   ],
   "tags": [
-    { "name": "Admin", "description": "Admin authentication and management" },
-    { "name": "Mobile Auth", "description": "Mobile authentication and account sync" },
-    { "name": "Mobile Users", "description": "Mobile user profile operations" },
-    { "name": "Examples", "description": "Example/prototype endpoints" }
+    { "name": "Admin - Auth", "description": "Admin authentication and management" },
+    { "name": "Admin - Users", "description": "Admin user management" },
+    { "name": "Admin - Medicine", "description": "Admin medicine database management" },
+    { "name": "Mobile - Auth", "description": "Mobile authentication and account sync" },
+    { "name": "Mobile - Users", "description": "Mobile user profile operations" }
+  ],
+  "x-tagGroups": [
+    { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users"] },
+    { "name": "Admin",  "tags": ["Admin - Auth", "Admin - Users", "Admin - Medicine"] }
   ],
   "components": {
     "securitySchemes": {
@@ -34,14 +39,14 @@
       "PublicUserAccount": {
         "type": "object",
         "properties": {
-          "userId": { "type": "integer", "example": 123 },
-          "email": { "type": "string", "format": "email", "example": "user@example.com" },
-          "supabaseUserId": { "type": "string", "nullable": true, "example": "7f5c2f7a-1234-4c5a-9c8b-1c2d3e4f5a6b" },
+          "userId": { "type": "integer" },
+          "email": { "type": "string", "format": "email" },
+          "supabaseUserId": { "type": "string", "nullable": true },
           "provider": { "type": "string", "nullable": true, "enum": ["email", "google", "both", null] },
-          "role": { "type": "string", "enum": ["User", "Admin", "SuperAdmin"], "example": "User" },
-          "tutorialDone": { "type": "boolean", "example": false },
-          "lastLogin": { "type": "string", "format": "date-time", "nullable": true, "example": "2024-12-01T10:00:00.000Z" },
-          "createdAt": { "type": "string", "format": "date-time", "example": "2024-11-20T08:30:00.000Z" }
+          "role": { "type": "string", "enum": ["User", "Admin", "SuperAdmin"] },
+          "tutorialDone": { "type": "boolean" },
+          "lastLogin": { "type": "string", "format": "date-time", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["userId", "email", "role", "tutorialDone", "createdAt"]
       },
@@ -56,14 +61,11 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "profileId": { "type": "integer", "example": 10 },
-                    "profileName": { "type": "string", "example": "Main" },
-                    "profilePicture": { "type": "string", "nullable": true, "example": null }
+                    "profileId": { "type": "integer" },
+                    "profileName": { "type": "string" },
+                    "profilePicture": { "type": "string", "nullable": true }
                   }
-                },
-                "example": [
-                  { "profileId": 10, "profileName": "Main", "profilePicture": null }
-                ]
+                }
               }
             }
           }
@@ -72,49 +74,49 @@
       "SigninResponse": {
         "type": "object",
         "properties": {
-          "message": { "type": "string", "example": "Signin success" },
-          "accessToken": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
-          "refreshToken": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          "message": { "type": "string" },
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
           "user": { "$ref": "#/components/schemas/PublicUserAccount" }
         }
       },
       "SyncBody": {
         "type": "object",
         "properties": {
-          "supabaseUserId": { "type": "string", "example": "7f5c2f7a-1234-4c5a-9c8b-1c2d3e4f5a6b" },
-          "email": { "type": "string", "format": "email", "example": "user@example.com" },
-          "provider": { "type": "string", "enum": ["email", "google", "both"], "example": "email" },
-          "allowMerge": { "type": "boolean", "example": true }
+          "supabaseUserId": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "provider": { "type": "string", "enum": ["email", "google", "both"] },
+          "allowMerge": { "type": "boolean" }
         },
         "required": ["supabaseUserId", "email", "provider"]
       },
       "UpdateUserBody": {
         "type": "object",
         "properties": {
-          "tutorialDone": { "type": "boolean", "description": "Mark onboarding/tutorial as completed", "example": true }
+          "tutorialDone": { "type": "boolean", "description": "Mark onboarding/tutorial as completed" }
         }
       },
       "CheckEmailResponse": {
         "type": "object",
         "properties": {
-          "status": { "type": "string", "enum": ["existing", "new"], "example": "existing" }
+          "status": { "type": "string", "enum": ["existing", "new"] }
         }
       },
       "CreateProfileResponse": {
         "type": "object",
         "properties": {
-          "profileId": { "type": "integer", "example": 42 },
-          "profileName": { "type": "string", "example": "Main" },
-          "profilePicture": { "type": "string", "nullable": true, "example": "/uploads/profile-pictures/1_1733350000000.png" }
+          "profileId": { "type": "integer" },
+          "profileName": { "type": "string" },
+          "profilePicture": { "type": "string", "nullable": true }
         },
         "required": ["profileId", "profileName"]
       },
       "UserProfile": {
         "type": "object",
         "properties": {
-          "profileId": { "type": "integer", "example": 10 },
-          "profileName": { "type": "string", "example": "Main" },
-          "profilePicture": { "type": "string", "nullable": true, "example": "/uploads/profile-pictures/1_1733350000000.png" }
+          "profileId": { "type": "integer" },
+          "profileName": { "type": "string" },
+          "profilePicture": { "type": "string", "nullable": true }
         },
         "required": ["profileId", "profileName"]
       },
@@ -123,11 +125,7 @@
         "properties": {
           "profiles": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/UserProfile" },
-            "example": [
-              { "profileId": 1, "profileName": "Main", "profilePicture": null },
-              { "profileId": 2, "profileName": "Work", "profilePicture": "/uploads/profile-pictures/1_1733351234567.png" }
-            ]
+            "items": { "$ref": "#/components/schemas/UserProfile" }
           }
         },
         "required": ["profiles"]
@@ -135,16 +133,129 @@
       "DeleteProfileResponse": {
         "type": "object",
         "properties": {
-          "message": { "type": "string", "example": "Profile deleted successfully" }
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
+      },
+      "AdminAccount": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "integer" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "enum": ["admin", "member"] },
+          "active": { "type": "boolean" },
+          "lastLogin": { "type": "string", "format": "date-time", "nullable": true }
+        },
+        "required": ["userId", "email", "role", "active"]
+      },
+      "ListAdminAccountsResponse": {
+        "type": "object",
+        "properties": {
+          "accounts": { "type": "array", "items": { "$ref": "#/components/schemas/AdminAccount" } }
+        },
+        "required": ["accounts"]
+      },
+      "DeleteAdminAccountResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
+      },
+      "MedicineType": {
+        "type": "string",
+        "enum": ["ORAL", "TOPICAL"]
+      },
+      "AdminMedicineListItem": {
+        "type": "object",
+        "properties": {
+          "mediId": { "type": "integer" },
+          "mediThName": { "type": "string" },
+          "mediEnName": { "type": "string" },
+          "mediTradeName": { "type": "string", "nullable": true },
+          "mediType": { "$ref": "#/components/schemas/MedicineType" },
+          "deletedAt": { "type": "string", "format": "date-time", "nullable": true }
+        },
+        "required": ["mediId", "mediThName", "mediEnName", "mediType"]
+      },
+      "PagedMeta": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer" },
+          "pageSize": { "type": "integer" },
+          "total": { "type": "integer" },
+          "totalPages": { "type": "integer" }
+        },
+        "required": ["page", "pageSize", "total", "totalPages"]
+      },
+      "AdminMedicineListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminMedicineListItem" }
+          },
+          "meta": { "$ref": "#/components/schemas/PagedMeta" }
+        },
+        "required": ["items", "meta"]
+      },
+      "MedicineDatabase": {
+        "type": "object",
+        "properties": {
+          "mediId": { "type": "integer" },
+          "mediThName": { "type": "string" },
+          "mediEnName": { "type": "string" },
+          "mediTradeName": { "type": "string", "nullable": true },
+          "mediType": { "$ref": "#/components/schemas/MedicineType" },
+          "mediUse": { "type": "string", "nullable": true },
+          "mediGuide": { "type": "string", "nullable": true },
+          "mediEffects": { "type": "string", "nullable": true },
+          "mediNoUse": { "type": "string", "nullable": true },
+          "mediWarning": { "type": "string", "nullable": true },
+          "mediStore": { "type": "string", "nullable": true },
+          "mediPicture": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "deletedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "adminId": { "type": "integer", "nullable": true }
+        },
+        "required": ["mediId", "mediThName", "mediEnName", "mediType", "createdAt", "updatedAt"]
+      },
+      "AdminMedicineDetailResponse": {
+        "type": "object",
+        "properties": {
+          "medicine": { "$ref": "#/components/schemas/MedicineDatabase" }
+        },
+        "required": ["medicine"]
+      },
+      "AdminMedicineCountResponse": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" }
+        },
+        "required": ["total"]
+      },
+      "AdminMedicineMutationResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "medicine": { "$ref": "#/components/schemas/MedicineDatabase" }
+        },
+        "required": ["message"]
+      },
+      "AdminMedicineDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
         },
         "required": ["message"]
       }
     }
   },
   "paths": {
-    "/api/admin/signin": {
+    "/api/admin/v1/signin": {
       "post": {
-        "tags": ["Admin"],
+        "tags": ["Admin - Auth"],
         "summary": "Admin sign in",
         "description": "Authenticate admin by email and password via Supabase. Returns access/refresh tokens and synced admin user.",
         "requestBody": {
@@ -157,8 +268,7 @@
                   "email": { "type": "string", "format": "email" },
                   "password": { "type": "string", "format": "password" }
                 },
-                "required": ["email", "password"],
-                "example": { "email": "admin@example.com", "password": "StrongP@ssw0rd" }
+                "required": ["email", "password"]
               }
             }
           }
@@ -174,9 +284,9 @@
         }
       }
     },
-    "/api/admin/signup": {
+    "/api/admin/v1/signup": {
       "post": {
-        "tags": ["Admin"],
+        "tags": ["Admin - Auth"],
         "summary": "Admin sign up",
         "description": "Register a new admin via Supabase (email/password).",
         "requestBody": {
@@ -189,8 +299,7 @@
                   "email": { "type": "string", "format": "email" },
                   "password": { "type": "string", "format": "password" }
                 },
-                "required": ["email", "password"],
-                "example": { "email": "admin@example.com", "password": "StrongP@ssw0rd" }
+                "required": ["email", "password"]
               }
             }
           }
@@ -205,8 +314,7 @@
                   "properties": {
                     "data": {
                       "type": "object",
-                      "additionalProperties": true,
-                      "example": { "user": { "id": "7f5c2..." }, "session": null }
+                      "additionalProperties": true
                     }
                   }
                 }
@@ -217,9 +325,9 @@
         }
       }
     },
-    "/api/admin/verifyOtp": {
+    "/api/admin/v1/verifyOtp": {
       "post": {
-        "tags": ["Admin"],
+        "tags": ["Admin - Auth"],
         "summary": "Verify email OTP",
         "description": "Verify OTP code sent to email by Supabase.",
         "requestBody": {
@@ -232,8 +340,7 @@
                   "email": { "type": "string", "format": "email" },
                   "token": { "type": "string" }
                 },
-                "required": ["email", "token"],
-                "example": { "email": "admin@example.com", "token": "123456" }
+                "required": ["email", "token"]
               }
             }
           }
@@ -246,7 +353,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "user": { "type": "object", "additionalProperties": true, "example": { "id": "7f5c2..." } }
+                    "user": { "type": "object", "additionalProperties": true }
                   }
                 }
               }
@@ -256,9 +363,9 @@
         }
       }
     },
-    "/api/admin/sync-admin": {
+    "/api/admin/v1/sync-admin": {
       "get": {
-        "tags": ["Admin"],
+        "tags": ["Admin - Auth"],
         "summary": "Docs for sync-admin",
         "description": "Returns usage information for POST /api/admin/sync-admin.",
         "responses": {
@@ -266,7 +373,7 @@
         }
       },
       "post": {
-        "tags": ["Admin"],
+        "tags": ["Admin - Auth"],
         "summary": "Sync or create admin account",
         "description": "Create or update an admin in Prisma after Supabase authentication. May upgrade role to Admin.",
         "security": [{ "bearerAuth": [] }],
@@ -282,9 +389,255 @@
         }
       }
     },
+    "/api/admin/v1/users/list": {
+      "get": {
+        "tags": ["Admin - Users"],
+        "summary": "List admin accounts",
+        "description": "List admin accounts for dashboard management.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Accounts list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ListAdminAccountsResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/users/{userId}": {
+      "delete": {
+        "tags": ["Admin - Users"],
+        "summary": "Delete admin account",
+        "description": "Delete an admin account by userId. Optionally provide email as a query param.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int32" } },
+          { "name": "email", "in": "query", "required": false, "schema": { "type": "string", "format": "email" } }
+        ],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteAdminAccountResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "User not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/medicine/list": {
+      "get": {
+        "tags": ["Admin - Medicine"],
+        "summary": "List medicine names (paged)",
+        "description": "List medicines for admin screens (id + names). Supports search, type filter, and A-Z/Z-A ordering.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "mediType", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/MedicineType" } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1, "minimum": 1 } },
+          { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer", "default": 10, "minimum": 1 } },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "A-Z", "enum": ["A-Z", "Z-A", "asc", "desc"] } },
+          { "name": "includeDeleted", "in": "query", "required": false, "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminMedicineListResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/medicine/detail": {
+      "get": {
+        "tags": ["Admin - Medicine"],
+        "summary": "Get medicine detail by ID",
+        "description": "Return full medicine data by mediId.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "mediId", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminMedicineDetailResponse" }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/medicine/count": {
+      "get": {
+        "tags": ["Admin - Medicine"],
+        "summary": "Count medicines",
+        "description": "Return how many medicines exist in the system. By default counts only non-deleted records. Set includeDeleted=true to include soft-deleted rows.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "includeDeleted", "in": "query", "required": false, "schema": { "type": "boolean" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminMedicineCountResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/medicine/create": {
+      "post": {
+        "tags": ["Admin - Medicine"],
+        "summary": "Create medicine",
+        "description": "Create a new medicine record. Supports optional picture upload.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediThName": { "type": "string" },
+                  "mediEnName": { "type": "string" },
+                  "mediTradeName": { "type": "string", "nullable": true },
+                  "mediType": { "$ref": "#/components/schemas/MedicineType" },
+                  "mediUse": { "type": "string", "nullable": true },
+                  "mediGuide": { "type": "string", "nullable": true },
+                  "mediEffects": { "type": "string", "nullable": true },
+                  "mediNoUse": { "type": "string", "nullable": true },
+                  "mediWarning": { "type": "string", "nullable": true },
+                  "mediStore": { "type": "string", "nullable": true },
+                  "picture": { "type": "string", "format": "binary", "nullable": true }
+                },
+                "required": ["mediThName", "mediEnName", "mediType"]
+              },
+              "encoding": {
+                "picture": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminMedicineMutationResponse" }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/medicine/update": {
+      "patch": {
+        "tags": ["Admin - Medicine"],
+        "summary": "Update medicine",
+        "description": "Update an existing medicine. Provide mediId and any fields to update. Supports optional new picture upload.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediId": { "type": "integer", "minimum": 1 },
+                  "mediThName": { "type": "string" },
+                  "mediEnName": { "type": "string" },
+                  "mediTradeName": { "type": "string", "nullable": true },
+                  "mediType": { "$ref": "#/components/schemas/MedicineType" },
+                  "mediUse": { "type": "string", "nullable": true },
+                  "mediGuide": { "type": "string", "nullable": true },
+                  "mediEffects": { "type": "string", "nullable": true },
+                  "mediNoUse": { "type": "string", "nullable": true },
+                  "mediWarning": { "type": "string", "nullable": true },
+                  "mediStore": { "type": "string", "nullable": true },
+                  "picture": { "type": "string", "format": "binary", "nullable": true }
+                },
+                "required": ["mediId"]
+              },
+              "encoding": {
+                "picture": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminMedicineMutationResponse" }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/medicine/delete": {
+      "delete": {
+        "tags": ["Admin - Medicine"],
+        "summary": "Delete medicine (soft delete)",
+        "description": "Soft delete a medicine by mediId (sets deletedAt).",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "mediId", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminMedicineDeleteResponse" }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
     "/api/mobile/v1/auth/me": {
       "get": {
-        "tags": ["Mobile Auth"],
+        "tags": ["Mobile - Auth"],
         "summary": "Get current user profile",
         "description": "Return the authenticated user's profile (with profiles).",
         "security": [{ "bearerAuth": [] }],
@@ -298,7 +651,7 @@
     },
     "/api/mobile/v1/auth/sync-user": {
       "get": {
-        "tags": ["Mobile Auth"],
+        "tags": ["Mobile - Auth"],
         "summary": "Docs for sync-user",
         "description": "Returns usage information for POST /api/mobile/v1/auth/sync-user.",
         "responses": {
@@ -306,7 +659,7 @@
         }
       },
       "post": {
-        "tags": ["Mobile Auth"],
+        "tags": ["Mobile - Auth"],
         "summary": "Sync or create mobile user",
         "description": "Create or update a user in Prisma after Supabase authentication. Handles merge with allowMerge flag.",
         "security": [{ "bearerAuth": [] }],
@@ -324,7 +677,7 @@
     },
     "/api/mobile/v1/auth/check-email": {
       "post": {
-        "tags": ["Mobile Auth"],
+        "tags": ["Mobile - Auth"],
         "summary": "Check email status",
         "description": "Check if an email already exists before Google OAuth to decide on merge UI.",
         "requestBody": {
@@ -334,8 +687,7 @@
               "schema": {
                 "type": "object",
                 "properties": { "email": { "type": "string", "format": "email" } },
-                "required": ["email"],
-                "example": { "email": "user@example.com" }
+                "required": ["email"]
               }
             }
           }
@@ -349,7 +701,7 @@
     },
     "/api/mobile/v1/users/update": {
       "patch": {
-        "tags": ["Mobile Users"],
+        "tags": ["Mobile - Users"],
         "summary": "Update current user profile",
         "description": "Update safe fields for the current authenticated user (currently only tutorialDone).",
         "security": [{ "bearerAuth": [] }],
@@ -358,7 +710,7 @@
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserBody" } } }
         },
         "responses": {
-          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "User updated successfully" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
           "400": { "description": "No valid fields to update", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "404": { "description": "User not found in DB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
@@ -366,7 +718,7 @@
         }
       },
       "post": {
-        "tags": ["Mobile Users"],
+        "tags": ["Mobile - Users"],
         "summary": "Update current user profile (POST alternative)",
         "description": "Same as PATCH, provided for clients that prefer POST.",
         "security": [{ "bearerAuth": [] }],
@@ -375,7 +727,7 @@
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserBody" } } }
         },
         "responses": {
-          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "User updated successfully" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "user": { "$ref": "#/components/schemas/PublicUserAccount" } } } } } },
           "400": { "description": "No valid fields to update", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "404": { "description": "User not found in DB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
@@ -385,7 +737,7 @@
     },
     "/api/mobile/v1/profile/create": {
       "post": {
-        "tags": ["Mobile Users"],
+        "tags": ["Mobile - Users"],
         "summary": "Create profile",
         "description": "Create a user profile. Send either an image file (multipart) or a public image URL.",
         "security": [{ "bearerAuth": [] }],
@@ -419,36 +771,10 @@
         }
       }
     },
-    "/api/mobile/v1/example/protected-route": {
-      "get": {
-        "tags": ["Examples"],
-        "summary": "Example protected GET",
-        "description": "Demonstration endpoint that requires authentication.",
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": { "description": "Success", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "This is a protected endpoint!" }, "user": { "type": "object", "properties": { "userId": { "type": "integer", "example": 123 }, "email": { "type": "string", "format": "email" }, "role": { "type": "string" } } } } } } } },
-          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
-        }
-      },
-      "post": {
-        "tags": ["Examples"],
-        "summary": "Example protected POST",
-        "description": "Demonstration endpoint that echoes posted data for the authenticated user.",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": false,
-          "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true, "example": { "hello": "world" } } } }
-        },
-        "responses": {
-          "200": { "description": "Success", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string", "example": "Data created successfully" }, "userId": { "type": "integer", "example": 123 }, "data": { "type": "object", "additionalProperties": true } } } } } },
-          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
-        }
-      }
-    }
-    ,
+    
     "/api/mobile/v1/profile/list": {
       "get": {
-        "tags": ["Mobile Users"],
+        "tags": ["Mobile - Users"],
         "summary": "List current user's profiles",
         "description": "Returns all profiles for the authenticated user.",
         "security": [{ "bearerAuth": [] }],
@@ -464,7 +790,7 @@
     },
     "/api/mobile/v1/profile/update": {
       "patch": {
-        "tags": ["Mobile Users"],
+        "tags": ["Mobile - Users"],
         "summary": "Update a profile",
         "description": "Update a profile's name or picture. Send either an image file (multipart) or a public image URL. At least one of profileName, file, profilePicture must be provided.",
         "security": [{ "bearerAuth": [] }],
@@ -502,7 +828,7 @@
     },
     "/api/mobile/v1/profile/delete": {
       "delete": {
-        "tags": ["Mobile Users"],
+        "tags": ["Mobile - Users"],
         "summary": "Delete a profile",
         "description": "Delete a profile by ID.",
         "security": [{ "bearerAuth": [] }],
@@ -512,7 +838,7 @@
             "in": "query",
             "description": "Profile ID to delete",
             "required": true,
-            "schema": { "type": "integer", "format": "int32", "example": 2 }
+            "schema": { "type": "integer", "format": "int32" }
           }
         ],
         "responses": {
