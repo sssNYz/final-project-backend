@@ -65,16 +65,29 @@ export default function AccountsPage() {
   const [currentPage, setCurrentPage] = useState(1)
 
   // โหลดรายการบัญชีผู้ใช้งานจาก API เมื่อเปิดหน้า
+
   useEffect(() => {
     async function fetchAccounts() {
       try {
         setIsLoading(true)
         setLoadError(null)
-
-        const res = await fetch("/api/admin/v1/users/list")
-
+  
+        // Read token + set header
+        const accessToken =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("accessToken")
+            : null
+  
+        const headers: Record<string, string> = {}
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`
+        }
+  
+        // Fetch with headers
+        const res = await fetch("/api/admin/v1/users/list", { headers })
+  
         const data = await res.json().catch(() => null)
-
+  
         if (!res.ok) {
           setLoadError(
             (data && (data.error as string | undefined)) ||
@@ -82,23 +95,37 @@ export default function AccountsPage() {
           )
           return
         }
-
+  
+        // Extract accounts from response
         const items = (data?.accounts ?? []) as {
           userId: number
           email: string
           role: AccountRole
           active: boolean
-          lastLogin: string | null
+          lastLogin: Date | string | null
         }[]
-
-        setAccounts(items)
+  
+        // Convert lastLogin Date to string if needed
+        const accounts: AdminAccount[] = items.map((item) => ({
+          userId: item.userId,
+          email: item.email,
+          role: item.role,
+          active: item.active,
+          lastLogin: item.lastLogin
+            ? typeof item.lastLogin === "string"
+              ? item.lastLogin
+              : new Date(item.lastLogin).toISOString()
+            : null,
+        }))
+  
+        setAccounts(accounts)
       } catch {
         setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลบัญชีผู้ใช้")
       } finally {
         setIsLoading(false)
       }
     }
-
+  
     fetchAccounts()
   }, [])
 
