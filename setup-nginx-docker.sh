@@ -34,3 +34,7 @@ echo "4. Update nginx.conf with SSL paths"
 echo "5. Restart nginx: docker-compose restart nginx"
 
 
+
+
+
+

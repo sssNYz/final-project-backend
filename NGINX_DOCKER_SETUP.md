@@ -670,3 +670,7 @@ sudo certbot certificates
 Your app should now be accessible at `https://medi-buddy.duckdns.org`!
 
 
+
+
+
+
