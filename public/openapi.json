@@ -923,8 +923,17 @@
       "delete": {
         "tags": ["Mobile - Users"],
         "summary": "Delete a profile",
-        "description": "Delete a profile by ID. Send profileId in JSON body (recommended) or multipart/form-data.",
+        "description": "Delete a profile by ID. You can send profileId in query (?profileId=1). Backend also accepts JSON body or multipart/form-data.",
         "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "description": "Profile ID to delete",
+            "required": true,
+            "schema": { "type": "integer", "format": "int32" }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {

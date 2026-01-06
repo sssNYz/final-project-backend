@@ -6,20 +6,32 @@ import { deleteProfileForUser } from "@/server/profile/profiles.service";
 export async function DELETE(request: Request) {
   return withAuth(request, async ({ prismaUser }) => {
     try {
-      const contentType = request.headers.get("content-type") || "";
-
       let profileId: number | null = null;
 
+      // 1) Try query param first (Swagger/curl friendly): ?profileId=1
+      try {
+        const { searchParams } = new URL(request.url);
+        const qp = searchParams.get("profileId");
+        if (qp !== null) {
+          profileId = Number(qp) || null;
+        }
+      } catch {
+        // ignore URL parse issues; fallback to body parsing below
+      }
+
+      // 2) Fallback: body (JSON or multipart/form-data)
+      const contentType = request.headers.get("content-type") || "";
+
       // JSON body
-      if (contentType.includes("application/json")) {
+      if (!profileId && contentType.includes("application/json")) {
         const body = await request.json();
         profileId = Number(body.profileId) || null;
       }
       // form-data
-      else if (contentType.includes("multipart/form-data")) {
+      else if (!profileId && contentType.includes("multipart/form-data")) {
         const formData = await request.formData();
         profileId = Number(formData.get("profileId")) || null;
-      } else {
+      } else if (!profileId) {
         return NextResponse.json(
           { error: "Content-Type must be application/json or multipart/form-data" },
           { status: 400 }

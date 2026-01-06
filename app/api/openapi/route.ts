@@ -12,7 +12,8 @@ export async function GET() {
       status: 200,
       headers: {
         "content-type": "application/json; charset=UTF-8",
-        "cache-control": "public, max-age=3600",
+        // Don't cache: Swagger UI should always load latest spec after edits
+        "cache-control": "no-store, max-age=0",
       },
     });
   } catch (error) {
