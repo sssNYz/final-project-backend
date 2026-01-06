@@ -154,10 +154,8 @@ model UserMedicineRegimen {
   endDate          DateTime?    @map("END_DATE")
   daysOfWeek       String?      @map("DAYS_OF_WEEK")
   intervalDays     Int?         @map("INTERVAL_DAYS")
-  nextOccurrenceAt DateTime?    @map("NEXT_OCCURRENCE_AT")
   cycleOnDays      Int?         @map("CYCLE_ON_DAYS")
   cycleBreakDays   Int?         @map("CYCLE_BREAK_DAYS")
-  cycleAnchorDate  DateTime?    @map("CYCLE_ANCHOR_DATE")
 
   // Relations
   medicineList MedicineList?             @relation(fields: [mediListId], references: [mediListId])
