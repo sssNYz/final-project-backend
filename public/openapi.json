@@ -923,17 +923,31 @@
       "delete": {
         "tags": ["Mobile - Users"],
         "summary": "Delete a profile",
-        "description": "Delete a profile by ID.",
+        "description": "Delete a profile by ID. Send profileId in JSON body (recommended) or multipart/form-data.",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "profileId",
-            "in": "query",
-            "description": "Profile ID to delete",
-            "required": true,
-            "schema": { "type": "integer", "format": "int32" }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer", "format": "int32" }
+                },
+                "required": ["profileId"]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer", "format": "int32" }
+                },
+                "required": ["profileId"]
+              }
+            }
           }
-        ],
+        },
         "responses": {
           "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteProfileResponse" } } } },
           "400": { "description": "Invalid profileId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
