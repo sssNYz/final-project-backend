@@ -14,10 +14,11 @@
     { "name": "Admin - Medicine", "description": "Admin medicine database management" },
     { "name": "Admin - Dashboard", "description": "Admin dashboard statistics and reporting" },
     { "name": "Mobile - Auth", "description": "Mobile authentication and account sync" },
-    { "name": "Mobile - Users", "description": "Mobile user profile operations" }
+    { "name": "Mobile - Users", "description": "Mobile user profile operations" },
+    { "name": "Mobile - MedicineList", "description": "Mobile user medicine list (per profile)" }
   ],
   "x-tagGroups": [
-    { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users"] },
+    { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users", "Mobile - MedicineList"] },
     { "name": "Admin",  "tags": ["Admin - Auth", "Admin - Users", "Admin - Medicine", "Admin - Dashboard"] }
   ],
   "components": {
@@ -270,6 +271,47 @@
           }
         },
         "required": ["items"]
+      },
+      "MedicineListMedicineInfo": {
+        "type": "object",
+        "properties": {
+          "mediId": { "type": "integer" },
+          "mediThName": { "type": "string" },
+          "mediEnName": { "type": "string" },
+          "mediTradeName": { "type": "string", "nullable": true },
+          "mediType": { "$ref": "#/components/schemas/MedicineType" },
+          "mediPicture": { "type": "string", "nullable": true }
+        },
+        "required": ["mediId", "mediThName", "mediEnName", "mediType"]
+      },
+      "MedicineListItem": {
+        "type": "object",
+        "properties": {
+          "mediListId": { "type": "integer" },
+          "profileId": { "type": "integer" },
+          "mediId": { "type": "integer" },
+          "mediNickname": { "type": "string", "nullable": true },
+          "pictureOption": { "type": "string", "nullable": true },
+          "medicine": { "$ref": "#/components/schemas/MedicineListMedicineInfo" }
+        },
+        "required": ["mediListId", "profileId", "mediId"]
+      },
+      "MedicineListListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineListItem" }
+          }
+        },
+        "required": ["items"]
+      },
+      "MedicineListDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
       }
     }
   },
@@ -897,6 +939,152 @@
           "400": { "description": "Invalid profileId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "404": { "description": "Profile not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/create": {
+      "post": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "Add medicine to profile list",
+        "description": "Add a medicine from MedicineDatabase to the user profile list. Optionally set a nickname and upload a picture.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer" },
+                  "mediId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true },
+                  "picture": { "type": "string", "format": "binary", "nullable": true }
+                },
+                "required": ["profileId", "mediId"]
+              },
+              "encoding": {
+                "picture": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer" },
+                  "mediId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true }
+                },
+                "required": ["profileId", "mediId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListItem" } } } },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Profile or medicine not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "409": { "description": "Medicine already in this profile", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/list": {
+      "get": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "List medicines for a profile",
+        "description": "List all medicine list items for a given profile.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Profile ID to list medicines for"
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListListResponse" } } } },
+          "400": { "description": "profileId required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Profile not found or not yours", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/update": {
+      "patch": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "Update medicine list item",
+        "description": "Update nickname or picture of a medicine list item.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true },
+                  "picture": { "type": "string", "format": "binary", "nullable": true }
+                },
+                "required": ["mediListId"]
+              },
+              "encoding": {
+                "picture": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true }
+                },
+                "required": ["mediListId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListItem" } } } },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Not allowed to update this item", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Medicine list item not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/delete": {
+      "delete": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "Delete medicine list item",
+        "description": "Delete a medicine from the profile list. Also deletes the picture file if exists.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": { "type": "integer" }
+                },
+                "required": ["mediListId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListDeleteResponse" } } } },
+          "400": { "description": "mediListId required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Not allowed to delete this item", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Medicine list item not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
