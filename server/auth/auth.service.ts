@@ -14,11 +14,29 @@ import {
   serializeUserAccountWithProfiles,
 } from "@/server/users/userAccount.serializer";
 
-const ALLOWED_PROVIDERS = ["email", "google", "both"] as const;
-export type AuthProvider = (typeof ALLOWED_PROVIDERS)[number];
+const ALLOWED_INPUT_PROVIDERS = ["email", "google", "both", "email,google"] as const;
+export type AuthProvider = (typeof ALLOWED_INPUT_PROVIDERS)[number];
+type StoredAuthProvider = "email" | "google" | "email,google";
 
 function normalizeEmail(email?: string | null): string | null {
   return typeof email === "string" ? email.toLowerCase().trim() : null;
+}
+
+function normalizeProviderInput(provider: AuthProvider): StoredAuthProvider {
+  if (provider === "both" || provider === "email,google") return "email,google";
+  return provider;
+}
+
+function normalizeProviderFromDb(provider: string | null | undefined, hasPassword: boolean): StoredAuthProvider | null {
+  if (!provider) return hasPassword ? "email" : null;
+  if (provider === "both" || provider === "email,google") return "email,google";
+  if (provider === "email" || provider === "google") return provider;
+  return null;
+}
+
+function mergeProviders(existing: StoredAuthProvider | null, incoming: StoredAuthProvider): StoredAuthProvider {
+  if (!existing || existing === incoming) return incoming;
+  return "email,google";
 }
 
 export async function checkEmailStatus(email: string): Promise<"existing" | "new"> {
@@ -75,11 +93,10 @@ export async function syncUserAccount({
   supabaseUserId,
   email,
   provider,
-  allowMerge,
 }: SyncUserInput): Promise<SyncUserResult> {
-  if (!ALLOWED_PROVIDERS.includes(provider)) {
+  if (!ALLOWED_INPUT_PROVIDERS.includes(provider)) {
     throw new ServiceError(400, {
-      error: "provider must be 'email', 'google', or 'both'",
+      error: "provider must be 'email', 'google', or 'email,google' (legacy 'both' also accepted)",
     });
   }
 
@@ -105,11 +122,13 @@ export async function syncUserAccount({
     normalizedEmail
   );
 
+  const incomingProvider = normalizeProviderInput(provider);
+
   if (!existingUser) {
     const createdUser = await createUserAccount({
       email: normalizedEmail,
       supabaseUserId,
-      provider,
+      provider: incomingProvider,
     });
 
     return {
@@ -119,23 +138,10 @@ export async function syncUserAccount({
     };
   }
 
-  const needsMerge = Boolean(
-    existingUser.provider && existingUser.provider !== provider
-  );
+  const existingProvider = normalizeProviderFromDb(existingUser.provider, Boolean(existingUser.password));
+  const newProvider = mergeProviders(existingProvider, incomingProvider);
+  const didMerge = existingProvider !== null && existingProvider !== newProvider;
 
-  if (needsMerge && allowMerge !== true) {
-    throw new ServiceError(
-      409,
-      {
-        error: "Account merge required but not allowed",
-        message:
-          "This email is already registered with a different login method. Please allow account merge to continue.",
-      },
-      "Account merge not allowed"
-    );
-  }
-
-  const newProvider = needsMerge ? "both" : provider;
   const updatedUser = await updateUserAccount(existingUser.userId, {
     supabaseUserId,
     provider: newProvider,
@@ -144,9 +150,7 @@ export async function syncUserAccount({
 
   return {
     statusCode: 200,
-    message: needsMerge
-      ? "Accounts merged successfully"
-      : "User updated successfully",
+    message: didMerge ? "Accounts merged successfully" : "User updated successfully",
     user: serializeUserAccount(updatedUser),
   };
 }

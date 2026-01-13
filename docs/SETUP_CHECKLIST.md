@@ -6,7 +6,7 @@ All the authentication system has been implemented! Here's what was created:
 
 ### 1. ✅ Database Changes
 - Added `supabaseUserId` field to `UserAccount` model
-- Added `provider` field to `UserAccount` model (stores "email", "google", or "both")
+- Added `provider` field to `UserAccount` model (stores "email", "google", or "email,google"; legacy "both" may exist in old rows)
 - Made `password` field optional (for OAuth users)
 
 ### 2. ✅ Helper Functions Created
@@ -177,7 +177,6 @@ After setup, test with this flow:
 📱 Mobile app should: Use Supabase SDK and call your backend APIs  
 
 That's it! Your authentication system is complete. 🎉
-
 
 
 

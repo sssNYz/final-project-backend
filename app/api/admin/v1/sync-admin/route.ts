@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { AuthProvider, syncAdminAccount } from "@/server/auth/auth.service";
 import { ServiceError } from "@/server/common/errors";
 
-const ALLOWED_PROVIDERS: AuthProvider[] = ["email", "google", "both"];
+const ALLOWED_PROVIDERS: AuthProvider[] = ["email", "google", "email,google", "both"];
 
 // GET /api/admin/v1/sync-admin
 // ให้ข้อมูลวิธีใช้งาน API sync-admin (สำหรับอ้างอิง / ทดลองผ่าน Postman)
@@ -21,8 +21,8 @@ export async function GET() {
       requiredBody: {
         supabaseUserId: "string (required) - Supabase user ID",
         email: "string (required) - User email address",
-        provider: "string (required) - one of: 'email', 'google', 'both'",
-        allowMerge: "boolean (optional) - Allow account merging if email exists with different provider",
+        provider: "string (required) - one of: 'email', 'google', 'email,google' (legacy 'both' also accepted)",
+        allowMerge: "boolean (optional) - Legacy flag (accepted but no longer required)",
       },
       exampleRequest: {
         method: "POST",
@@ -43,7 +43,6 @@ export async function GET() {
         "400": "Missing required fields or invalid provider value",
         "401": "Unauthorized - Invalid or missing token",
         "403": "Token does not match provided user data",
-        "409": "Account merge required but not allowed",
         "500": "Internal server error",
       },
     },
@@ -74,7 +73,7 @@ export async function POST(request: Request) {
     // 4) ตรวจสอบว่า provider อยู่ในชุดที่อนุญาต
     if (!ALLOWED_PROVIDERS.includes(provider as AuthProvider)) {
       return NextResponse.json(
-        { error: "provider must be 'email', 'google', or 'both'" },
+        { error: "provider must be 'email', 'google', or 'email,google' (legacy 'both' also accepted)" },
         { status: 400 }
       );
     }

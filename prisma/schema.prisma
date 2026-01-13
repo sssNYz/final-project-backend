@@ -13,7 +13,7 @@ model UserAccount {
   email          String    @unique @map("USER_EMAIL")
   password       String?   @map("USER_PASSWORD")
   supabaseUserId String?   @unique @map("SUPABASE_USER_ID")
-  provider       String?   @map("PROVIDER")
+  provider       String?   @map("PROVIDER") // "email", "google", or "email,google" (legacy "both" may exist in old rows)
   lastLogin      DateTime? @map("LAST_LOGIN")
   createdAt      DateTime  @default(now()) @map("CREATE_AT")
   deletedAt      DateTime? @map("DELETED_AT")

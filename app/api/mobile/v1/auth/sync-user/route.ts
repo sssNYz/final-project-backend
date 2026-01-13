@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { AuthProvider, syncUserAccount } from "@/server/auth/auth.service";
 import { ServiceError } from "@/server/common/errors";
 
-const ALLOWED_PROVIDERS: AuthProvider[] = ["email", "google", "both"];
+const ALLOWED_PROVIDERS: AuthProvider[] = ["email", "google", "email,google", "both"];
 
 /**
  * GET /api/mobile/v1/auth/sync-user
@@ -22,8 +22,8 @@ export async function GET() {
     requiredBody: {
       supabaseUserId: "string (required) - Supabase user ID",
       email: "string (required) - User email address",
-      provider: "string (required) - One of: 'email', 'google', 'both'",
-      allowMerge: "boolean (optional) - Allow account merging if email exists with different provider"
+      provider: "string (required) - One of: 'email', 'google', 'email,google' (legacy 'both' also accepted)",
+      allowMerge: "boolean (optional) - Legacy flag (accepted but no longer required)"
     },
     exampleRequest: {
       method: "POST",
@@ -44,7 +44,6 @@ export async function GET() {
       "400": "Missing required fields or invalid provider value",
       "401": "Unauthorized - Invalid or missing token",
       "403": "Token does not match provided user data",
-      "409": "Account merge required but not allowed",
       "500": "Internal server error"
     }
   }, { status: 200 });
@@ -53,7 +52,7 @@ export async function GET() {
 /**
  * POST /api/mobile/v1/auth/sync-user
  * Sync or create user in Prisma database after Supabase authentication
- * Handles account merging with user permission
+ * Auto-merges providers by email (stores provider as 'email', 'google', or 'email,google')
  */
 export async function POST(request: Request) {
   try {
@@ -75,7 +74,7 @@ export async function POST(request: Request) {
     // Validate provider value
     if (!ALLOWED_PROVIDERS.includes(provider as AuthProvider)) {
       return NextResponse.json(
-        { error: "provider must be 'email', 'google', or 'both'" },
+        { error: "provider must be 'email', 'google', or 'email,google' (legacy 'both' also accepted)" },
         { status: 400 }
       );
     }

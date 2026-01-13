@@ -20,7 +20,7 @@ This backend uses **Supabase** for authentication and **Prisma** for storing use
 ### 1. Check if Email Exists
 **POST** `/api/auth/check-email`
 
-Used before Google login to ask user about merging accounts.
+Used before Google login to customize UX (account linking/merging is automatic on the backend).
 
 **Request:**
 ```json
@@ -55,8 +55,8 @@ Authorization: Bearer <access_token>
 {
   "supabaseUserId": "xxxx-xxxx-xxxx",
   "email": "user@example.com",
-  "provider": "email",  // "email", "google", or "both"
-  "allowMerge": false   // true if user approves account merge
+  "provider": "email",  // "email", "google", or "email,google" (legacy "both" also accepted)
+  "allowMerge": false   // legacy flag (accepted but no longer required)
 }
 ```
 
@@ -73,14 +73,6 @@ Authorization: Bearer <access_token>
     "tutorialDone": false,
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
-}
-```
-
-**Error (409 Conflict):**
-```json
-{
-  "error": "Account merge required but not allowed",
-  "message": "This email is already registered with a different login method..."
 }
 ```
 
@@ -169,20 +161,18 @@ Authorization: Bearer <access_token>
 4. App → GET /api/auth/me (to get user profile)
 ```
 
-### Google Login Flow (with merge confirmation)
+### Google Login Flow
 
 ```
 1. User enters email in app
 2. App → POST /api/auth/check-email
    Body: { email }
 3. Backend returns { status: "existing" } or { status: "new" }
-4. If "existing", app shows confirmation dialog
-5. If user agrees:
-   - App → supabase.auth.signInWithOAuth({ provider: 'google' })
-   - App receives access_token
-   - App → POST /api/auth/sync-user
-     Body: { supabaseUserId, email, provider: "google", allowMerge: true }
-   - Backend updates provider to "both"
+4. App → supabase.auth.signInWithOAuth({ provider: 'google' })
+5. App receives access_token
+6. App → POST /api/auth/sync-user
+   Body: { supabaseUserId, email, provider: "google", allowMerge: true }
+7. Backend updates provider to "email,google" (legacy input "both" is normalized)
 ```
 
 ---
@@ -287,7 +277,6 @@ export async function GET(request: Request) {
 - **401** Unauthorized - Invalid or missing token
 - **403** Forbidden - User doesn't have permission (wrong role)
 - **404** Not Found - User not found in database
-- **409** Conflict - Account merge required but not allowed
 - **500** Internal Server Error
 
 ---
@@ -300,7 +289,7 @@ The `UserAccount` model now has these new fields:
 model UserAccount {
   // Existing fields...
   supabaseUserId String?   @unique @map("SUPABASE_USER_ID")
-  provider       String?   @map("PROVIDER")  // "email", "google", or "both"
+  provider       String?   @map("PROVIDER")  // "email", "google", or "email,google" (legacy "both" may exist in old rows)
   password       String?   @map("USER_PASSWORD")  // Now optional (null for OAuth)
   // Other fields...
 }
@@ -365,7 +354,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 ---
 
 That's it! You now have a complete authentication system. 🎉
-
 
 
 

@@ -45,7 +45,7 @@
           "userId": { "type": "integer" },
           "email": { "type": "string", "format": "email" },
           "supabaseUserId": { "type": "string", "nullable": true },
-          "provider": { "type": "string", "nullable": true, "enum": ["email", "google", "both", null] },
+          "provider": { "type": "string", "nullable": true, "enum": ["email", "google", "email,google", null] },
           "role": { "type": "string", "enum": ["User", "Admin", "SuperAdmin"] },
           "tutorialDone": { "type": "boolean" },
           "lastLogin": { "type": "string", "format": "date-time", "nullable": true },
@@ -88,8 +88,12 @@
         "properties": {
           "supabaseUserId": { "type": "string" },
           "email": { "type": "string", "format": "email" },
-          "provider": { "type": "string", "enum": ["email", "google", "both"] },
-          "allowMerge": { "type": "boolean" }
+          "provider": {
+            "type": "string",
+            "description": "Use 'email' or 'google'. If a user has both, the stored value will be 'email,google'. Legacy input 'both' is still accepted.",
+            "enum": ["email", "google", "email,google", "both"]
+          },
+          "allowMerge": { "type": "boolean", "description": "Legacy flag (accepted but no longer required)" }
         },
         "required": ["supabaseUserId", "email", "provider"]
       },
@@ -707,7 +711,6 @@
           "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "403": { "description": "Token does not match provided user data", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "409": { "description": "Merge required but not allowed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
@@ -1014,7 +1017,7 @@
       "post": {
         "tags": ["Mobile - Auth"],
         "summary": "Sync or create mobile user",
-        "description": "Create or update a user in Prisma after Supabase authentication. Handles merge with allowMerge flag.",
+        "description": "Create or update a user in Prisma after Supabase authentication. If the same email logs in with multiple providers, provider is stored as 'email,google'.",
         "security": [{ "bearerAuth": [] }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyncBody" } } } },
         "responses": {
@@ -1023,7 +1026,6 @@
           "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "403": { "description": "Token does not match provided user data", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "409": { "description": "Merge required but not allowed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
