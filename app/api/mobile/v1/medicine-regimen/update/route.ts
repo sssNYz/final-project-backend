@@ -4,16 +4,26 @@ import { withAuth } from "@/lib/apiHelpers";
 import { updateMedicineRegimen } from "@/server/medicineRegimen/medicineRegimen.service";
 import { ServiceError } from "@/server/common/errors";
 import { ScheduleType } from "@prisma/client";
+import { MedicineRegimenUpdateBodySchema } from "@/server/medicineRegimen/medicineRegimen.schemas";
+import type { ZodError } from "zod";
+
+function firstZodIssue(error: ZodError): string {
+  const issue = error.issues?.[0];
+  if (!issue) return "Invalid request body";
+  const path = issue.path?.length ? issue.path.map(String).join(".") : "";
+  return path ? `${path}: ${issue.message}` : issue.message;
+}
 
 // PATCH /api/mobile/v1/medicine-regimen/update
 export async function PATCH(request: Request) {
   return withAuth(request, async ({ prismaUser }) => {
     try {
-      const body = await request.json();
-
-      if (!body.mediRegimenId) {
-        return NextResponse.json({ error: "mediRegimenId is required" }, { status: 400 });
+      const json = await request.json();
+      const parsed = MedicineRegimenUpdateBodySchema.safeParse(json);
+      if (!parsed.success) {
+        return NextResponse.json({ error: firstZodIssue(parsed.error) }, { status: 400 });
       }
+      const body = parsed.data;
 
       // Build update data
       const updateData: {
@@ -27,30 +37,15 @@ export async function PATCH(request: Request) {
       } = {};
 
       if (body.scheduleType !== undefined) {
-        if (!["DAILY", "WEEKLY", "INTERVAL", "CYCLE"].includes(body.scheduleType)) {
-          return NextResponse.json({ error: "scheduleType must be one of: DAILY, WEEKLY, INTERVAL, CYCLE" }, { status: 400 });
-        }
         updateData.scheduleType = body.scheduleType as ScheduleType;
       }
 
       if (body.startDate !== undefined) {
-        const startDate = new Date(body.startDate);
-        if (isNaN(startDate.getTime())) {
-          return NextResponse.json({ error: "Invalid startDate format" }, { status: 400 });
-        }
-        updateData.startDate = startDate;
+        updateData.startDate = body.startDate;
       }
 
       if (body.endDate !== undefined) {
-        if (body.endDate === null) {
-          updateData.endDate = null;
-        } else {
-          const endDate = new Date(body.endDate);
-          if (isNaN(endDate.getTime())) {
-            return NextResponse.json({ error: "Invalid endDate format" }, { status: 400 });
-          }
-          updateData.endDate = endDate;
-        }
+        updateData.endDate = body.endDate;
       }
 
       if (body.daysOfWeek !== undefined) {
@@ -58,20 +53,20 @@ export async function PATCH(request: Request) {
       }
 
       if (body.intervalDays !== undefined) {
-        updateData.intervalDays = body.intervalDays !== null ? Number(body.intervalDays) : null;
+        updateData.intervalDays = body.intervalDays;
       }
 
       if (body.cycleOnDays !== undefined) {
-        updateData.cycleOnDays = body.cycleOnDays !== null ? Number(body.cycleOnDays) : null;
+        updateData.cycleOnDays = body.cycleOnDays;
       }
 
       if (body.cycleBreakDays !== undefined) {
-        updateData.cycleBreakDays = body.cycleBreakDays !== null ? Number(body.cycleBreakDays) : null;
+        updateData.cycleBreakDays = body.cycleBreakDays;
       }
 
       const result = await updateMedicineRegimen({
         userId: prismaUser.userId,
-        mediRegimenId: Number(body.mediRegimenId),
+        mediRegimenId: body.mediRegimenId,
         ...updateData,
       });
 
@@ -87,5 +82,3 @@ export async function PATCH(request: Request) {
     }
   });
 }
-
-

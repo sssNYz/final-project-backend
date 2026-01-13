@@ -13,6 +13,28 @@ import { ScheduleType, MealRelation } from "@prisma/client";
 
 // ---------- Validation helpers ----------
 
+function normalizeDaysOfWeek(daysOfWeek: string): string {
+  const parts = daysOfWeek
+    .split(",")
+    .map((d) => d.trim())
+    .filter((d) => d.length > 0);
+
+  if (parts.length === 0) {
+    throw new ServiceError(400, { error: "daysOfWeek is required when scheduleType is WEEKLY" });
+  }
+
+  const days = new Set<number>();
+  for (const part of parts) {
+    const dayNum = Number(part);
+    if (!Number.isInteger(dayNum) || dayNum < 0 || dayNum > 6) {
+      throw new ServiceError(400, { error: "daysOfWeek must be comma-separated numbers 0-6 (0=Sunday, 6=Saturday)" });
+    }
+    days.add(dayNum);
+  }
+
+  return Array.from(days).sort((a, b) => a - b).join(",");
+}
+
 function parseTimeString(timeStr: string, baseDate: Date): Date {
   // timeStr format: "HH:MM" (e.g., "09:00", "14:30")
   const [hours, minutes] = timeStr.split(":").map(Number);
@@ -31,39 +53,121 @@ function formatTimeToHHMM(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
-function validateScheduleFields(scheduleType: ScheduleType, data: {
-  daysOfWeek?: string | null;
-  intervalDays?: number | null;
-  cycleOnDays?: number | null;
-  cycleBreakDays?: number | null;
-}) {
-  if (scheduleType === "WEEKLY") {
-    if (!data.daysOfWeek || data.daysOfWeek.trim() === "") {
-      throw new ServiceError(400, { error: "daysOfWeek is required when scheduleType is WEEKLY" });
+function assertNoForbiddenScheduleFieldsProvided(
+  scheduleType: ScheduleType,
+  patch: {
+    daysOfWeek?: string | null;
+    intervalDays?: number | null;
+    cycleOnDays?: number | null;
+    cycleBreakDays?: number | null;
+  }
+) {
+  const hasNonNull = (v: unknown) => v !== null && v !== undefined;
+
+  if (scheduleType === "DAILY") {
+    if (patch.daysOfWeek !== undefined && hasNonNull(patch.daysOfWeek)) {
+      throw new ServiceError(400, { error: "daysOfWeek must be null/omitted when scheduleType is DAILY" });
     }
-    // Validate daysOfWeek format (comma-separated numbers 0-6)
-    const days = data.daysOfWeek.split(",").map((d) => d.trim());
-    for (const day of days) {
-      const dayNum = Number(day);
-      if (isNaN(dayNum) || dayNum < 0 || dayNum > 6) {
-        throw new ServiceError(400, { error: "daysOfWeek must be comma-separated numbers 0-6 (0=Sunday, 6=Saturday)" });
-      }
+    if (patch.intervalDays !== undefined && hasNonNull(patch.intervalDays)) {
+      throw new ServiceError(400, { error: "intervalDays must be null/omitted when scheduleType is DAILY" });
+    }
+    if (patch.cycleOnDays !== undefined && hasNonNull(patch.cycleOnDays)) {
+      throw new ServiceError(400, { error: "cycleOnDays must be null/omitted when scheduleType is DAILY" });
+    }
+    if (patch.cycleBreakDays !== undefined && hasNonNull(patch.cycleBreakDays)) {
+      throw new ServiceError(400, { error: "cycleBreakDays must be null/omitted when scheduleType is DAILY" });
+    }
+  }
+
+  if (scheduleType === "WEEKLY") {
+    if (patch.intervalDays !== undefined && hasNonNull(patch.intervalDays)) {
+      throw new ServiceError(400, { error: "intervalDays must be null/omitted when scheduleType is WEEKLY" });
+    }
+    if (patch.cycleOnDays !== undefined && hasNonNull(patch.cycleOnDays)) {
+      throw new ServiceError(400, { error: "cycleOnDays must be null/omitted when scheduleType is WEEKLY" });
+    }
+    if (patch.cycleBreakDays !== undefined && hasNonNull(patch.cycleBreakDays)) {
+      throw new ServiceError(400, { error: "cycleBreakDays must be null/omitted when scheduleType is WEEKLY" });
     }
   }
 
   if (scheduleType === "INTERVAL") {
-    if (data.intervalDays === null || data.intervalDays === undefined || data.intervalDays < 1) {
-      throw new ServiceError(400, { error: "intervalDays is required and must be >= 1 when scheduleType is INTERVAL" });
+    if (patch.daysOfWeek !== undefined && hasNonNull(patch.daysOfWeek)) {
+      throw new ServiceError(400, { error: "daysOfWeek must be null/omitted when scheduleType is INTERVAL" });
+    }
+    if (patch.cycleOnDays !== undefined && hasNonNull(patch.cycleOnDays)) {
+      throw new ServiceError(400, { error: "cycleOnDays must be null/omitted when scheduleType is INTERVAL" });
+    }
+    if (patch.cycleBreakDays !== undefined && hasNonNull(patch.cycleBreakDays)) {
+      throw new ServiceError(400, { error: "cycleBreakDays must be null/omitted when scheduleType is INTERVAL" });
     }
   }
 
   if (scheduleType === "CYCLE") {
-    if (data.cycleOnDays === null || data.cycleOnDays === undefined || data.cycleOnDays < 1) {
-      throw new ServiceError(400, { error: "cycleOnDays is required and must be >= 1 when scheduleType is CYCLE" });
+    if (patch.daysOfWeek !== undefined && hasNonNull(patch.daysOfWeek)) {
+      throw new ServiceError(400, { error: "daysOfWeek must be null/omitted when scheduleType is CYCLE" });
     }
-    if (data.cycleBreakDays === null || data.cycleBreakDays === undefined || data.cycleBreakDays < 1) {
-      throw new ServiceError(400, { error: "cycleBreakDays is required and must be >= 1 when scheduleType is CYCLE" });
+    if (patch.intervalDays !== undefined && hasNonNull(patch.intervalDays)) {
+      throw new ServiceError(400, { error: "intervalDays must be null/omitted when scheduleType is CYCLE" });
     }
+  }
+}
+
+function normalizeAndValidateScheduleFields(
+  scheduleType: ScheduleType,
+  data: {
+    daysOfWeek: string | null;
+    intervalDays: number | null;
+    cycleOnDays: number | null;
+    cycleBreakDays: number | null;
+  }
+): {
+  daysOfWeek: string | null;
+  intervalDays: number | null;
+  cycleOnDays: number | null;
+  cycleBreakDays: number | null;
+} {
+  switch (scheduleType) {
+    case "DAILY":
+      return { daysOfWeek: null, intervalDays: null, cycleOnDays: null, cycleBreakDays: null };
+    case "WEEKLY": {
+      if (!data.daysOfWeek || data.daysOfWeek.trim() === "") {
+        throw new ServiceError(400, { error: "daysOfWeek is required when scheduleType is WEEKLY" });
+      }
+      return { daysOfWeek: normalizeDaysOfWeek(data.daysOfWeek), intervalDays: null, cycleOnDays: null, cycleBreakDays: null };
+    }
+    case "INTERVAL": {
+      if (!Number.isInteger(data.intervalDays) || (data.intervalDays ?? 0) < 1) {
+        throw new ServiceError(400, { error: "intervalDays is required and must be >= 1 when scheduleType is INTERVAL" });
+      }
+      return { daysOfWeek: null, intervalDays: data.intervalDays, cycleOnDays: null, cycleBreakDays: null };
+    }
+    case "CYCLE": {
+      if (!Number.isInteger(data.cycleOnDays) || (data.cycleOnDays ?? 0) < 1) {
+        throw new ServiceError(400, { error: "cycleOnDays is required and must be >= 1 when scheduleType is CYCLE" });
+      }
+      if (!Number.isInteger(data.cycleBreakDays) || (data.cycleBreakDays ?? 0) < 1) {
+        throw new ServiceError(400, { error: "cycleBreakDays is required and must be >= 1 when scheduleType is CYCLE" });
+      }
+      return { daysOfWeek: null, intervalDays: null, cycleOnDays: data.cycleOnDays, cycleBreakDays: data.cycleBreakDays };
+    }
+    default:
+      throw new ServiceError(400, { error: "Invalid scheduleType" });
+  }
+}
+
+function validateStartEndDate(scheduleType: ScheduleType, startDate: Date, endDate: Date | null) {
+  if (!(startDate instanceof Date) || isNaN(startDate.getTime())) {
+    throw new ServiceError(400, { error: "Invalid startDate" });
+  }
+  if (endDate !== null && (!(endDate instanceof Date) || isNaN(endDate.getTime()))) {
+    throw new ServiceError(400, { error: "Invalid endDate" });
+  }
+  if (endDate && endDate.getTime() < startDate.getTime()) {
+    throw new ServiceError(400, { error: "endDate must be on or after startDate" });
+  }
+  if (scheduleType === "DAILY" && !endDate) {
+    throw new ServiceError(400, { error: "endDate is required when scheduleType is DAILY" });
   }
 }
 
@@ -73,7 +177,7 @@ function validateTimes(times: Array<{
   unit: string;
   mealRelation: MealRelation;
   mealOffsetMin?: number | null;
-}>, startDate: Date) {
+}>) {
   if (!times || times.length === 0) {
     throw new ServiceError(400, { error: "At least one time is required" });
   }
@@ -85,8 +189,8 @@ function validateTimes(times: Array<{
     }
 
     // Validate dose
-    if (!timeData.dose || timeData.dose < 1) {
-      throw new ServiceError(400, { error: "dose must be >= 1" });
+    if (!Number.isFinite(timeData.dose) || !Number.isInteger(timeData.dose) || timeData.dose < 1) {
+      throw new ServiceError(400, { error: "dose must be an integer >= 1" });
     }
 
     // Validate unit
@@ -104,8 +208,8 @@ function validateTimes(times: Array<{
       if (timeData.mealOffsetMin === null || timeData.mealOffsetMin === undefined) {
         throw new ServiceError(400, { error: "mealOffsetMin is required when mealRelation is not NONE" });
       }
-      if (typeof timeData.mealOffsetMin !== "number") {
-        throw new ServiceError(400, { error: "mealOffsetMin must be a number" });
+      if (!Number.isFinite(timeData.mealOffsetMin) || !Number.isInteger(timeData.mealOffsetMin) || timeData.mealOffsetMin < 0) {
+        throw new ServiceError(400, { error: "mealOffsetMin must be an integer >= 0" });
       }
     } else {
       // mealRelation is NONE, mealOffsetMin must be null or not provided
@@ -114,6 +218,171 @@ function validateTimes(times: Array<{
       }
     }
   }
+}
+
+// ---------- Next Occurrence Calculator ----------
+
+/**
+ * Calculate the next occurrence date/time for a regimen.
+ * Returns null if regimen has ended or no valid time exists.
+ */
+function calculateNextOccurrence(params: {
+  scheduleType: ScheduleType;
+  startDate: Date;
+  endDate: Date | null;
+  daysOfWeek: string | null;
+  intervalDays: number | null;
+  cycleOnDays: number | null;
+  cycleBreakDays: number | null;
+  times: Array<{ time: Date }>;
+  now?: Date;
+}): Date | null {
+  const {
+    scheduleType,
+    startDate,
+    endDate,
+    daysOfWeek,
+    intervalDays,
+    cycleOnDays,
+    cycleBreakDays,
+    times,
+    now = new Date(),
+  } = params;
+  console.log("Calculate next occurrence:", {
+    scheduleType,
+    startDate: startDate.toISOString(),
+    endDate: endDate?.toISOString(),
+    daysOfWeek,
+    intervalDays,
+    cycleOnDays,
+    cycleBreakDays,
+    timesCount: times.length,
+    now: now.toISOString(),
+  });
+
+  // No times means no occurrence
+  if (!times || times.length === 0) {
+    return null;
+  }
+
+  // Get sorted times as HH:MM numbers for easy compare
+  const sortedTimes = times
+    .map((t) => ({
+      hours: t.time.getHours(),
+      minutes: t.time.getMinutes(),
+    }))
+    .sort((a, b) => a.hours * 60 + a.minutes - (b.hours * 60 + b.minutes));
+
+  // Helper: create Date for a specific day + time
+  function makeDatetime(day: Date, hours: number, minutes: number): Date {
+    const result = new Date(day);
+    result.setHours(hours, minutes, 0, 0);
+    return result;
+  }
+
+  // Helper: check if day is valid for WEEKLY schedule
+  function isValidWeeklyDay(day: Date): boolean {
+    if (!daysOfWeek) return false;
+    const dayOfWeek = day.getDay(); // 0=Sunday, 6=Saturday
+    const allowedDays = daysOfWeek.split(",").map((d) => Number(d.trim()));
+    return allowedDays.includes(dayOfWeek);
+  }
+
+  // Helper: check if day is valid for INTERVAL schedule
+  function isValidIntervalDay(day: Date): boolean {
+    if (!intervalDays || intervalDays < 1) return false;
+    const startMs = new Date(startDate).setHours(0, 0, 0, 0);
+    const dayMs = new Date(day).setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((dayMs - startMs) / (24 * 60 * 60 * 1000));
+    return diffDays >= 0 && diffDays % intervalDays === 0;
+  }
+
+  // Helper: check if day is in "ON" period for CYCLE schedule
+  function isValidCycleDay(day: Date): boolean {
+    if (!cycleOnDays || cycleOnDays < 1 || !cycleBreakDays || cycleBreakDays < 1) {
+      return false;
+    }
+    const cyclePeriod = cycleOnDays + cycleBreakDays;
+    const startMs = new Date(startDate).setHours(0, 0, 0, 0);
+    const dayMs = new Date(day).setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((dayMs - startMs) / (24 * 60 * 60 * 1000));
+    if (diffDays < 0) return false;
+    const positionInCycle = diffDays % cyclePeriod;
+    return positionInCycle < cycleOnDays; // 0 to (cycleOnDays-1) is ON period
+  }
+
+  // Helper: check if a day is valid based on schedule type
+  function isDayValid(day: Date): boolean {
+    // Day must be >= startDate (date only, ignore time)
+    const dayDateOnly = new Date(day).setHours(0, 0, 0, 0);
+    const startDateOnly = new Date(startDate).setHours(0, 0, 0, 0);
+    if (dayDateOnly < startDateOnly) return false;
+
+    switch (scheduleType) {
+      case "DAILY":
+        return true;
+      case "WEEKLY":
+        return isValidWeeklyDay(day);
+      case "INTERVAL":
+        return isValidIntervalDay(day);
+      case "CYCLE":
+        return isValidCycleDay(day);
+      default:
+        return false;
+    }
+  }
+
+  // Helper: find next valid time on a given day (must be > now)
+  function findNextTimeOnDay(day: Date): Date | null {
+    if (!isDayValid(day)) return null;
+
+    for (const t of sortedTimes) {
+      const candidate = makeDatetime(day, t.hours, t.minutes);
+      if (candidate > now) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  // Search for next occurrence (up to 400 days to handle long cycles)
+  const maxSearchDays = 400;
+  let currentDay = new Date(now);
+  currentDay.setHours(0, 0, 0, 0);
+  currentDay.setMinutes(0, 0, 0);
+
+  // If now is before startDate, start from startDate
+  const startDateOnly = new Date(startDate);
+  startDateOnly.setHours(0, 0, 0, 0);
+  startDateOnly.setMinutes(0, 0, 0);
+  if (currentDay < startDateOnly) {
+    currentDay = new Date(startDateOnly); // Create new Date to avoid reference issues
+  }
+
+  for (let i = 0; i < maxSearchDays; i++) {
+    // Check if we passed endDate (check before searching to avoid unnecessary work)
+    if (endDate) {
+      const endDateOnly = new Date(endDate);
+      endDateOnly.setHours(23, 59, 59, 999);
+      if (currentDay > endDateOnly) {
+        return null; // Past end date
+      }
+    }
+
+    const nextTime = findNextTimeOnDay(currentDay);
+    if (nextTime) {
+      // Check endDate again with full datetime
+      if (endDate && nextTime > endDate) {
+        return null;
+      }
+      return nextTime;
+    }
+
+    // Move to next day
+    currentDay.setDate(currentDay.getDate() + 1);
+  }
+
+  return null; // No valid occurrence found in search range
 }
 
 // ---------- CREATE ----------
@@ -149,11 +418,20 @@ export async function createMedicineRegimen(params: {
     throw new ServiceError(403, { error: "Not allowed to create regimen for this medicine list" });
   }
 
-  // 2) Validate schedule fields based on scheduleType
-  validateScheduleFields(scheduleType, { daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays });
+  const finalEndDate = endDate ?? null;
+  validateStartEndDate(scheduleType, startDate, finalEndDate);
+
+  // 2) Validate schedule fields based on scheduleType (and block irrelevant fields)
+  assertNoForbiddenScheduleFieldsProvided(scheduleType, { daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays });
+  const schedule = normalizeAndValidateScheduleFields(scheduleType, {
+    daysOfWeek: daysOfWeek ?? null,
+    intervalDays: intervalDays ?? null,
+    cycleOnDays: cycleOnDays ?? null,
+    cycleBreakDays: cycleBreakDays ?? null,
+  });
 
   // 3) Validate times
-  validateTimes(times, startDate);
+  validateTimes(times);
 
   // 4) Convert time strings to DateTime using startDate as base
   const timesWithDates = times.map((t) => ({
@@ -164,20 +442,33 @@ export async function createMedicineRegimen(params: {
     mealOffsetMin: t.mealRelation !== "NONE" ? t.mealOffsetMin! : null,
   }));
 
-  // 5) Create regimen with times (transaction)
+  // 5) Calculate next occurrence
+  const nextOccurrenceAt = calculateNextOccurrence({
+    scheduleType,
+    startDate,
+    endDate: finalEndDate,
+    daysOfWeek: schedule.daysOfWeek,
+    intervalDays: schedule.intervalDays,
+    cycleOnDays: schedule.cycleOnDays,
+    cycleBreakDays: schedule.cycleBreakDays,
+    times: timesWithDates,
+  });
+
+  // 6) Create regimen with times (transaction)
   const created = await createRegimenWithTimes({
     mediListId,
     scheduleType,
     startDate,
-    endDate: endDate ?? null,
-    daysOfWeek: daysOfWeek ?? null,
-    intervalDays: intervalDays ?? null,
-    cycleOnDays: cycleOnDays ?? null,
-    cycleBreakDays: cycleBreakDays ?? null,
+    endDate: finalEndDate,
+    daysOfWeek: schedule.daysOfWeek,
+    intervalDays: schedule.intervalDays,
+    cycleOnDays: schedule.cycleOnDays,
+    cycleBreakDays: schedule.cycleBreakDays,
+    nextOccurrenceAt,
     times: timesWithDates,
   });
 
-  // 6) Format response
+  // 7) Format response
   return {
     mediRegimenId: created.mediRegimenId,
     mediListId: created.mediListId,
@@ -188,6 +479,7 @@ export async function createMedicineRegimen(params: {
     intervalDays: created.intervalDays,
     cycleOnDays: created.cycleOnDays,
     cycleBreakDays: created.cycleBreakDays,
+    nextOccurrenceAt: created.nextOccurrenceAt,
     times: created.times.map((t) => ({
       timeId: t.timeId,
       time: formatTimeToHHMM(t.time),
@@ -219,6 +511,7 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
       scheduleType: regimen.scheduleType,
       startDate: regimen.startDate,
       endDate: regimen.endDate,
+      nextOccurrenceAt: regimen.nextOccurrenceAt,
       daysOfWeek: regimen.daysOfWeek,
       intervalDays: regimen.intervalDays,
       cycleOnDays: regimen.cycleOnDays,
@@ -277,15 +570,21 @@ export async function updateMedicineRegimen(params: {
   // 3) Determine scheduleType to validate (use provided or existing)
   const finalScheduleType = scheduleType ?? existing.scheduleType;
 
-  // 4) Validate schedule fields if scheduleType is being changed or related fields are provided
-  if (scheduleType || daysOfWeek !== undefined || intervalDays !== undefined || cycleOnDays !== undefined || cycleBreakDays !== undefined) {
-    validateScheduleFields(finalScheduleType, {
-      daysOfWeek: daysOfWeek !== undefined ? daysOfWeek : existing.daysOfWeek,
-      intervalDays: intervalDays !== undefined ? intervalDays : existing.intervalDays,
-      cycleOnDays: cycleOnDays !== undefined ? cycleOnDays : existing.cycleOnDays,
-      cycleBreakDays: cycleBreakDays !== undefined ? cycleBreakDays : existing.cycleBreakDays,
-    });
+  const hasAnyUserUpdate =
+    scheduleType !== undefined ||
+    startDate !== undefined ||
+    endDate !== undefined ||
+    daysOfWeek !== undefined ||
+    intervalDays !== undefined ||
+    cycleOnDays !== undefined ||
+    cycleBreakDays !== undefined;
+
+  if (!hasAnyUserUpdate) {
+    throw new ServiceError(400, { error: "No fields to update" });
   }
+
+  // 4) Block irrelevant schedule fields in the request (allow null to clear)
+  assertNoForbiddenScheduleFieldsProvided(finalScheduleType, { daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays });
 
   // 5) Build update data
   const updateData: {
@@ -296,6 +595,7 @@ export async function updateMedicineRegimen(params: {
     intervalDays?: number | null;
     cycleOnDays?: number | null;
     cycleBreakDays?: number | null;
+    nextOccurrenceAt?: Date | null;
   } = {};
 
   if (scheduleType !== undefined) updateData.scheduleType = scheduleType;
@@ -306,14 +606,45 @@ export async function updateMedicineRegimen(params: {
   if (cycleOnDays !== undefined) updateData.cycleOnDays = cycleOnDays;
   if (cycleBreakDays !== undefined) updateData.cycleBreakDays = cycleBreakDays;
 
-  if (Object.keys(updateData).length === 0) {
-    throw new ServiceError(400, { error: "No fields to update" });
-  }
+  // 6) Recalculate nextOccurrenceAt with final merged values
+  const finalStartDate = startDate ?? existing.startDate;
+  const finalEndDate = endDate !== undefined ? endDate : existing.endDate;
+  const finalDaysOfWeek = daysOfWeek !== undefined ? daysOfWeek : existing.daysOfWeek;
+  const finalIntervalDays = intervalDays !== undefined ? intervalDays : existing.intervalDays;
+  const finalCycleOnDays = cycleOnDays !== undefined ? cycleOnDays : existing.cycleOnDays;
+  const finalCycleBreakDays = cycleBreakDays !== undefined ? cycleBreakDays : existing.cycleBreakDays;
 
-  // 6) Update regimen (times stay unchanged)
+  validateStartEndDate(finalScheduleType, finalStartDate, finalEndDate);
+  const schedule = normalizeAndValidateScheduleFields(finalScheduleType, {
+    daysOfWeek: finalDaysOfWeek ?? null,
+    intervalDays: finalIntervalDays ?? null,
+    cycleOnDays: finalCycleOnDays ?? null,
+    cycleBreakDays: finalCycleBreakDays ?? null,
+  });
+
+  // Always persist normalized schedule fields so the DB cannot end up with mixed schedule settings.
+  updateData.daysOfWeek = schedule.daysOfWeek;
+  updateData.intervalDays = schedule.intervalDays;
+  updateData.cycleOnDays = schedule.cycleOnDays;
+  updateData.cycleBreakDays = schedule.cycleBreakDays;
+
+  const nextOccurrenceAt = calculateNextOccurrence({
+    scheduleType: finalScheduleType,
+    startDate: finalStartDate,
+    endDate: finalEndDate,
+    daysOfWeek: schedule.daysOfWeek,
+    intervalDays: schedule.intervalDays,
+    cycleOnDays: schedule.cycleOnDays,
+    cycleBreakDays: schedule.cycleBreakDays,
+    times: existing.times, // times are not updated in this endpoint
+  });
+
+  updateData.nextOccurrenceAt = nextOccurrenceAt;
+
+  // 7) Update regimen (times stay unchanged)
   const updated = await updateRegimenFields(mediRegimenId, updateData);
 
-  // 7) Format response
+  // 8) Format response
   return {
     mediRegimenId: updated.mediRegimenId,
     mediListId: updated.mediListId,
@@ -324,6 +655,7 @@ export async function updateMedicineRegimen(params: {
     intervalDays: updated.intervalDays,
     cycleOnDays: updated.cycleOnDays,
     cycleBreakDays: updated.cycleBreakDays,
+    nextOccurrenceAt: updated.nextOccurrenceAt,
     medicineList: updated.medicineList
       ? {
           mediListId: updated.medicineList.mediListId,
@@ -369,5 +701,3 @@ export async function deleteMedicineRegimen(params: { userId: number; mediRegime
 
   return { message: "Medicine regimen deleted successfully" };
 }
-
-

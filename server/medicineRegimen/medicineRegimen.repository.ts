@@ -94,6 +94,7 @@ export async function createRegimenWithTimes(params: {
   intervalDays: number | null;
   cycleOnDays: number | null;
   cycleBreakDays: number | null;
+  nextOccurrenceAt: Date | null;
   times: Array<{
     time: Date;
     dose: number;
@@ -114,6 +115,7 @@ export async function createRegimenWithTimes(params: {
         intervalDays: params.intervalDays,
         cycleOnDays: params.cycleOnDays,
         cycleBreakDays: params.cycleBreakDays,
+        nextOccurrenceAt: params.nextOccurrenceAt,
       },
     });
 
@@ -151,6 +153,7 @@ export async function updateRegimenFields(
     intervalDays?: number | null;
     cycleOnDays?: number | null;
     cycleBreakDays?: number | null;
+    nextOccurrenceAt?: Date | null;
   }
 ) {
   return prisma.userMedicineRegimen.update({

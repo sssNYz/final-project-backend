@@ -156,6 +156,7 @@ model UserMedicineRegimen {
   intervalDays     Int?         @map("INTERVAL_DAYS")
   cycleOnDays      Int?         @map("CYCLE_ON_DAYS")
   cycleBreakDays   Int?         @map("CYCLE_BREAK_DAYS")
+  nextOccurrenceAt DateTime?    @map("NEXT_OCCURRENCE_AT")
 
   // Relations
   medicineList MedicineList?             @relation(fields: [mediListId], references: [mediListId])
