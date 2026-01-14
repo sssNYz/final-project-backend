@@ -28,8 +28,27 @@ model UserAccount {
   handledRequests     UserRequest[]      @relation("AdminRequests")
   ownedRelationships  UserRelationship[] @relation("OwnerUser")
   viewedRelationships UserRelationship[] @relation("ViewerUser")
+  deviceTokens        DeviceToken[]
 
   @@map("USER_ACCOUNT")
+}
+
+/// DEVICE_TOKEN
+model DeviceToken {
+  deviceTokenId Int       @id @default(autoincrement()) @map("DEVICE_TOKEN_ID")
+  token         String    @unique @map("TOKEN")
+  userId        Int       @map("USER_ID")
+  platform      String?   @map("PLATFORM")
+  deviceId      String?   @map("DEVICE_ID")
+  lastSeenAt    DateTime  @default(now()) @map("LAST_SEEN_AT")
+  revokedAt     DateTime? @map("REVOKED_AT")
+  createdAt     DateTime  @default(now()) @map("CREATED_AT")
+  updatedAt     DateTime  @updatedAt @map("UPDATED_AT")
+
+  // Relations
+  user UserAccount @relation(fields: [userId], references: [userId])
+
+  @@map("DEVICE_TOKEN")
 }
 
 /// USER_PROFILE
@@ -133,6 +152,8 @@ model MedicationLog {
   mediRegimenId  Int             @map("MEDI_REGIMEN_ID")
   scheduleTime   DateTime        @map("SCHEDULE_TIME")
   isReceived     Boolean         @map("IS_RECEIVED")
+  pushSentAt     DateTime?       @map("PUSH_SENT_AT")
+  supabaseSentAt DateTime?       @map("SUPABASE_SENT_AT")
   responseStatus ResponseStatus? @map("RESPONSE_STATUS")
   responseAt     DateTime?       @map("RESPONSE_AT")
   snoozedCount   Int?            @map("SNOOZED_COUNT")
@@ -142,6 +163,7 @@ model MedicationLog {
   profile UserProfile         @relation(fields: [profileId], references: [profileId])
   regimen UserMedicineRegimen @relation(fields: [mediRegimenId], references: [mediRegimenId])
 
+  @@unique([profileId, mediRegimenId, scheduleTime])
   @@map("MEDICATION_LOG")
 }
 

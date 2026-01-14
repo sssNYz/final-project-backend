@@ -1054,6 +1054,72 @@
         }
       }
     },
+    "/api/mobile/v1/auth/device-token": {
+      "get": {
+        "tags": ["Mobile - Auth"],
+        "summary": "Docs for device-token",
+        "description": "Returns usage information for POST /api/mobile/v1/auth/device-token.",
+        "responses": {
+          "200": { "description": "Usage info", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } }
+        }
+      },
+      "post": {
+        "tags": ["Mobile - Auth"],
+        "summary": "Save or update device FCM token",
+        "description": "Register a device FCM token for the current user. One user can have many tokens (phone, tablet, emulator). If the same token is sent again, it will be updated (no duplicate).",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": { "type": "string", "description": "FCM device token (required)" },
+                  "platform": { "type": "string", "nullable": true, "description": "Optional: 'android', 'ios', or 'web'" },
+                  "deviceId": { "type": "string", "nullable": true, "description": "Optional: device identifier from app" }
+                },
+                "required": ["token"]
+              },
+              "example": {
+                "token": "fcm_token_here...",
+                "platform": "android",
+                "deviceId": "my-device-123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token saved or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "deviceToken": {
+                      "type": "object",
+                      "properties": {
+                        "deviceTokenId": { "type": "integer" },
+                        "token": { "type": "string" },
+                        "platform": { "type": "string", "nullable": true },
+                        "deviceId": { "type": "string", "nullable": true },
+                        "lastSeenAt": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid token or body", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "User not found (sync-user not called yet)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
     "/api/mobile/v1/users/update": {
       "patch": {
         "tags": ["Mobile - Users"],
