@@ -13,6 +13,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
     environment:
       - PMA_HOST=db          # ← Change from "mysql" to "db" 
     ports:
