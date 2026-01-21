@@ -1,0 +1,26 @@
+===========================================
+COPY AND PASTE THIS INTO YOUR TERMINAL:
+===========================================
+
+# Step 1: Install Docker
+apt-get update && apt-get install -y docker.io docker-compose
+
+# Step 2: Find and start Docker daemon
+/usr/bin/dockerd > /tmp/dockerd.log 2>&1 &
+sleep 5
+
+# Step 3: Check if Docker works
+docker --version
+docker ps
+
+# Step 4: Stop local MySQL
+service mysql stop || /etc/init.d/mysql stop
+
+# Step 5: Start Docker containers
+cd /root/Project/final-project-backend
+docker-compose up -d db phpmyadmin
+
+# Step 6: Check containers
+docker-compose ps
+
+===========================================

@@ -183,3 +183,10 @@ curl -I http://medi-buddy.duckdns.org
 - All configuration files are ready for HTTPS once certificates are obtained
 
 
+
+
+
+
+
+
+

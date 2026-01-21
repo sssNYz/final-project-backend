@@ -19,12 +19,17 @@ export interface PublicUserAccountWithProfiles extends PublicUserAccount {
   }>;
 }
 
+function normalizeProviderForPublic(provider: string | null): string | null {
+  if (provider === "both") return "email,google";
+  return provider;
+}
+
 export function serializeUserAccount(user: UserAccount): PublicUserAccount {
   return {
     userId: user.userId,
     email: user.email,
     supabaseUserId: user.supabaseUserId,
-    provider: user.provider,
+    provider: normalizeProviderForPublic(user.provider),
     role: user.role,
     tutorialDone: user.tutorialDone,
     lastLogin: user.lastLogin,

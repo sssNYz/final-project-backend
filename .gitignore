@@ -46,3 +46,6 @@ next-env.d.ts
 # pm2 logs
 /logs
 *.log
+
+# one-off local backups
+/backups/

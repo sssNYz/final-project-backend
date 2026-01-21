@@ -1,7 +1,7 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -13,7 +13,7 @@ model UserAccount {
   email          String    @unique @map("USER_EMAIL")
   password       String?   @map("USER_PASSWORD")
   supabaseUserId String?   @unique @map("SUPABASE_USER_ID")
-  provider       String?   @map("PROVIDER")
+  provider       String?   @map("PROVIDER") // "email", "google", or "email,google" (legacy "both" may exist in old rows)
   lastLogin      DateTime? @map("LAST_LOGIN")
   createdAt      DateTime  @default(now()) @map("CREATE_AT")
   deletedAt      DateTime? @map("DELETED_AT")
@@ -21,6 +21,7 @@ model UserAccount {
   tutorialDone   Boolean   @default(false) @map("TUTORIAL_DONE")
   role           Role      @default(User) @map("ROLE")
   status         Boolean   @default(true) @map("STATUS")
+  timeZone       String?   @map("TIME_ZONE")
 
   // Relations
   profiles            UserProfile[]      @relation("UserToProfile")
@@ -28,8 +29,27 @@ model UserAccount {
   handledRequests     UserRequest[]      @relation("AdminRequests")
   ownedRelationships  UserRelationship[] @relation("OwnerUser")
   viewedRelationships UserRelationship[] @relation("ViewerUser")
+  deviceTokens        DeviceToken[]
 
   @@map("USER_ACCOUNT")
+}
+
+/// DEVICE_TOKEN
+model DeviceToken {
+  deviceTokenId Int       @id @default(autoincrement()) @map("DEVICE_TOKEN_ID")
+  token         String    @unique @map("TOKEN")
+  userId        Int       @map("USER_ID")
+  platform      String?   @map("PLATFORM")
+  deviceId      String?   @map("DEVICE_ID")
+  lastSeenAt    DateTime  @default(now()) @map("LAST_SEEN_AT")
+  revokedAt     DateTime? @map("REVOKED_AT")
+  createdAt     DateTime  @default(now()) @map("CREATED_AT")
+  updatedAt     DateTime  @updatedAt @map("UPDATED_AT")
+
+  // Relations
+  user UserAccount @relation(fields: [userId], references: [userId])
+
+  @@map("DEVICE_TOKEN")
 }
 
 /// USER_PROFILE
@@ -133,6 +153,8 @@ model MedicationLog {
   mediRegimenId  Int             @map("MEDI_REGIMEN_ID")
   scheduleTime   DateTime        @map("SCHEDULE_TIME")
   isReceived     Boolean         @map("IS_RECEIVED")
+  pushSentAt     DateTime?       @map("PUSH_SENT_AT")
+  supabaseSentAt DateTime?       @map("SUPABASE_SENT_AT")
   responseStatus ResponseStatus? @map("RESPONSE_STATUS")
   responseAt     DateTime?       @map("RESPONSE_AT")
   snoozedCount   Int?            @map("SNOOZED_COUNT")
@@ -142,6 +164,7 @@ model MedicationLog {
   profile UserProfile         @relation(fields: [profileId], references: [profileId])
   regimen UserMedicineRegimen @relation(fields: [mediRegimenId], references: [mediRegimenId])
 
+  @@unique([profileId, mediRegimenId, scheduleTime])
   @@map("MEDICATION_LOG")
 }
 
@@ -154,10 +177,9 @@ model UserMedicineRegimen {
   endDate          DateTime?    @map("END_DATE")
   daysOfWeek       String?      @map("DAYS_OF_WEEK")
   intervalDays     Int?         @map("INTERVAL_DAYS")
-  nextOccurrenceAt DateTime?    @map("NEXT_OCCURRENCE_AT")
   cycleOnDays      Int?         @map("CYCLE_ON_DAYS")
   cycleBreakDays   Int?         @map("CYCLE_BREAK_DAYS")
-  cycleAnchorDate  DateTime?    @map("CYCLE_ANCHOR_DATE")
+  nextOccurrenceAt DateTime?    @map("NEXT_OCCURRENCE_AT")
 
   // Relations
   medicineList MedicineList?             @relation(fields: [mediListId], references: [mediListId])
@@ -171,7 +193,7 @@ model UserMedicineRegimen {
 model UserMedicineRegimenTime {
   timeId        Int          @id @default(autoincrement()) @map("TIME_ID")
   mediRegimenId Int          @map("MEDI_REGIMEN_ID")
-  time          DateTime     @map("TIME")
+  timeOfDay     String       @map("TIME_OF_DAY")
   dose          Int          @map("DOSE")
   unit          String       @map("UNIT")
   mealRelation  MealRelation @map("MEAL_RELATION")

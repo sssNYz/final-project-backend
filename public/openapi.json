@@ -14,10 +14,12 @@
     { "name": "Admin - Medicine", "description": "Admin medicine database management" },
     { "name": "Admin - Dashboard", "description": "Admin dashboard statistics and reporting" },
     { "name": "Mobile - Auth", "description": "Mobile authentication and account sync" },
-    { "name": "Mobile - Users", "description": "Mobile user profile operations" }
+    { "name": "Mobile - Users", "description": "Mobile user profile operations" },
+    { "name": "Mobile - MedicineList", "description": "Mobile user medicine list (per profile)" },
+    { "name": "Mobile - MedicineRegimen", "description": "Mobile user medicine regimen schedules" }
   ],
   "x-tagGroups": [
-    { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users"] },
+    { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users", "Mobile - MedicineList", "Mobile - MedicineRegimen"] },
     { "name": "Admin",  "tags": ["Admin - Auth", "Admin - Users", "Admin - Medicine", "Admin - Dashboard"] }
   ],
   "components": {
@@ -43,7 +45,7 @@
           "userId": { "type": "integer" },
           "email": { "type": "string", "format": "email" },
           "supabaseUserId": { "type": "string", "nullable": true },
-          "provider": { "type": "string", "nullable": true, "enum": ["email", "google", "both", null] },
+          "provider": { "type": "string", "nullable": true, "enum": ["email", "google", "email,google", null] },
           "role": { "type": "string", "enum": ["User", "Admin", "SuperAdmin"] },
           "tutorialDone": { "type": "boolean" },
           "lastLogin": { "type": "string", "format": "date-time", "nullable": true },
@@ -86,8 +88,12 @@
         "properties": {
           "supabaseUserId": { "type": "string" },
           "email": { "type": "string", "format": "email" },
-          "provider": { "type": "string", "enum": ["email", "google", "both"] },
-          "allowMerge": { "type": "boolean" }
+          "provider": {
+            "type": "string",
+            "description": "Use 'email' or 'google'. If a user has both, the stored value will be 'email,google'. Legacy input 'both' is still accepted.",
+            "enum": ["email", "google", "email,google", "both"]
+          },
+          "allowMerge": { "type": "boolean", "description": "Legacy flag (accepted but no longer required)" }
         },
         "required": ["supabaseUserId", "email", "provider"]
       },
@@ -270,6 +276,306 @@
           }
         },
         "required": ["items"]
+      },
+      "MedicineListMedicineInfo": {
+        "type": "object",
+        "properties": {
+          "mediId": { "type": "integer" },
+          "mediThName": { "type": "string" },
+          "mediEnName": { "type": "string" },
+          "mediTradeName": { "type": "string", "nullable": true },
+          "mediType": { "$ref": "#/components/schemas/MedicineType" },
+          "mediPicture": { "type": "string", "nullable": true }
+        },
+        "required": ["mediId", "mediThName", "mediEnName", "mediType"]
+      },
+      "MedicineListItem": {
+        "type": "object",
+        "properties": {
+          "mediListId": { "type": "integer" },
+          "profileId": { "type": "integer" },
+          "mediId": { "type": "integer" },
+          "mediNickname": { "type": "string", "nullable": true },
+          "pictureOption": { "type": "string", "nullable": true },
+          "medicine": { "$ref": "#/components/schemas/MedicineListMedicineInfo" }
+        },
+        "required": ["mediListId", "profileId", "mediId"]
+      },
+      "MedicineListListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineListItem" }
+          }
+        },
+        "required": ["items"]
+      },
+      "MedicineListDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
+      },
+      "ScheduleType": {
+        "type": "string",
+        "enum": ["DAILY", "WEEKLY", "INTERVAL", "CYCLE"]
+      },
+      "MealRelation": {
+        "type": "string",
+        "enum": ["BEFORE_MEAL", "AFTER_MEAL", "WITH_MEAL", "NONE"]
+      },
+      "DayOfWeek": {
+        "type": "string",
+        "enum": ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
+        "description": "Day of week values (SUN=Sunday ... SAT=Saturday)"
+      },
+      "MedicineRegimenTime": {
+        "type": "object",
+        "properties": {
+          "timeId": { "type": "integer" },
+          "time": { "type": "string", "description": "Time in HH:MM format (e.g., '09:00')" },
+          "dose": { "type": "integer", "minimum": 1 },
+          "unit": { "type": "string" },
+          "mealRelation": { "$ref": "#/components/schemas/MealRelation" },
+          "mealOffsetMin": { "type": "integer", "nullable": true, "description": "Required when mealRelation is not NONE; must be null/omitted when mealRelation is NONE" }
+        },
+        "required": ["timeId", "time", "dose", "unit", "mealRelation"]
+      },
+      "MedicineRegimenTimeInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "time": { "type": "string", "description": "Time in HH:MM format (00:00-23:59)" },
+          "dose": { "type": "integer", "minimum": 1 },
+          "unit": { "type": "string" },
+          "mealRelation": { "$ref": "#/components/schemas/MealRelation" },
+          "mealOffsetMin": { "type": "integer", "nullable": true, "minimum": 0, "description": "Required when mealRelation is not NONE; must be null/omitted when mealRelation is NONE" }
+        },
+        "required": ["time", "dose", "unit", "mealRelation"]
+      },
+      "MedicineRegimenCreateDailyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["DAILY"] },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "description": "Required for DAILY schedule" },
+          "times": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineRegimenTimeInput" },
+            "minItems": 1
+          }
+        },
+        "required": ["mediListId", "scheduleType", "startDate", "endDate", "times"]
+      },
+      "MedicineRegimenCreateWeeklyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["WEEKLY"] },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true },
+          "daysOfWeek": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DayOfWeek" },
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Required for WEEKLY schedule."
+          },
+          "times": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineRegimenTimeInput" },
+            "minItems": 1
+          }
+        },
+        "required": ["mediListId", "scheduleType", "startDate", "daysOfWeek", "times"]
+      },
+      "MedicineRegimenCreateIntervalRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["INTERVAL"] },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true },
+          "intervalDays": { "type": "integer", "minimum": 1, "description": "Required for INTERVAL schedule." },
+          "times": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineRegimenTimeInput" },
+            "minItems": 1
+          }
+        },
+        "required": ["mediListId", "scheduleType", "startDate", "intervalDays", "times"]
+      },
+      "MedicineRegimenCreateCycleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["CYCLE"] },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true },
+          "cycleOnDays": { "type": "integer", "minimum": 1, "description": "Required for CYCLE schedule." },
+          "cycleBreakDays": { "type": "integer", "minimum": 1, "description": "Required for CYCLE schedule." },
+          "times": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineRegimenTimeInput" },
+            "minItems": 1
+          }
+        },
+        "required": ["mediListId", "scheduleType", "startDate", "cycleOnDays", "cycleBreakDays", "times"]
+      },
+      "MedicineRegimenCreateRequest": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/MedicineRegimenCreateDailyRequest" },
+          { "$ref": "#/components/schemas/MedicineRegimenCreateWeeklyRequest" },
+          { "$ref": "#/components/schemas/MedicineRegimenCreateIntervalRequest" },
+          { "$ref": "#/components/schemas/MedicineRegimenCreateCycleRequest" }
+        ],
+        "discriminator": {
+          "propertyName": "scheduleType",
+          "mapping": {
+            "DAILY": "#/components/schemas/MedicineRegimenCreateDailyRequest",
+            "WEEKLY": "#/components/schemas/MedicineRegimenCreateWeeklyRequest",
+            "INTERVAL": "#/components/schemas/MedicineRegimenCreateIntervalRequest",
+            "CYCLE": "#/components/schemas/MedicineRegimenCreateCycleRequest"
+          }
+        }
+      },
+      "MedicineRegimenItem": {
+        "type": "object",
+        "properties": {
+          "mediRegimenId": { "type": "integer" },
+          "mediListId": { "type": "integer", "nullable": true },
+          "scheduleType": { "$ref": "#/components/schemas/ScheduleType" },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true },
+          "nextOccurrenceAt": { "type": "string", "format": "date-time", "nullable": true },
+          "daysOfWeek": { "type": "string", "nullable": true },
+          "intervalDays": { "type": "integer", "nullable": true },
+          "cycleOnDays": { "type": "integer", "nullable": true },
+          "cycleBreakDays": { "type": "integer", "nullable": true },
+          "medicineList": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "mediListId": { "type": "integer" },
+              "mediNickname": { "type": "string", "nullable": true },
+              "pictureOption": { "type": "string", "nullable": true },
+              "medicine": { "$ref": "#/components/schemas/MedicineListMedicineInfo" }
+            }
+          },
+          "times": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineRegimenTime" }
+          }
+        },
+        "required": ["mediRegimenId", "scheduleType", "startDate", "times"]
+      },
+      "MedicineRegimenListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MedicineRegimenItem" }
+          }
+        },
+        "required": ["items"]
+      },
+      "MedicineRegimenUpdateAnyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": { "type": "integer" },
+          "scheduleType": { "$ref": "#/components/schemas/ScheduleType" },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true, "description": "Required when scheduleType is DAILY" },
+          "daysOfWeek": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DayOfWeek" },
+            "nullable": true,
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Only for WEEKLY schedule. Must be null/omitted for other schedule types."
+          },
+          "intervalDays": { "type": "integer", "nullable": true, "minimum": 1, "description": "Only for INTERVAL schedule. Must be null/omitted for other schedule types." },
+          "cycleOnDays": { "type": "integer", "nullable": true, "minimum": 1, "description": "Only for CYCLE schedule. Must be null/omitted for other schedule types." },
+          "cycleBreakDays": { "type": "integer", "nullable": true, "minimum": 1, "description": "Only for CYCLE schedule. Must be null/omitted for other schedule types." }
+        },
+        "required": ["mediRegimenId"]
+      },
+      "MedicineRegimenUpdateDailyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["DAILY"] },
+          "endDate": { "type": "string", "format": "date-time", "description": "Required when scheduleType is DAILY" },
+          "startDate": { "type": "string", "format": "date-time" }
+        },
+        "required": ["mediRegimenId", "scheduleType", "endDate"]
+      },
+      "MedicineRegimenUpdateWeeklyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["WEEKLY"] },
+          "daysOfWeek": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DayOfWeek" },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true }
+        },
+        "required": ["mediRegimenId", "scheduleType", "daysOfWeek"]
+      },
+      "MedicineRegimenUpdateIntervalRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["INTERVAL"] },
+          "intervalDays": { "type": "integer", "minimum": 1 },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true }
+        },
+        "required": ["mediRegimenId", "scheduleType", "intervalDays"]
+      },
+      "MedicineRegimenUpdateCycleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": { "type": "integer" },
+          "scheduleType": { "type": "string", "enum": ["CYCLE"] },
+          "cycleOnDays": { "type": "integer", "minimum": 1 },
+          "cycleBreakDays": { "type": "integer", "minimum": 1 },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true }
+        },
+        "required": ["mediRegimenId", "scheduleType", "cycleOnDays", "cycleBreakDays"]
+      },
+      "MedicineRegimenUpdateRequest": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/MedicineRegimenUpdateAnyRequest" },
+          { "$ref": "#/components/schemas/MedicineRegimenUpdateDailyRequest" },
+          { "$ref": "#/components/schemas/MedicineRegimenUpdateWeeklyRequest" },
+          { "$ref": "#/components/schemas/MedicineRegimenUpdateIntervalRequest" },
+          { "$ref": "#/components/schemas/MedicineRegimenUpdateCycleRequest" }
+        ]
+      },
+      "MedicineRegimenDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
       }
     }
   },
@@ -405,7 +711,6 @@
           "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "403": { "description": "Token does not match provided user data", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "409": { "description": "Merge required but not allowed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
@@ -712,7 +1017,7 @@
       "post": {
         "tags": ["Mobile - Auth"],
         "summary": "Sync or create mobile user",
-        "description": "Create or update a user in Prisma after Supabase authentication. Handles merge with allowMerge flag.",
+        "description": "Create or update a user in Prisma after Supabase authentication. If the same email logs in with multiple providers, provider is stored as 'email,google'.",
         "security": [{ "bearerAuth": [] }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyncBody" } } } },
         "responses": {
@@ -721,7 +1026,6 @@
           "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "403": { "description": "Token does not match provided user data", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-          "409": { "description": "Merge required but not allowed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
@@ -746,6 +1050,72 @@
         "responses": {
           "200": { "description": "Email status", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckEmailResponse" } } } },
           "400": { "description": "Invalid email", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/device-token": {
+      "get": {
+        "tags": ["Mobile - Auth"],
+        "summary": "Docs for device-token",
+        "description": "Returns usage information for POST /api/mobile/v1/auth/device-token.",
+        "responses": {
+          "200": { "description": "Usage info", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } }
+        }
+      },
+      "post": {
+        "tags": ["Mobile - Auth"],
+        "summary": "Save or update device FCM token",
+        "description": "Register a device FCM token for the current user. One user can have many tokens (phone, tablet, emulator). If the same token is sent again, it will be updated (no duplicate).",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": { "type": "string", "description": "FCM device token (required)" },
+                  "platform": { "type": "string", "nullable": true, "description": "Optional: 'android', 'ios', or 'web'" },
+                  "deviceId": { "type": "string", "nullable": true, "description": "Optional: device identifier from app" }
+                },
+                "required": ["token"]
+              },
+              "example": {
+                "token": "fcm_token_here...",
+                "platform": "android",
+                "deviceId": "my-device-123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token saved or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "deviceToken": {
+                      "type": "object",
+                      "properties": {
+                        "deviceTokenId": { "type": "integer" },
+                        "token": { "type": "string" },
+                        "platform": { "type": "string", "nullable": true },
+                        "deviceId": { "type": "string", "nullable": true },
+                        "lastSeenAt": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid token or body", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "User not found (sync-user not called yet)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
@@ -881,7 +1251,7 @@
       "delete": {
         "tags": ["Mobile - Users"],
         "summary": "Delete a profile",
-        "description": "Delete a profile by ID.",
+        "description": "Delete a profile by ID. You can send profileId in query (?profileId=1). Backend also accepts JSON body or multipart/form-data.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
@@ -892,12 +1262,452 @@
             "schema": { "type": "integer", "format": "int32" }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer", "format": "int32" }
+                },
+                "required": ["profileId"]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer", "format": "int32" }
+                },
+                "required": ["profileId"]
+              }
+            }
+          }
+        },
         "responses": {
           "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteProfileResponse" } } } },
           "400": { "description": "Invalid profileId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "404": { "description": "Profile not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/create": {
+      "post": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "Add medicine to profile list",
+        "description": "Add a medicine from MedicineDatabase to the user profile list. Optionally set a nickname and upload a picture.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer" },
+                  "mediId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true },
+                  "picture": { "type": "string", "format": "binary", "nullable": true }
+                },
+                "required": ["profileId", "mediId"]
+              },
+              "encoding": {
+                "picture": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": { "type": "integer" },
+                  "mediId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true }
+                },
+                "required": ["profileId", "mediId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListItem" } } } },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Profile or medicine not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "409": { "description": "Medicine already in this profile", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/list": {
+      "get": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "List medicines for a profile",
+        "description": "List all medicine list items for a given profile.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Profile ID to list medicines for"
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListListResponse" } } } },
+          "400": { "description": "profileId required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Profile not found or not yours", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/update": {
+      "patch": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "Update medicine list item",
+        "description": "Update nickname or picture of a medicine list item.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true },
+                  "picture": { "type": "string", "format": "binary", "nullable": true }
+                },
+                "required": ["mediListId"]
+              },
+              "encoding": {
+                "picture": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": { "type": "integer" },
+                  "mediNickname": { "type": "string", "nullable": true }
+                },
+                "required": ["mediListId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListItem" } } } },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Not allowed to update this item", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Medicine list item not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/delete": {
+      "delete": {
+        "tags": ["Mobile - MedicineList"],
+        "summary": "Delete medicine list item",
+        "description": "Delete a medicine from the profile list. Also deletes the picture file if exists.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": { "type": "integer" }
+                },
+                "required": ["mediListId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MedicineListDeleteResponse" } } } },
+          "400": { "description": "mediListId required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Not allowed to delete this item", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Medicine list item not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/create": {
+      "post": {
+        "tags": ["Mobile - MedicineRegimen"],
+        "summary": "Create medicine regimen",
+        "description": "Create a new medicine regimen with schedule settings and multiple times. Schedule type determines which fields are required: DAILY requires endDate, WEEKLY requires daysOfWeek, INTERVAL requires intervalDays, CYCLE requires cycleOnDays and cycleBreakDays. Fields not applicable to the selected scheduleType are rejected. Each time must have mealOffsetMin when mealRelation is not NONE (and must be null/omitted when mealRelation is NONE).",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MedicineRegimenCreateRequest" },
+              "examples": {
+                "DAILY": {
+                  "summary": "DAILY (requires endDate)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "DAILY",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": "2026-12-31T00:00:00.000Z",
+                    "times": [
+                      { "time": "09:00", "dose": 1, "unit": "tablet", "mealRelation": "BEFORE_MEAL", "mealOffsetMin": 30 }
+                    ]
+                  }
+                },
+                "WEEKLY": {
+                  "summary": "WEEKLY (pick daysOfWeek from dropdown)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "WEEKLY",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": null,
+                    "daysOfWeek": ["MON", "WED", "FRI"],
+                    "times": [
+                      { "time": "09:00", "dose": 1, "unit": "tablet", "mealRelation": "NONE" }
+                    ]
+                  }
+                },
+                "INTERVAL": {
+                  "summary": "INTERVAL (every N days)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "INTERVAL",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": null,
+                    "intervalDays": 2,
+                    "times": [
+                      { "time": "09:00", "dose": 1, "unit": "tablet", "mealRelation": "WITH_MEAL", "mealOffsetMin": 0 }
+                    ]
+                  }
+                },
+                "CYCLE": {
+                  "summary": "CYCLE (on/off pattern)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "CYCLE",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": null,
+                    "cycleOnDays": 7,
+                    "cycleBreakDays": 3,
+                    "times": [
+                      { "time": "09:00", "dose": 1, "unit": "tablet", "mealRelation": "AFTER_MEAL", "mealOffsetMin": 30 }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MedicineRegimenItem" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "403": {
+            "description": "Not allowed to create regimen for this medicine list",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Medicine list not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Server error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/list": {
+      "get": {
+        "tags": ["Mobile - MedicineRegimen"],
+        "summary": "List medicine regimens for a profile",
+        "description": "List all medicine regimens for a given profile, including their times.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Profile ID to list regimens for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MedicineRegimenListResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "profileId required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Profile not found or not yours",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Server error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/update": {
+      "patch": {
+        "tags": ["Mobile - MedicineRegimen"],
+        "summary": "Update medicine regimen",
+        "description": "Update regimen schedule fields. Times are not changed by this endpoint. If scheduleType is DAILY, endDate is required. Fields not applicable to the final scheduleType are rejected; the server also normalizes schedule fields to keep the regimen consistent.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MedicineRegimenUpdateRequest" },
+              "examples": {
+                "ChangeToWeekly": {
+                  "summary": "Change scheduleType to WEEKLY",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "WEEKLY",
+                    "daysOfWeek": ["MON", "WED", "FRI"]
+                  }
+                },
+                "ChangeToInterval": {
+                  "summary": "Change scheduleType to INTERVAL",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "INTERVAL",
+                    "intervalDays": 2
+                  }
+                },
+                "ChangeToCycle": {
+                  "summary": "Change scheduleType to CYCLE",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "CYCLE",
+                    "cycleOnDays": 7,
+                    "cycleBreakDays": 3
+                  }
+                },
+                "SetDailyEndDate": {
+                  "summary": "DAILY requires endDate",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "DAILY",
+                    "endDate": "2026-12-31T00:00:00.000Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MedicineRegimenItem" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "403": {
+            "description": "Not allowed to update this regimen",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Medicine regimen not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Server error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/delete": {
+      "delete": {
+        "tags": ["Mobile - MedicineRegimen"],
+        "summary": "Delete medicine regimen",
+        "description": "Delete a medicine regimen. All associated times are automatically deleted.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "mediRegimenId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Regimen ID to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MedicineRegimenDeleteResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "mediRegimenId required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "403": {
+            "description": "Not allowed to delete this regimen",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Medicine regimen not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Server error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     }
