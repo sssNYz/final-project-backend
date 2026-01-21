@@ -11,6 +11,7 @@ import {
 } from "./medicineRegimen.repository";
 import { ScheduleType, MealRelation } from "@prisma/client";
 import { calculateNextOccurrence } from "./nextOccurrence";
+import { prisma } from "@/lib/prisma";
 
 // ---------- Validation helpers ----------
 
@@ -36,22 +37,12 @@ function normalizeDaysOfWeek(daysOfWeek: string): string {
   return Array.from(days).sort((a, b) => a - b).join(",");
 }
 
-function parseTimeString(timeStr: string, baseDate: Date): Date {
-  // timeStr format: "HH:MM" (e.g., "09:00", "14:30")
-  const [hours, minutes] = timeStr.split(":").map(Number);
-  if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+function validateTimeString(timeStr: string): void {
+  // Validate timeOfDay format: "HH:MM" (e.g., "09:00", "14:30")
+  const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+  if (!timeRegex.test(timeStr)) {
     throw new ServiceError(400, { error: `Invalid time format: ${timeStr}. Expected HH:MM format.` });
   }
-
-  const date = new Date(baseDate);
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-}
-
-function formatTimeToHHMM(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
 }
 
 function assertNoForbiddenScheduleFieldsProvided(
@@ -188,6 +179,7 @@ function validateTimes(times: Array<{
     if (!timeData.time || typeof timeData.time !== "string") {
       throw new ServiceError(400, { error: "time must be a string in HH:MM format" });
     }
+    validateTimeString(timeData.time);
 
     // Validate dose
     if (!Number.isFinite(timeData.dose) || !Number.isInteger(timeData.dose) || timeData.dose < 1) {
@@ -271,16 +263,23 @@ export async function createMedicineRegimen(params: {
   // 3) Validate times
   validateTimes(times);
 
-  // 4) Convert time strings to DateTime using startDate as base
-  const timesWithDates = times.map((t) => ({
-    time: parseTimeString(t.time, startDate),
+  // 4) Get user timezone (default to Asia/Bangkok)
+  const userAccount = await prisma.userAccount.findUnique({
+    where: { userId },
+    select: { timeZone: true },
+  });
+  const userTimeZone = userAccount?.timeZone ?? "Asia/Bangkok";
+
+  // 5) Prepare times with timeOfDay strings
+  const timesWithTimeOfDay = times.map((t) => ({
+    timeOfDay: t.time,
     dose: t.dose,
     unit: t.unit,
     mealRelation: t.mealRelation,
     mealOffsetMin: t.mealRelation !== "NONE" ? t.mealOffsetMin! : null,
   }));
 
-  // 5) Calculate next occurrence
+  // 6) Calculate next occurrence
   const nextOccurrenceAt = calculateNextOccurrence({
     scheduleType,
     startDate,
@@ -289,10 +288,11 @@ export async function createMedicineRegimen(params: {
     intervalDays: schedule.intervalDays,
     cycleOnDays: schedule.cycleOnDays,
     cycleBreakDays: schedule.cycleBreakDays,
-    times: timesWithDates,
+    times: timesWithTimeOfDay,
+    userTimeZone,
   });
 
-  // 6) Create regimen with times (transaction)
+  // 7) Create regimen with times (transaction)
   const created = await createRegimenWithTimes({
     mediListId,
     scheduleType,
@@ -303,10 +303,10 @@ export async function createMedicineRegimen(params: {
     cycleOnDays: schedule.cycleOnDays,
     cycleBreakDays: schedule.cycleBreakDays,
     nextOccurrenceAt,
-    times: timesWithDates,
+    times: timesWithTimeOfDay,
   });
 
-  // 7) Format response
+  // 8) Format response
   return {
     mediRegimenId: created.mediRegimenId,
     mediListId: created.mediListId,
@@ -320,7 +320,7 @@ export async function createMedicineRegimen(params: {
     nextOccurrenceAt: created.nextOccurrenceAt,
     times: created.times.map((t) => ({
       timeId: t.timeId,
-      time: formatTimeToHHMM(t.time),
+      time: t.timeOfDay,
       dose: t.dose,
       unit: t.unit,
       mealRelation: t.mealRelation,
@@ -364,7 +364,7 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
         : null,
       times: regimen.times.map((t) => ({
         timeId: t.timeId,
-        time: formatTimeToHHMM(t.time),
+        time: t.timeOfDay,
         dose: t.dose,
         unit: t.unit,
         mealRelation: t.mealRelation,
@@ -444,7 +444,14 @@ export async function updateMedicineRegimen(params: {
   if (cycleOnDays !== undefined) updateData.cycleOnDays = cycleOnDays;
   if (cycleBreakDays !== undefined) updateData.cycleBreakDays = cycleBreakDays;
 
-  // 6) Recalculate nextOccurrenceAt with final merged values
+  // 6) Get user timezone (default to Asia/Bangkok)
+  const userAccount = await prisma.userAccount.findUnique({
+    where: { userId },
+    select: { timeZone: true },
+  });
+  const userTimeZone = userAccount?.timeZone ?? "Asia/Bangkok";
+
+  // 7) Recalculate nextOccurrenceAt with final merged values
   const finalStartDate = startDate ?? existing.startDate;
   const finalEndDate = endDate !== undefined ? endDate : existing.endDate;
   const finalDaysOfWeek = daysOfWeek !== undefined ? daysOfWeek : existing.daysOfWeek;
@@ -466,6 +473,15 @@ export async function updateMedicineRegimen(params: {
   updateData.cycleOnDays = schedule.cycleOnDays;
   updateData.cycleBreakDays = schedule.cycleBreakDays;
 
+  // Convert existing times to timeOfDay format for calculateNextOccurrence
+  const timesWithTimeOfDay = existing.times.map((t) => ({
+    timeOfDay: t.timeOfDay,
+    dose: t.dose,
+    unit: t.unit,
+    mealRelation: t.mealRelation,
+    mealOffsetMin: t.mealOffsetMin,
+  }));
+
   const nextOccurrenceAt = calculateNextOccurrence({
     scheduleType: finalScheduleType,
     startDate: finalStartDate,
@@ -474,15 +490,16 @@ export async function updateMedicineRegimen(params: {
     intervalDays: schedule.intervalDays,
     cycleOnDays: schedule.cycleOnDays,
     cycleBreakDays: schedule.cycleBreakDays,
-    times: existing.times, // times are not updated in this endpoint
+    times: timesWithTimeOfDay,
+    userTimeZone,
   });
 
   updateData.nextOccurrenceAt = nextOccurrenceAt;
 
-  // 7) Update regimen (times stay unchanged)
+  // 8) Update regimen (times stay unchanged)
   const updated = await updateRegimenFields(mediRegimenId, updateData);
 
-  // 8) Format response
+  // 9) Format response
   return {
     mediRegimenId: updated.mediRegimenId,
     mediListId: updated.mediListId,
@@ -504,7 +521,7 @@ export async function updateMedicineRegimen(params: {
       : null,
     times: updated.times.map((t) => ({
       timeId: t.timeId,
-      time: formatTimeToHHMM(t.time),
+      time: t.timeOfDay,
       dose: t.dose,
       unit: t.unit,
       mealRelation: t.mealRelation,

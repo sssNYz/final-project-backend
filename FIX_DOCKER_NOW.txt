@@ -1,0 +1,46 @@
+===========================================
+COPY AND PASTE THESE COMMANDS ONE BY ONE:
+===========================================
+
+# 1. Remove ALL problematic Docker repository files
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo rm -f /etc/apt/keyrings/docker.gpg
+sudo rm -f /etc/apt/keyrings/docker.asc
+sudo rm -rf /etc/apt/keyrings/docker* 2>/dev/null
+
+# 2. Clean apt cache
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+
+# 3. Update package list (should work now!)
+sudo apt-get update
+
+# 4. Install docker.io from Ubuntu repos
+sudo apt-get install -y docker.io docker-compose
+
+# 5. Check if docker is installed
+/usr/bin/docker --version
+
+# 6. Start Docker daemon
+sudo /usr/bin/dockerd > /tmp/dockerd.log 2>&1 &
+sleep 5
+
+# 7. Check if Docker works
+docker ps
+
+# 8. Stop local MySQL
+sudo service mysql stop || sudo /etc/init.d/mysql stop
+
+# 9. Start Docker containers
+cd /root/Project/final-project-backend
+docker-compose up -d db phpmyadmin
+
+# 10. Check containers
+docker-compose ps
+
+===========================================
+OR RUN THE SCRIPT:
+===========================================
+bash /root/Project/final-project-backend/fix-docker-install.sh
+
+===========================================

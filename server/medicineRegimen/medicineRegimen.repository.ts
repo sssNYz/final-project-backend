@@ -49,7 +49,7 @@ export async function findRegimenById(mediRegimenId: number) {
         },
       },
       times: {
-        orderBy: { time: "asc" },
+        orderBy: { timeOfDay: "asc" },
       },
     },
   });
@@ -78,7 +78,7 @@ export async function listRegimensByProfileId(profileId: number) {
         },
       },
       times: {
-        orderBy: { time: "asc" },
+        orderBy: { timeOfDay: "asc" },
       },
     },
     orderBy: { mediRegimenId: "desc" },
@@ -96,7 +96,7 @@ export async function createRegimenWithTimes(params: {
   cycleBreakDays: number | null;
   nextOccurrenceAt: Date | null;
   times: Array<{
-    time: Date;
+    timeOfDay: string;
     dose: number;
     unit: string;
     mealRelation: MealRelation;
@@ -125,7 +125,7 @@ export async function createRegimenWithTimes(params: {
         tx.userMedicineRegimenTime.create({
           data: {
             mediRegimenId: regimen.mediRegimenId,
-            time: timeData.time,
+            timeOfDay: timeData.timeOfDay,
             dose: timeData.dose,
             unit: timeData.unit,
             mealRelation: timeData.mealRelation,
@@ -175,7 +175,7 @@ export async function updateRegimenFields(
         },
       },
       times: {
-        orderBy: { time: "asc" },
+        orderBy: { timeOfDay: "asc" },
       },
     },
   });

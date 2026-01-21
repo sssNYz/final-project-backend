@@ -1,4 +1,5 @@
 import { ScheduleType } from "@prisma/client";
+import { buildDateTimeFromTimeOfDay } from "@/server/common/timezone";
 
 /**
  * Calculate the next occurrence date/time for a regimen.
@@ -15,7 +16,8 @@ export function calculateNextOccurrence(params: {
   intervalDays: number | null;
   cycleOnDays: number | null;
   cycleBreakDays: number | null;
-  times: Array<{ time: Date }>;
+  times: Array<{ timeOfDay: string }>;
+  userTimeZone: string;
   now?: Date;
 }): Date | null {
   const {
@@ -27,6 +29,7 @@ export function calculateNextOccurrence(params: {
     cycleOnDays,
     cycleBreakDays,
     times,
+    userTimeZone,
     now = new Date(),
   } = params;
 
@@ -46,17 +49,17 @@ export function calculateNextOccurrence(params: {
     return null;
   }
 
+  // Parse timeOfDay strings and sort by time
   const sortedTimes = times
-    .map((t) => ({
-      hours: t.time.getHours(),
-      minutes: t.time.getMinutes(),
-    }))
+    .map((t) => {
+      const [hours, minutes] = t.timeOfDay.split(":").map(Number);
+      return { hours, minutes, timeOfDay: t.timeOfDay };
+    })
     .sort((a, b) => a.hours * 60 + a.minutes - (b.hours * 60 + b.minutes));
 
-  function makeDatetime(day: Date, hours: number, minutes: number): Date {
-    const result = new Date(day);
-    result.setHours(hours, minutes, 0, 0);
-    return result;
+  function makeDatetime(day: Date, timeOfDay: string): Date {
+    // Build DateTime in user's timezone, then convert to UTC
+    return buildDateTimeFromTimeOfDay(timeOfDay, day, userTimeZone);
   }
 
   function isValidWeeklyDay(day: Date): boolean {
@@ -110,7 +113,7 @@ export function calculateNextOccurrence(params: {
     if (!isDayValid(day)) return null;
 
     for (const t of sortedTimes) {
-      const candidate = makeDatetime(day, t.hours, t.minutes);
+      const candidate = makeDatetime(day, t.timeOfDay);
       if (candidate > now) {
         return candidate;
       }

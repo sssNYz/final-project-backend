@@ -1,0 +1,9 @@
+-- Step 1: Add nullable fields
+-- AlterTable
+ALTER TABLE `USER_ACCOUNT` ADD COLUMN `TIME_ZONE` VARCHAR(191) NULL;
+
+-- AlterTable
+ALTER TABLE `USER_MEDICINE_REGIMEN_TIME` ADD COLUMN `TIME_OF_DAY` VARCHAR(191) NULL;
+
+-- Set default timezone for existing users
+UPDATE `USER_ACCOUNT` SET `TIME_ZONE` = 'Asia/Bangkok' WHERE `TIME_ZONE` IS NULL;

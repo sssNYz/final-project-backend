@@ -39,10 +39,10 @@ async function processRegimen(regimen: {
   intervalDays: number | null;
   cycleOnDays: number | null;
   cycleBreakDays: number | null;
-  times: { time: Date }[];
+  times: { timeOfDay: string }[];
   medicineList: null | {
     profileId: number;
-    profile: { userId: number };
+    profile: { userId: number; user: { timeZone: string | null } };
   };
 }) {
   const scheduleTime = regimen.nextOccurrenceAt;
@@ -53,6 +53,7 @@ async function processRegimen(regimen: {
 
   const profileId = medicineList.profileId;
   const userId = medicineList.profile.userId;
+  const userTimeZone = medicineList.profile.user.timeZone ?? "Asia/Bangkok";
 
   const log = await prisma.medicationLog.upsert({
     where: {
@@ -141,6 +142,7 @@ async function processRegimen(regimen: {
     cycleOnDays: regimen.cycleOnDays,
     cycleBreakDays: regimen.cycleBreakDays,
     times: regimen.times,
+    userTimeZone,
     now: scheduleTime,
   });
 
@@ -161,11 +163,16 @@ async function tick() {
     },
     take: MAX_REGIMENS_PER_TICK,
     include: {
-      times: { select: { time: true } },
+      times: { select: { timeOfDay: true } },
       medicineList: {
         select: {
           profileId: true,
-          profile: { select: { userId: true } },
+          profile: {
+            select: {
+              userId: true,
+              user: { select: { timeZone: true } },
+            },
+          },
         },
       },
     },

@@ -1,7 +1,7 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -21,6 +21,7 @@ model UserAccount {
   tutorialDone   Boolean   @default(false) @map("TUTORIAL_DONE")
   role           Role      @default(User) @map("ROLE")
   status         Boolean   @default(true) @map("STATUS")
+  timeZone       String?   @map("TIME_ZONE")
 
   // Relations
   profiles            UserProfile[]      @relation("UserToProfile")
@@ -192,7 +193,7 @@ model UserMedicineRegimen {
 model UserMedicineRegimenTime {
   timeId        Int          @id @default(autoincrement()) @map("TIME_ID")
   mediRegimenId Int          @map("MEDI_REGIMEN_ID")
-  time          DateTime     @map("TIME")
+  timeOfDay     String       @map("TIME_OF_DAY")
   dose          Int          @map("DOSE")
   unit          String       @map("UNIT")
   mealRelation  MealRelation @map("MEAL_RELATION")
