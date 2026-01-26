@@ -4,7 +4,7 @@ module.exports = {
       name: 'nextjs-backend',
       script: 'npm',
       args: 'run start',
-      cwd: '/root/Project/final-project-backend',
+      cwd: '/root/final-project-backend',
       env: {
         NODE_ENV: 'production',
         PORT: 3000
@@ -21,7 +21,7 @@ module.exports = {
       name: 'medication-cron-worker',
       script: 'npx',
       args: 'tsx server/workers/medicationCron.worker.ts',
-      cwd: '/root/Project/final-project-backend',
+      cwd: '/root/final-project-backend',
       env: {
         NODE_ENV: 'production'
       },
