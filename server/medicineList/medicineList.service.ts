@@ -37,7 +37,7 @@ function validateImageFile(file: { buffer: Buffer; originalFilename: string }) {
 export async function createMedicineListItem(params: {
   userId: number;
   profileId: number;
-  mediId: number;
+  mediId?: number | null; // Optional: can create without linking to medicine database
   mediNickname?: string | null;
   pictureFile?: { buffer: Buffer; originalFilename: string } | null;
 }) {
@@ -49,32 +49,34 @@ export async function createMedicineListItem(params: {
     throw new ServiceError(404, { error: "Profile not found or not yours" });
   }
 
-  // 2) Check medicine exists
-  const medicine = await findMedicineById(mediId);
-  if (!medicine) {
-    throw new ServiceError(404, { error: "Medicine not found" });
+  // 2) If mediId provided, check medicine exists and check for duplicates
+  if (mediId != null) {
+    const medicine = await findMedicineById(mediId);
+    if (!medicine) {
+      throw new ServiceError(404, { error: "Medicine not found" });
+    }
+
+    // Check duplicate (profileId + mediId)
+    const existing = await findMedicineListByProfileAndMediId(profileId, mediId);
+    if (existing) {
+      throw new ServiceError(409, {
+        error: "This medicine already exists in this profile",
+        existingMediListId: existing.mediListId,
+      });
+    }
   }
 
-  // 3) Check duplicate (profileId + mediId)
-  const existing = await findMedicineListByProfileAndMediId(profileId, mediId);
-  if (existing) {
-    throw new ServiceError(409, {
-      error: "This medicine already exists in this profile",
-      existingMediListId: existing.mediListId,
-    });
-  }
-
-  // 4) Save picture if provided
+  // 3) Save picture if provided
   let pictureOptionPath: string | null = null;
   if (pictureFile) {
     validateImageFile(pictureFile);
     pictureOptionPath = await saveMedicineListPicture(pictureFile, profileId);
   }
 
-  // 5) Create row
+  // 4) Create row
   const created = await createMedicineListRow({
     profileId,
-    mediId,
+    mediId: mediId ?? null,
     mediNickname: mediNickname ?? null,
     pictureOption: pictureOptionPath,
   });
@@ -119,10 +121,11 @@ export async function listMedicineListItems(params: { userId: number; profileId:
 export async function updateMedicineListItem(params: {
   userId: number;
   mediListId: number;
+  mediId?: number | null; // Can link or unlink medicine (null to unlink)
   mediNickname?: string | null;
   pictureFile?: { buffer: Buffer; originalFilename: string } | null;
 }) {
-  const { userId, mediListId, mediNickname, pictureFile } = params;
+  const { userId, mediListId, mediId, mediNickname, pictureFile } = params;
 
   // 1) Find item
   const existing = await findMedicineListById(mediListId);
@@ -137,7 +140,30 @@ export async function updateMedicineListItem(params: {
   }
 
   // 3) Build update data
-  const updateData: { mediNickname?: string | null; pictureOption?: string | null } = {};
+  const updateData: { mediId?: number | null; mediNickname?: string | null; pictureOption?: string | null } = {};
+
+  // Handle mediId update (linking/unlinking medicine)
+  if (mediId !== undefined) {
+    if (mediId !== null) {
+      // Linking to a medicine - validate it exists
+      const medicine = await findMedicineById(mediId);
+      if (!medicine) {
+        throw new ServiceError(404, { error: "Medicine not found" });
+      }
+
+      // Check duplicate (profileId + mediId) - but skip if same medicine
+      if (mediId !== existing.mediId) {
+        const duplicate = await findMedicineListByProfileAndMediId(existing.profileId, mediId);
+        if (duplicate) {
+          throw new ServiceError(409, {
+            error: "This medicine already exists in this profile",
+            existingMediListId: duplicate.mediListId,
+          });
+        }
+      }
+    }
+    updateData.mediId = mediId;
+  }
 
   // update nickname if provided (can set to null or empty)
   if (mediNickname !== undefined) {

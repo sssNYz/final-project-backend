@@ -17,7 +17,8 @@ export async function findMedicineById(mediId: number) {
   });
 }
 
-export async function findMedicineListByProfileAndMediId(profileId: number, mediId: number) {
+export async function findMedicineListByProfileAndMediId(profileId: number, mediId: number | null) {
+  if (mediId === null) return null; // No duplicate check needed for unlinked items
   return prisma.medicineList.findFirst({
     where: { profileId, mediId },
   });
@@ -43,14 +44,14 @@ export async function findMedicineListById(mediListId: number) {
 
 export async function createMedicineListRow(params: {
   profileId: number;
-  mediId: number;
+  mediId?: number | null; // Optional: can create without linking to medicine database
   mediNickname?: string | null;
   pictureOption?: string | null;
 }) {
   return prisma.medicineList.create({
     data: {
       profileId: params.profileId,
-      mediId: params.mediId,
+      mediId: params.mediId ?? null,
       mediNickname: params.mediNickname ?? null,
       pictureOption: params.pictureOption ?? null,
     },
@@ -90,7 +91,7 @@ export async function listMedicineListByProfileId(profileId: number) {
 
 export async function updateMedicineListRow(
   mediListId: number,
-  data: { mediNickname?: string | null; pictureOption?: string | null }
+  data: { mediId?: number | null; mediNickname?: string | null; pictureOption?: string | null }
 ) {
   return prisma.medicineList.update({
     where: { mediListId },

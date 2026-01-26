@@ -48,14 +48,12 @@ export async function POST(request: Request) {
       if (!profileId) {
         return NextResponse.json({ error: "profileId is required" }, { status: 400 });
       }
-      if (!mediId) {
-        return NextResponse.json({ error: "mediId is required" }, { status: 400 });
-      }
+      // mediId is optional - user can create without linking to medicine database
 
       const result = await createMedicineListItem({
         userId: prismaUser.userId,
         profileId,
-        mediId,
+        mediId: mediId ?? null, // Optional: can be null
         mediNickname,
         pictureFile,
       });

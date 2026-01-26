@@ -27,10 +27,11 @@ MedicineDatabase (master medicine data)
 3. Schedule is saved directly with medicine info
 
 ### NEW Flow (after):
-1. User picks medicine from `MedicineDatabase`
-2. Create `MedicineList` item first (with nickname, picture)
+1. User picks medicine from `MedicineDatabase` **OR** skips this step
+2. Create `MedicineList` item first (with nickname, picture) - `mediId` is **optional**
 3. Create `UserMedicineRegimen` that points to `mediListId`
 4. Schedule now links to the list item
+5. User can **link medicine later** via update API
 
 ## API Changes Needed
 
@@ -50,12 +51,19 @@ DELETE /api/mobile/v1/medicine-list/:id
 
 ```typescript
 // POST /api/mobile/v1/medicine-list/create
-// Request body:
+// Request body (with medicine link):
 {
   "profileId": 1,
-  "mediId": 123,           // from MedicineDatabase
+  "mediId": 123,           // from MedicineDatabase (OPTIONAL)
   "mediNickname": "White Circle",  // user's custom name
   "pictureOption": "pill_white"    // optional picture
+}
+
+// Request body (without medicine link - custom medicine):
+{
+  "profileId": 1,
+  "mediNickname": "My Custom Vitamin",  // user's custom name
+  "pictureOption": "pill_custom"    // optional picture
 }
 
 // Response:
@@ -64,10 +72,28 @@ DELETE /api/mobile/v1/medicine-list/:id
   "data": {
     "mediListId": 456,
     "profileId": 1,
-    "mediId": 123,
+    "mediId": 123,          // null if not linked
     "mediNickname": "White Circle",
-    "pictureOption": "pill_white"
+    "pictureOption": "pill_white",
+    "medicine": {...}       // null if not linked
   }
+}
+```
+
+#### Example: Link Medicine Later (Update)
+
+```typescript
+// PATCH /api/mobile/v1/medicine-list/update
+// Request body:
+{
+  "mediListId": 456,
+  "mediId": 123           // Link to medicine database
+}
+
+// To unlink medicine:
+{
+  "mediListId": 456,
+  "mediId": null          // Unlink from medicine database
 }
 ```
 
@@ -209,6 +235,8 @@ function getMedicineId(regimen) {
 2. **Easy to change nickname**: Update once in `MedicineList`, all regimens see the change
 3. **User's medicine inventory**: `MedicineList` acts like user's personal medicine cabinet
 4. **Clear data**: Medicine info is separate from schedule info
+5. **Custom medicines**: Users can add medicines not in database yet and link later
+6. **Flexible linking**: Medicine can be linked/unlinked at any time
 
 ## Migration Checklist
 

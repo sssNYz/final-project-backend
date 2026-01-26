@@ -1,7 +1,8 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -60,7 +61,7 @@ model UserProfile {
   profilePicture String? @map("PROFILE_PICTURE")
 
   // Relations
-  user           UserAccount           @relation("UserToProfile", fields: [userId], references: [userId])
+  user           UserAccount     @relation("UserToProfile", fields: [userId], references: [userId])
   medicationLogs MedicationLog[]
   medicineLists  MedicineList[]
 
@@ -96,13 +97,13 @@ model MedicineDatabase {
 model MedicineList {
   mediListId    Int     @id @default(autoincrement()) @map("MEDI_LIST_ID")
   profileId     Int     @map("PROFILE_ID")
-  mediId        Int     @map("MEDI_ID")
+  mediId        Int?    @map("MEDI_ID") // Optional: user can create without linking to medicine database
   mediNickname  String? @map("MEDI_NICKNAME")
   pictureOption String? @map("PICTURE_OPTION")
 
   // Relations
   profile  UserProfile           @relation(fields: [profileId], references: [profileId])
-  medicine MedicineDatabase      @relation(fields: [mediId], references: [mediId])
+  medicine MedicineDatabase?     @relation(fields: [mediId], references: [mediId]) // Optional relation
   regimens UserMedicineRegimen[]
 
   @@map("MEDICINE_LIST")
