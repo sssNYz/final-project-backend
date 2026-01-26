@@ -53,6 +53,7 @@ export async function listMedicines({
         mediEnName: true,
         mediTradeName: true,
         mediType: true,
+        mediPicture: true,
         deletedAt: true,
       },
       orderBy: { mediEnName: orderByName },

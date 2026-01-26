@@ -4,7 +4,7 @@ module.exports = {
       name: 'nextjs-backend',
       script: 'npm',
       args: 'run start',
-      cwd: '/root/final-project-backend',
+       cwd: '/root/final-project-backend',
       env: {
         NODE_ENV: 'production',
         PORT: 3000

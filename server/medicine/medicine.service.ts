@@ -322,3 +322,91 @@ export async function deleteMedicineForAdmin({
     message: "Medicine deleted",
   };
 }
+
+// ==========================================================
+// USER (MOBILE) FUNCTIONS
+// ==========================================================
+
+// ---------- LIST (USER) ----------
+
+export async function listMedicinesForUser({
+  search,
+  type,
+  page = 1,
+  pageSize = 10,
+  order = "asc",
+}: {
+  search?: string | null;
+  type?: MedicineType | null;
+  page?: number;
+  pageSize?: number;
+  order?: "asc" | "desc";
+}) {
+  const currentPage = page > 0 ? page : 1;
+  const take = pageSize > 0 ? pageSize : 10;
+  const skip = (currentPage - 1) * take;
+
+  const { items, total } = await listMedicines({
+    search: search ?? undefined,
+    type: type ?? undefined,
+    orderByName: order,
+    includeDeleted: false,
+    skip,
+    take,
+  });
+
+  // Return only fields for user (no deletedAt)
+  const userItems = items.map((item) => ({
+    mediId: item.mediId,
+    mediPicture: item.mediPicture,
+    mediThName: item.mediThName,
+    mediEnName: item.mediEnName,
+    mediTradeName: item.mediTradeName,
+    mediType: item.mediType,
+  }));
+
+  return {
+    items: userItems,
+    meta: {
+      page: currentPage,
+      pageSize: take,
+      total,
+      totalPages: Math.ceil(total / take),
+    },
+  };
+}
+
+// ---------- DETAIL (USER) ----------
+
+export async function getMedicineDetailForUser({
+  mediId,
+}: {
+  mediId: number;
+}) {
+  if (!Number.isInteger(mediId) || mediId <= 0) {
+    throw new ServiceError(400, { error: "mediId must be a positive integer" });
+  }
+
+  const medicine = await findMedicineById(mediId);
+  if (!medicine || medicine.deletedAt) {
+    throw new ServiceError(404, { error: "Medicine not found" });
+  }
+
+  // Return all detail except admin fields
+  return {
+    medicine: {
+      mediId: medicine.mediId,
+      mediThName: medicine.mediThName,
+      mediEnName: medicine.mediEnName,
+      mediTradeName: medicine.mediTradeName,
+      mediType: medicine.mediType,
+      mediUse: medicine.mediUse,
+      mediGuide: medicine.mediGuide,
+      mediEffects: medicine.mediEffects,
+      mediNoUse: medicine.mediNoUse,
+      mediWarning: medicine.mediWarning,
+      mediStore: medicine.mediStore,
+      mediPicture: medicine.mediPicture,
+    },
+  };
+}

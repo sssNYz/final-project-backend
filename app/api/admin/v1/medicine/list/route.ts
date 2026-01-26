@@ -9,7 +9,7 @@ import { listMedicinesForAdmin } from "@/server/medicine/medicine.service";
 function toErrorResponse(error: unknown) {
   if (error instanceof ServiceError) {
     return {
-      status: error.statusCode,
+    status: error.statusCode,
       body: error.body,
     };
   }

@@ -6,21 +6,24 @@
     "description": "API documentation for mobile and web clients. Most protected endpoints require a Supabase access token via Authorization: Bearer <token>."
   },
   "servers": [
-    { "url": "http://82.26.104.199:3000", "description": "Server" }
+    { "url": "http://82.26.104.98:3000", "description": "Server" }
   ],
   "tags": [
     { "name": "Admin - Auth", "description": "Admin authentication and management" },
     { "name": "Admin - Users", "description": "Admin user management" },
     { "name": "Admin - Medicine", "description": "Admin medicine database management" },
     { "name": "Admin - Dashboard", "description": "Admin dashboard statistics and reporting" },
+    { "name": "Admin - UserRequest", "description": "Admin user request management (list, update status, delete)" },
     { "name": "Mobile - Auth", "description": "Mobile authentication and account sync" },
     { "name": "Mobile - Users", "description": "Mobile user profile operations" },
+    { "name": "Mobile - Medicine", "description": "Mobile medicine database search and detail" },
     { "name": "Mobile - MedicineList", "description": "Mobile user medicine list (per profile)" },
-    { "name": "Mobile - MedicineRegimen", "description": "Mobile user medicine regimen schedules" }
+    { "name": "Mobile - MedicineRegimen", "description": "Mobile user medicine regimen schedules" },
+    { "name": "Mobile - UserRequest", "description": "Mobile user request (submit feedback, problems, etc.)" }
   ],
   "x-tagGroups": [
-    { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users", "Mobile - MedicineList", "Mobile - MedicineRegimen"] },
-    { "name": "Admin",  "tags": ["Admin - Auth", "Admin - Users", "Admin - Medicine", "Admin - Dashboard"] }
+    { "name": "Mobile", "tags": ["Mobile - Auth", "Mobile - Users", "Mobile - Medicine", "Mobile - MedicineList", "Mobile - MedicineRegimen", "Mobile - UserRequest"] },
+    { "name": "Admin",  "tags": ["Admin - Auth", "Admin - Users", "Admin - Medicine", "Admin - Dashboard", "Admin - UserRequest"] }
   ],
   "components": {
     "securitySchemes": {
@@ -184,6 +187,54 @@
           "deletedAt": { "type": "string", "format": "date-time", "nullable": true }
         },
         "required": ["mediId", "mediThName", "mediEnName", "mediType"]
+      },
+      "MobileMedicineListItem": {
+        "type": "object",
+        "properties": {
+          "mediId": { "type": "integer" },
+          "mediPicture": { "type": "string", "nullable": true, "description": "Stored path like uploads/medicine_database/xxx.jpg" },
+          "mediThName": { "type": "string" },
+          "mediEnName": { "type": "string" },
+          "mediTradeName": { "type": "string", "nullable": true },
+          "mediType": { "$ref": "#/components/schemas/MedicineType" }
+        },
+        "required": ["mediId", "mediThName", "mediEnName", "mediType"]
+      },
+      "MobileMedicineListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MobileMedicineListItem" }
+          },
+          "meta": { "$ref": "#/components/schemas/PagedMeta" }
+        },
+        "required": ["items", "meta"]
+      },
+      "MobileMedicineDetail": {
+        "type": "object",
+        "properties": {
+          "mediId": { "type": "integer" },
+          "mediThName": { "type": "string" },
+          "mediEnName": { "type": "string" },
+          "mediTradeName": { "type": "string", "nullable": true },
+          "mediType": { "$ref": "#/components/schemas/MedicineType" },
+          "mediUse": { "type": "string", "nullable": true },
+          "mediGuide": { "type": "string", "nullable": true },
+          "mediEffects": { "type": "string", "nullable": true },
+          "mediNoUse": { "type": "string", "nullable": true },
+          "mediWarning": { "type": "string", "nullable": true },
+          "mediStore": { "type": "string", "nullable": true },
+          "mediPicture": { "type": "string", "nullable": true, "description": "Stored path like uploads/medicine_database/xxx.jpg" }
+        },
+        "required": ["mediId", "mediThName", "mediEnName", "mediType"]
+      },
+      "MobileMedicineDetailResponse": {
+        "type": "object",
+        "properties": {
+          "medicine": { "$ref": "#/components/schemas/MobileMedicineDetail" }
+        },
+        "required": ["medicine"]
       },
       "PagedMeta": {
         "type": "object",
@@ -571,6 +622,79 @@
         ]
       },
       "MedicineRegimenDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        },
+        "required": ["message"]
+      },
+      "RequestType": {
+        "type": "string",
+        "enum": ["PROBLEM", "HELP", "IMPROVEMENT", "ADD_MEDICINE"]
+      },
+      "RequestStatus": {
+        "type": "string",
+        "enum": ["PENDING", "REJECTED", "DONE"]
+      },
+      "UserRequestItem": {
+        "type": "object",
+        "properties": {
+          "requestId": { "type": "integer" },
+          "userId": { "type": "integer" },
+          "requestType": { "$ref": "#/components/schemas/RequestType" },
+          "requestTitle": { "type": "string" },
+          "requestDetails": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/RequestStatus" },
+          "adminId": { "type": "integer", "nullable": true },
+          "picture": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "user": {
+            "type": "object",
+            "properties": {
+              "userId": { "type": "integer" },
+              "email": { "type": "string" }
+            }
+          },
+          "admin": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "userId": { "type": "integer" },
+              "email": { "type": "string" }
+            }
+          }
+        },
+        "required": ["requestId", "userId", "requestType", "requestTitle", "requestDetails", "status", "createdAt", "updatedAt"]
+      },
+      "CreateUserRequestResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "request": { "$ref": "#/components/schemas/UserRequestItem" }
+        },
+        "required": ["message", "request"]
+      },
+      "ListUserRequestsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserRequestItem" }
+          },
+          "meta": { "$ref": "#/components/schemas/PagedMeta" }
+        },
+        "required": ["items", "meta"]
+      },
+      "UpdateUserRequestResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "request": { "$ref": "#/components/schemas/UserRequestItem" }
+        },
+        "required": ["message", "request"]
+      },
+      "DeleteUserRequestResponse": {
         "type": "object",
         "properties": {
           "message": { "type": "string" }
@@ -1294,6 +1418,58 @@
         }
       }
     },
+    "/api/mobile/v1/medicine/list": {
+      "get": {
+        "tags": ["Mobile - Medicine"],
+        "summary": "Search medicines for user",
+        "description": "Search medicine database by name (Thai, English, or Trade name). Returns basic info and picture path. User must be logged in.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Search by name (Thai, English, or Trade name)" },
+          { "name": "mediType", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/MedicineType" } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1, "minimum": 1 } },
+          { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer", "default": 10, "minimum": 1 } },
+          { "name": "order", "in": "query", "required": false, "schema": { "type": "string", "default": "A-Z", "enum": ["A-Z", "Z-A", "asc", "desc"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MobileMedicineListResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine/detail": {
+      "get": {
+        "tags": ["Mobile - Medicine"],
+        "summary": "Get medicine detail by ID",
+        "description": "Get full medicine detail by mediId. User must be logged in.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "mediId", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MobileMedicineDetailResponse" }
+              }
+            }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
     "/api/mobile/v1/medicine-list/create": {
       "post": {
         "tags": ["Mobile - MedicineList"],
@@ -1708,6 +1884,135 @@
             "description": "Server error",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           }
+        }
+      }
+    },
+    "/api/mobile/v1/user-request/create": {
+      "post": {
+        "tags": ["Mobile - UserRequest"],
+        "summary": "Create user request",
+        "description": "Submit a request (feedback, problem, help, improvement, add medicine). requestDetails is required except for ADD_MEDICINE type where it can be empty. Picture upload is optional.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestType": { "$ref": "#/components/schemas/RequestType" },
+                  "requestTitle": { "type": "string" },
+                  "requestDetails": { "type": "string", "description": "Required except for ADD_MEDICINE (can be empty)" },
+                  "picture": { "type": "string", "format": "binary", "description": "Upload image file (jpg, png, webp). Optional." }
+                },
+                "required": ["requestType", "requestTitle"]
+              },
+              "encoding": {
+                "picture": { "contentType": "image/jpeg, image/png, image/webp" }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestType": { "$ref": "#/components/schemas/RequestType" },
+                  "requestTitle": { "type": "string" },
+                  "requestDetails": { "type": "string", "description": "Required except for ADD_MEDICINE (can be empty)" }
+                },
+                "required": ["requestType", "requestTitle"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateUserRequestResponse" } } }
+          },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/user-request/list": {
+      "get": {
+        "tags": ["Admin - UserRequest"],
+        "summary": "List user requests",
+        "description": "List all user requests with optional filters by status, type, and search.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/RequestStatus" } },
+          { "name": "type", "in": "query", "required": false, "schema": { "$ref": "#/components/schemas/RequestType" } },
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Search in title and details" },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1, "minimum": 1 } },
+          { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer", "default": 10, "minimum": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ListUserRequestsResponse" } } }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/admin/v1/user-request/{requestId}": {
+      "patch": {
+        "tags": ["Admin - UserRequest"],
+        "summary": "Update user request status",
+        "description": "Update the status of a user request. Admin ID is automatically set.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "requestId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "$ref": "#/components/schemas/RequestStatus" }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserRequestResponse" } } }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["Admin - UserRequest"],
+        "summary": "Delete user request",
+        "description": "Delete a user request. Picture file is also deleted if exists.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "requestId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteUserRequestResponse" } } }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "500": { "description": "Server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
     }
