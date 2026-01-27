@@ -85,6 +85,34 @@ export async function listRegimensByProfileId(profileId: number) {
   });
 }
 
+export async function listRegimensByMediListId(mediListId: number) {
+  return prisma.userMedicineRegimen.findMany({
+    where: {
+      mediListId,
+    },
+    include: {
+      medicineList: {
+        include: {
+          medicine: {
+            select: {
+              mediId: true,
+              mediThName: true,
+              mediEnName: true,
+              mediTradeName: true,
+              mediType: true,
+              mediPicture: true,
+            },
+          },
+        },
+      },
+      times: {
+        orderBy: { timeOfDay: "asc" },
+      },
+    },
+    orderBy: { mediRegimenId: "desc" },
+  });
+}
+
 export async function createRegimenWithTimes(params: {
   mediListId: number;
   scheduleType: ScheduleType;

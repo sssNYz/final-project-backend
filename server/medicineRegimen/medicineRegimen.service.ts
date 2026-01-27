@@ -4,6 +4,7 @@ import {
   findMedicineListById,
   findRegimenById,
   listRegimensByProfileId,
+  listRegimensByMediListId,
   createRegimenWithTimes,
   updateRegimenFields,
   deleteRegimenById,
@@ -341,6 +342,56 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
   }
 
   const regimens = await listRegimensByProfileId(profileId);
+
+  return {
+    items: regimens.map((regimen) => ({
+      mediRegimenId: regimen.mediRegimenId,
+      mediListId: regimen.mediListId,
+      scheduleType: regimen.scheduleType,
+      startDate: regimen.startDate,
+      endDate: regimen.endDate,
+      nextOccurrenceAt: regimen.nextOccurrenceAt,
+      daysOfWeek: regimen.daysOfWeek,
+      intervalDays: regimen.intervalDays,
+      cycleOnDays: regimen.cycleOnDays,
+      cycleBreakDays: regimen.cycleBreakDays,
+      medicineList: regimen.medicineList
+        ? {
+          mediListId: regimen.medicineList.mediListId,
+          mediNickname: regimen.medicineList.mediNickname,
+          pictureOption: regimen.medicineList.pictureOption,
+          medicine: regimen.medicineList.medicine,
+        }
+        : null,
+      times: regimen.times.map((t) => ({
+        timeId: t.timeId,
+        time: t.timeOfDay,
+        dose: t.dose,
+        unit: t.unit,
+        mealRelation: t.mealRelation,
+        mealOffsetMin: t.mealOffsetMin,
+      })),
+    })),
+  };
+}
+
+// ---------- LIST BY MEDICINE LIST ID ----------
+
+export async function listMedicineRegimensByListId(params: { userId: number; mediListId: number }) {
+  const { userId, mediListId } = params;
+
+  // Check medicine list exists and belongs to user's profile
+  const medicineList = await findMedicineListById(mediListId);
+  if (!medicineList) {
+    throw new ServiceError(404, { error: "Medicine list not found" });
+  }
+
+  const profile = await findProfileByIdAndUserId(medicineList.profileId, userId);
+  if (!profile) {
+    throw new ServiceError(403, { error: "Not allowed to view regimens for this medicine list" });
+  }
+
+  const regimens = await listRegimensByMediListId(mediListId);
 
   return {
     items: regimens.map((regimen) => ({
