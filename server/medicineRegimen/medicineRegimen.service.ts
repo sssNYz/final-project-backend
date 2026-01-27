@@ -425,6 +425,57 @@ export async function listMedicineRegimensByListId(params: { userId: number; med
   };
 }
 
+// ---------- GET BY ID ----------
+
+export async function getMedicineRegimenById(params: { userId: number; mediRegimenId: number }) {
+  const { userId, mediRegimenId } = params;
+
+  // Find regimen
+  const regimen = await findRegimenById(mediRegimenId);
+  if (!regimen) {
+    throw new ServiceError(404, { error: "Medicine regimen not found" });
+  }
+
+  // Check ownership
+  if (!regimen.medicineList) {
+    throw new ServiceError(404, { error: "Medicine list not found for this regimen" });
+  }
+
+  const profile = await findProfileByIdAndUserId(regimen.medicineList.profileId, userId);
+  if (!profile) {
+    throw new ServiceError(403, { error: "Not allowed to view this regimen" });
+  }
+
+  return {
+    mediRegimenId: regimen.mediRegimenId,
+    mediListId: regimen.mediListId,
+    scheduleType: regimen.scheduleType,
+    startDate: regimen.startDate,
+    endDate: regimen.endDate,
+    nextOccurrenceAt: regimen.nextOccurrenceAt,
+    daysOfWeek: regimen.daysOfWeek,
+    intervalDays: regimen.intervalDays,
+    cycleOnDays: regimen.cycleOnDays,
+    cycleBreakDays: regimen.cycleBreakDays,
+    medicineList: regimen.medicineList
+      ? {
+        mediListId: regimen.medicineList.mediListId,
+        mediNickname: regimen.medicineList.mediNickname,
+        pictureOption: regimen.medicineList.pictureOption,
+        medicine: regimen.medicineList.medicine,
+      }
+      : null,
+    times: regimen.times.map((t) => ({
+      timeId: t.timeId,
+      time: t.timeOfDay,
+      dose: t.dose,
+      unit: t.unit,
+      mealRelation: t.mealRelation,
+      mealOffsetMin: t.mealOffsetMin,
+    })),
+  };
+}
+
 // ---------- UPDATE ----------
 
 export async function updateMedicineRegimen(params: {
