@@ -4542,6 +4542,93 @@
         }
       }
     },
+    "/api/mobile/v1/medicine-regimen/list/by-medicine": {
+      "get": {
+        "tags": [
+          "Mobile - MedicineRegimen"
+        ],
+        "summary": "List medicine regimens by medicine list ID",
+        "description": "List all medicine regimens for a specific medicine (medicine list), including their times. This allows viewing regimens associated with a particular medicine entry.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "medicineListId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Medicine list ID to filter regimens"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRegimenListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "medicineListId required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to view regimens for this medicine list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine list not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mobile/v1/medicine-regimen/update": {
       "patch": {
         "tags": [
