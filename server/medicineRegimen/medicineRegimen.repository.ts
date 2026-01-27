@@ -188,4 +188,40 @@ export async function deleteRegimenById(mediRegimenId: number) {
   });
 }
 
+export async function replaceRegimenTimes(
+  mediRegimenId: number,
+  times: Array<{
+    timeOfDay: string;
+    dose: number;
+    unit: string;
+    mealRelation: MealRelation;
+    mealOffsetMin: number | null;
+  }>
+) {
+  return prisma.$transaction(async (tx) => {
+    // Delete all existing times for this regimen
+    await tx.userMedicineRegimenTime.deleteMany({
+      where: { mediRegimenId },
+    });
+
+    // Create new times
+    const createdTimes = await Promise.all(
+      times.map((timeData) =>
+        tx.userMedicineRegimenTime.create({
+          data: {
+            mediRegimenId,
+            timeOfDay: timeData.timeOfDay,
+            dose: timeData.dose,
+            unit: timeData.unit,
+            mealRelation: timeData.mealRelation,
+            mealOffsetMin: timeData.mealOffsetMin,
+          },
+        })
+      )
+    );
+
+    return createdTimes;
+  });
+}
+
 

@@ -126,6 +126,7 @@ export const MedicineRegimenUpdateBodySchema = z
     intervalDays: z.coerce.number().int().min(1).nullable().optional(),
     cycleOnDays: z.coerce.number().int().min(1).nullable().optional(),
     cycleBreakDays: z.coerce.number().int().min(1).nullable().optional(),
+    times: z.array(MedicineRegimenTimeInputSchema).min(1).optional(),
   })
   .strict();
 

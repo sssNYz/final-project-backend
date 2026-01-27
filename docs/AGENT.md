@@ -418,3 +418,19 @@ Flow options:
 API behavior:
 - `POST /api/mobile/v1/medicine-list/create` - `mediId` is optional
 - `PATCH /api/mobile/v1/medicine-list/update` - Can set `mediId` to link, or `null` to unlink
+
+### MedicineRegimen (Schedule Updates)
+
+The `UserMedicineRegimen` update endpoint now supports updating schedule times.
+
+Key design decision: **Times are replaced, not merged**.
+
+- When `times` is provided in an update request, **all existing times are deleted** and the new times are created.
+- This means `timeId`s will be regenerated (old IDs are deleted, new IDs are created).
+- This is **safe** because `MedicationLog` records reference the `mediRegimenId`, not the individual `timeId`.
+
+API behavior:
+- `PATCH /api/mobile/v1/medicine-regimen/update`:
+  - Can update schedule fields (scheduleType, startDate, endDate, etc.)
+  - Can update `times` array (replaces all existing times)
+  - `times` format is identical to the create endpoint

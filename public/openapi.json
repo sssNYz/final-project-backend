@@ -1254,6 +1254,14 @@
             "nullable": true,
             "minimum": 1,
             "description": "Only for CYCLE schedule. Must be null/omitted for other schedule types."
+          },
+          "times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenTimeInput"
+            },
+            "minItems": 1,
+            "description": "Optional. If provided, all existing times for this regimen will be replaced with the new times. TimeIds will be regenerated."
           }
         },
         "required": [
@@ -4540,7 +4548,7 @@
           "Mobile - MedicineRegimen"
         ],
         "summary": "Update medicine regimen",
-        "description": "Update regimen schedule fields. Times are not changed by this endpoint. If scheduleType is DAILY, endDate is required. Fields not applicable to the final scheduleType are rejected; the server also normalizes schedule fields to keep the regimen consistent.",
+        "description": "Update regimen schedule fields and/or times. If times are provided, all existing times will be replaced with the new ones. If scheduleType is DAILY, endDate is required. Fields not applicable to the final scheduleType are rejected; the server also normalizes schedule fields to keep the regimen consistent.",
         "security": [
           {
             "bearerAuth": []
@@ -4589,6 +4597,28 @@
                     "mediRegimenId": 999,
                     "scheduleType": "DAILY",
                     "endDate": "2026-12-31T00:00:00.000Z"
+                  }
+                },
+                "UpdateTimes": {
+                  "summary": "Update medication times only",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "times": [
+                      {
+                        "time": "09:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "BEFORE_MEAL",
+                        "mealOffsetMin": 30
+                      },
+                      {
+                        "time": "21:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "AFTER_MEAL",
+                        "mealOffsetMin": 15
+                      }
+                    ]
                   }
                 }
               }

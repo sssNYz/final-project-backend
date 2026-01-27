@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/apiHelpers";
 import { updateMedicineRegimen } from "@/server/medicineRegimen/medicineRegimen.service";
 import { ServiceError } from "@/server/common/errors";
-import { ScheduleType } from "@prisma/client";
+import { ScheduleType, MealRelation } from "@prisma/client";
 import { MedicineRegimenUpdateBodySchema } from "@/server/medicineRegimen/medicineRegimen.schemas";
 import type { ZodError } from "zod";
 
@@ -34,6 +34,13 @@ export async function PATCH(request: Request) {
         intervalDays?: number | null;
         cycleOnDays?: number | null;
         cycleBreakDays?: number | null;
+        times?: Array<{
+          time: string;
+          dose: number;
+          unit: string;
+          mealRelation: MealRelation;
+          mealOffsetMin?: number | null;
+        }>;
       } = {};
 
       if (body.scheduleType !== undefined) {
@@ -64,6 +71,16 @@ export async function PATCH(request: Request) {
         updateData.cycleBreakDays = body.cycleBreakDays;
       }
 
+      if (body.times !== undefined) {
+        updateData.times = body.times.map((t) => ({
+          time: t.time,
+          dose: t.dose,
+          unit: t.unit,
+          mealRelation: t.mealRelation as MealRelation,
+          mealOffsetMin: t.mealOffsetMin ?? null,
+        }));
+      }
+
       const result = await updateMedicineRegimen({
         userId: prismaUser.userId,
         mediRegimenId: body.mediRegimenId,
@@ -82,3 +99,4 @@ export async function PATCH(request: Request) {
     }
   });
 }
+
