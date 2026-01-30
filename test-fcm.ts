@@ -24,7 +24,20 @@ async function test() {
             data: {
                 type: "TEST",
                 timestamp: String(Date.now())
-            }
+            },
+            android: {
+                priority: "normal",
+            },
+            apns: {
+                headers: {
+                    "apns-priority": "5",
+                },
+            },
+            webpush: {
+                headers: {
+                    Urgency: "high",
+                },
+            },
         });
 
         console.log("3. Result:");
