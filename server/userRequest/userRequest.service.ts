@@ -15,9 +15,10 @@ import {
 
 const VALID_REQUEST_TYPES: RequestType[] = [
   "PROBLEM",
-  "HELP",
-  "IMPROVEMENT",
   "ADD_MEDICINE",
+  "NOTIFICATION",
+  "FUNCTION",
+  "OTHER",
 ];
 
 const VALID_REQUEST_STATUSES: RequestStatus[] = ["PENDING", "REJECTED", "DONE"];
@@ -114,7 +115,7 @@ export async function createUserRequestForMobile(input: CreateUserRequestInput) 
   // Validate requestType
   if (!input.requestType || !isValidRequestType(input.requestType)) {
     throw new ServiceError(400, {
-      error: "requestType is required and must be one of: PROBLEM, HELP, IMPROVEMENT, ADD_MEDICINE",
+      error: "requestType is required and must be one of: PROBLEM, ADD_MEDICINE, NOTIFICATION, FUNCTION, OTHER",
     });
   }
 
@@ -188,7 +189,7 @@ export async function listUserRequestsForAdmin(input: ListUserRequestsInput) {
   if (input.type) {
     if (!isValidRequestType(input.type)) {
       throw new ServiceError(400, {
-        error: "type must be one of: PROBLEM, HELP, IMPROVEMENT, ADD_MEDICINE",
+        error: "type must be one of: PROBLEM, ADD_MEDICINE, NOTIFICATION, FUNCTION, OTHER",
       });
     }
     type = input.type as RequestType;

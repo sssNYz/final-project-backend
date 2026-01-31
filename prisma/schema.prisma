@@ -221,9 +221,10 @@ enum MedicineType {
 
 enum RequestType {
   PROBLEM
-  HELP
-  IMPROVEMENT
   ADD_MEDICINE
+  NOTIFICATION
+  FUNCTION
+  OTHER
 }
 
 enum RequestStatus {

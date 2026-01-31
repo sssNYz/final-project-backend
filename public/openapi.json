@@ -1439,9 +1439,10 @@
         "type": "string",
         "enum": [
           "PROBLEM",
-          "HELP",
-          "IMPROVEMENT",
-          "ADD_MEDICINE"
+          "ADD_MEDICINE",
+          "NOTIFICATION",
+          "FUNCTION",
+          "OTHER"
         ]
       },
       "RequestStatus": {
