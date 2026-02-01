@@ -9,7 +9,7 @@ import {
   listMedicines,
   findMedicineById,
   updateMedicine,
-  softDeleteMedicine,
+  setMedicineStatus,
   countMedicines,
 } from "@/server/medicine/medicine.repository";
 import { findUserBySupabaseOrEmail } from "@/server/users/users.repository";
@@ -193,7 +193,7 @@ export async function getMedicineDetailForAdmin({
   }
 
   const medicine = await findMedicineById(mediId);
-  if (!medicine || medicine.deletedAt) {
+  if (!medicine || (medicine.mediStatus === false)) {
     throw new ServiceError(404, { error: "Medicine not found" });
   }
 
@@ -230,6 +230,7 @@ export interface UpdateMedicineInput {
   mediWarning?: string | null;
   mediStore?: string | null;
   mediPicturePath?: string | null; // if new image uploaded
+  mediStatus?: boolean;
 }
 
 export async function updateMedicineForAdmin({
@@ -242,7 +243,8 @@ export async function updateMedicineForAdmin({
   const admin = await getCurrentAdminOrThrow(supabaseUser);
 
   const existing = await findMedicineById(input.mediId);
-  if (!existing || existing.deletedAt) {
+  // Allow updating even if status is false (so we can enable it back)
+  if (!existing) {
     throw new ServiceError(404, { error: "Medicine not found" });
   }
 
@@ -264,6 +266,7 @@ export async function updateMedicineForAdmin({
   if (input.mediNoUse !== undefined) data.mediNoUse = input.mediNoUse;
   if (input.mediWarning !== undefined) data.mediWarning = input.mediWarning;
   if (input.mediStore !== undefined) data.mediStore = input.mediStore;
+  if (input.mediStatus !== undefined) data.mediStatus = input.mediStatus;
   if (input.mediPicturePath !== undefined) {
     data.mediPicture = input.mediPicturePath;
   }
@@ -312,14 +315,14 @@ export async function deleteMedicineForAdmin({
   const admin = await getCurrentAdminOrThrow(supabaseUser);
 
   const existing = await findMedicineById(mediId);
-  if (!existing || existing.deletedAt) {
+  if (!existing || (existing.mediStatus === false)) {
     throw new ServiceError(404, { error: "Medicine not found" });
   }
 
-  await softDeleteMedicine(mediId, admin.userId);
+  await setMedicineStatus(mediId, false, admin.userId);
 
   return {
-    message: "Medicine deleted",
+    message: "Medicine status set to unavailable",
   };
 }
 
@@ -388,7 +391,7 @@ export async function getMedicineDetailForUser({
   }
 
   const medicine = await findMedicineById(mediId);
-  if (!medicine || medicine.deletedAt) {
+  if (!medicine || (medicine.mediStatus === false)) {
     throw new ServiceError(404, { error: "Medicine not found" });
   }
 

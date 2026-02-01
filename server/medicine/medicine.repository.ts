@@ -30,7 +30,7 @@ export async function listMedicines({
 }: ListMedicineParams) {
   const where: Prisma.MedicineDatabaseWhereInput = includeDeleted
     ? {}
-    : { deletedAt: null };
+    : { mediStatus: true };
 
   if (search && search.trim() !== "") {
     where.OR = [
@@ -53,8 +53,9 @@ export async function listMedicines({
         mediEnName: true,
         mediTradeName: true,
         mediType: true,
+
         mediPicture: true,
-        deletedAt: true,
+        mediStatus: true,
       },
       orderBy: { mediEnName: orderByName },
       skip,
@@ -75,14 +76,15 @@ export async function updateMedicine(
   });
 }
 
-export async function softDeleteMedicine(
+export async function setMedicineStatus(
   mediId: number,
+  status: boolean,
   adminId: number
 ) {
   return prisma.medicineDatabase.update({
     where: { mediId },
     data: {
-      deletedAt: new Date(),
+      mediStatus: status,
       adminId,
     },
   });
@@ -95,7 +97,7 @@ export async function countMedicines({
 }) {
   const where: Prisma.MedicineDatabaseWhereInput = includeDeleted
     ? {}
-    : { deletedAt: null };
+    : { mediStatus: true };
 
   return prisma.medicineDatabase.count({ where });
 }

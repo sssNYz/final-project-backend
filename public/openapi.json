@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://82.26.104.98:3000",
+      "url": "http://82.26.104.98",
       "description": "Server"
     }
   ],
@@ -53,6 +53,10 @@
       "description": "Mobile user medicine regimen schedules"
     },
     {
+      "name": "Mobile - MedicationLog",
+      "description": "Mobile medication log (history, response handling)"
+    },
+    {
       "name": "Mobile - UserRequest",
       "description": "Mobile user request (submit feedback, problems, etc.)"
     }
@@ -66,6 +70,7 @@
         "Mobile - Medicine",
         "Mobile - MedicineList",
         "Mobile - MedicineRegimen",
+        "Mobile - MedicationLog",
         "Mobile - UserRequest"
       ]
     },
@@ -400,10 +405,8 @@
           "mediType": {
             "$ref": "#/components/schemas/MedicineType"
           },
-          "deletedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "mediStatus": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -626,10 +629,8 @@
             "type": "string",
             "format": "date-time"
           },
-          "deletedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "mediStatus": {
+            "type": "boolean"
           },
           "adminId": {
             "type": "integer",
@@ -1443,6 +1444,148 @@
           "NOTIFICATION",
           "FUNCTION",
           "OTHER"
+        ]
+      },
+      "ResponseStatus": {
+        "type": "string",
+        "enum": [
+          "TAKE",
+          "SKIP",
+          "SNOOZE"
+        ],
+        "description": "User response to medication reminder"
+      },
+      "MedicationLogItem": {
+        "type": "object",
+        "properties": {
+          "logId": {
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "integer"
+          },
+          "mediListId": {
+            "type": "integer"
+          },
+          "scheduleTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isReceived": {
+            "type": "boolean"
+          },
+          "pushSentAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "responseStatus": {
+            "$ref": "#/components/schemas/ResponseStatus",
+            "nullable": true
+          },
+          "responseAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "snoozedCount": {
+            "type": "integer",
+            "nullable": true
+          },
+          "nextSnoozeAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "medicineList": {
+            "$ref": "#/components/schemas/MedicineListItem",
+            "nullable": true
+          }
+        },
+        "required": [
+          "logId",
+          "profileId",
+          "mediListId",
+          "scheduleTime",
+          "isReceived"
+        ]
+      },
+      "MedicationLogListResponse": {
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicationLogItem"
+            }
+          }
+        },
+        "required": [
+          "logs"
+        ]
+      },
+      "MedicationLogDetailResponse": {
+        "type": "object",
+        "properties": {
+          "log": {
+            "$ref": "#/components/schemas/MedicationLogItem"
+          }
+        },
+        "required": [
+          "log"
+        ]
+      },
+      "MedicationLogResponseBody": {
+        "type": "object",
+        "properties": {
+          "logId": {
+            "type": "integer"
+          },
+          "responseStatus": {
+            "$ref": "#/components/schemas/ResponseStatus"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "logId",
+          "responseStatus"
+        ]
+      },
+      "MedicationLogResponseResult": {
+        "type": "object",
+        "properties": {
+          "log": {
+            "$ref": "#/components/schemas/MedicationLogItem"
+          },
+          "message": {
+            "type": "string"
+          },
+          "wasAutoSkipped": {
+            "type": "boolean",
+            "description": "True if max snooze count was reached and status was auto-set to SKIP"
+          },
+          "nextReminderAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the next snooze reminder will be sent (if snoozed)"
+          },
+          "snoozedCount": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Current snooze count (if snoozed)"
+          }
+        },
+        "required": [
+          "log",
+          "message"
         ]
       },
       "RequestStatus": {
@@ -2596,6 +2739,9 @@
                     "type": "string",
                     "nullable": true
                   },
+                  "mediStatus": {
+                    "type": "boolean"
+                  },
                   "picture": {
                     "type": "string",
                     "format": "binary",
@@ -2621,93 +2767,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminMedicineMutationResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/v1/medicine/delete": {
-      "delete": {
-        "tags": [
-          "Admin - Medicine"
-        ],
-        "summary": "Delete medicine (soft delete)",
-        "description": "Soft delete a medicine by mediId (sets deletedAt).",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "mediId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "minimum": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminMedicineDeleteResponse"
                 }
               }
             }
@@ -4940,6 +4999,280 @@
           },
           "500": {
             "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medication-log/list": {
+      "get": {
+        "tags": [
+          "Mobile - MedicationLog"
+        ],
+        "summary": "List medication logs",
+        "description": "List medication logs for a profile with optional date filtering. Returns medication history with response status.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Profile ID to list logs for"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter logs from this date (ISO format)"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter logs until this date (ISO format)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "description": "Maximum number of logs to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Number of logs to skip (for pagination)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of medication logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationLogListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing profileId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied to profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medication-log/{logId}": {
+      "get": {
+        "tags": [
+          "Mobile - MedicationLog"
+        ],
+        "summary": "Get medication log detail",
+        "description": "Get details of a single medication log by ID.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "logId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Medication log ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medication log detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationLogDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Log not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medication-log/response": {
+      "post": {
+        "tags": [
+          "Mobile - MedicationLog"
+        ],
+        "summary": "Respond to medication reminder",
+        "description": "Handle user response to medication reminder. Supports TAKE, SKIP, and SNOOZE actions. Snooze will schedule a reminder in 5 minutes (max 3 times). After 3 snoozes, status is auto-set to SKIP.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MedicationLogResponseBody"
+              },
+              "examples": {
+                "take": {
+                  "summary": "Mark as taken",
+                  "value": {
+                    "logId": 123,
+                    "responseStatus": "TAKE"
+                  }
+                },
+                "skip": {
+                  "summary": "Skip medication",
+                  "value": {
+                    "logId": 123,
+                    "responseStatus": "SKIP",
+                    "note": "Feeling better, not needed"
+                  }
+                },
+                "snooze": {
+                  "summary": "Snooze for 5 minutes",
+                  "value": {
+                    "logId": 123,
+                    "responseStatus": "SNOOZE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationLogResponseResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Log not found",
             "content": {
               "application/json": {
                 "schema": {

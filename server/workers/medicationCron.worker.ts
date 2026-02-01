@@ -41,6 +41,7 @@ async function processRegimen(regimen: {
   cycleBreakDays: number | null;
   times: { timeOfDay: string }[];
   medicineList: null | {
+    mediListId: number;
     profileId: number;
     profile: { userId: number; user: { timeZone: string | null } };
   };
@@ -55,17 +56,19 @@ async function processRegimen(regimen: {
   const userId = medicineList.profile.userId;
   const userTimeZone = medicineList.profile.user.timeZone ?? "Asia/Bangkok";
 
+  const mediListId = medicineList.mediListId;
+
   const log = await prisma.medicationLog.upsert({
     where: {
-      profileId_mediRegimenId_scheduleTime: {
+      profileId_mediListId_scheduleTime: {
         profileId,
-        mediRegimenId: regimen.mediRegimenId,
+        mediListId,
         scheduleTime,
       },
     },
     create: {
       profileId,
-      mediRegimenId: regimen.mediRegimenId,
+      mediListId,
       scheduleTime,
       isReceived: false,
     },
@@ -95,10 +98,14 @@ async function processRegimen(regimen: {
             body: "It's time to take your medicine.",
           },
           data: {
+            type: "MEDICATION_REMINDER",
+            logId: String(log.logId),
             profileId: String(profileId),
+            mediListId: String(mediListId),
             mediRegimenId: String(regimen.mediRegimenId),
             scheduleTime: scheduleTime.toISOString(),
-            logId: String(log.logId),
+            snoozedCount: String(log.snoozedCount ?? 0),
+            isSnoozeReminder: "false",
           },
         });
 
@@ -172,6 +179,7 @@ async function tick() {
       times: { select: { timeOfDay: true } },
       medicineList: {
         select: {
+          mediListId: true,
           profileId: true,
           profile: {
             select: {

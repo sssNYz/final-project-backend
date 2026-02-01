@@ -1,7 +1,4 @@
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  const html = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -27,12 +24,4 @@ export async function GET() {
       };
     </script>
   </body>
-</html>`;
-
-  return new NextResponse(html, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/html',
-    },
-  });
-}
+</html>

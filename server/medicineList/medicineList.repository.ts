@@ -13,7 +13,7 @@ export async function findProfileByIdAndUserId(profileId: number, userId: number
 
 export async function findMedicineById(mediId: number) {
   return prisma.medicineDatabase.findFirst({
-    where: { mediId, deletedAt: null },
+    where: { mediId, mediStatus: true },
   });
 }
 

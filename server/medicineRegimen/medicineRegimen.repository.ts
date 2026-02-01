@@ -210,9 +210,16 @@ export async function updateRegimenFields(
 }
 
 export async function deleteRegimenById(mediRegimenId: number) {
-  // Prisma will cascade delete times automatically
-  return prisma.userMedicineRegimen.delete({
-    where: { mediRegimenId },
+  return prisma.$transaction(async (tx) => {
+    // 1) Delete all times for this regimen
+    await tx.userMedicineRegimenTime.deleteMany({
+      where: { mediRegimenId },
+    });
+
+    // 2) Delete the regimen
+    return tx.userMedicineRegimen.delete({
+      where: { mediRegimenId },
+    });
   });
 }
 
