@@ -1,0 +1,44 @@
+# Enable Updating Medicine Regimen Times
+
+The current [update](file:///root/final-project-backend/server/medicineRegimen/medicineRegimen.service.ts#379-532) endpoint for medicine regimens ignores the `times` field, preventing users from changing when they take their medication. This plan adds support for updating the schedule times.
+
+## User Review Required
+
+> [!IMPORTANT]
+> Updating times will **DELETE** existing times for the regimen and replace them with the new set. This is a destructive operation for the old time records but ensures the schedule is clean. This does NOT affect past medication logs, which link to the regimen, not the specific time records.
+
+## Proposed Changes
+
+### Database & Schema
+#### [MODIFY] [medicineRegimen.schemas.ts](file:///root/final-project-backend/server/medicineRegimen/medicineRegimen.schemas.ts)
+- Update `MedicineRegimenUpdateBodySchema` to include an optional `times` field: `z.array(MedicineRegimenTimeInputSchema).min(1).optional()`.
+
+### Service Logic
+#### [MODIFY] [medicineRegimen.service.ts](file:///root/final-project-backend/server/medicineRegimen/medicineRegimen.service.ts)
+- Update [updateMedicineRegimen](file:///root/final-project-backend/server/medicineRegimen/medicineRegimen.service.ts#379-532) function:
+    - Accept `times` in the params.
+    - If `times` is provided:
+        - Validate the new times.
+        - Delete all existing `UserMedicineRegimenTime` entries for this `mediRegimenId`.
+        - Create the new time entries.
+        - Use the NEW times for verifying/recalculating `nextOccurrenceAt`.
+
+### API Route
+#### [MODIFY] [route.ts](file:///root/final-project-backend/app/api/mobile/v1/medicine-regimen/update/route.ts)
+- Extract `times` from the request body.
+- Map the simple time objects (if needed) and pass to [updateMedicineRegimen](file:///root/final-project-backend/server/medicineRegimen/medicineRegimen.service.ts#379-532).
+
+## Verification Plan
+
+### Automated Tests
+I will create a temporary validation script `verify_regimen_update.ts` to:
+1.  **Create** a new regimen with known times (e.g., 08:00).
+2.  **Update** the regimen with new times (e.g., 09:00, 20:00).
+3.  **Get** the regimen and assert that the times are exactly the new set (09:00, 20:00).
+4.  **Clean up** by deleting the regimen.
+
+Command:
+```bash
+npx tsx scripts/verify_regimen_update.ts
+```
+(I will create this script during verification)

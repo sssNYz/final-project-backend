@@ -1,13 +1,14 @@
-// server/medicineRegimen/medicineRegimen.service.ts
 import { ServiceError } from "@/server/common/errors";
 import {
   findProfileByIdAndUserId,
   findMedicineListById,
   findRegimenById,
   listRegimensByProfileId,
+  listRegimensByMediListId,
   createRegimenWithTimes,
   updateRegimenFields,
   deleteRegimenById,
+  replaceRegimenTimes,
 } from "./medicineRegimen.repository";
 import { ScheduleType, MealRelation } from "@prisma/client";
 import { calculateNextOccurrence } from "./nextOccurrence";
@@ -356,11 +357,11 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
       cycleBreakDays: regimen.cycleBreakDays,
       medicineList: regimen.medicineList
         ? {
-            mediListId: regimen.medicineList.mediListId,
-            mediNickname: regimen.medicineList.mediNickname,
-            pictureOption: regimen.medicineList.pictureOption,
-            medicine: regimen.medicineList.medicine,
-          }
+          mediListId: regimen.medicineList.mediListId,
+          mediNickname: regimen.medicineList.mediNickname,
+          pictureOption: regimen.medicineList.pictureOption,
+          medicine: regimen.medicineList.medicine,
+        }
         : null,
       times: regimen.times.map((t) => ({
         timeId: t.timeId,
@@ -370,6 +371,107 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
         mealRelation: t.mealRelation,
         mealOffsetMin: t.mealOffsetMin,
       })),
+    })),
+  };
+}
+
+// ---------- LIST BY MEDICINE LIST ID ----------
+
+export async function listMedicineRegimensByListId(params: { userId: number; mediListId: number }) {
+  const { userId, mediListId } = params;
+
+  // Check medicine list exists and belongs to user's profile
+  const medicineList = await findMedicineListById(mediListId);
+  if (!medicineList) {
+    throw new ServiceError(404, { error: "Medicine list not found" });
+  }
+
+  const profile = await findProfileByIdAndUserId(medicineList.profileId, userId);
+  if (!profile) {
+    throw new ServiceError(403, { error: "Not allowed to view regimens for this medicine list" });
+  }
+
+  const regimens = await listRegimensByMediListId(mediListId);
+
+  return {
+    items: regimens.map((regimen) => ({
+      mediRegimenId: regimen.mediRegimenId,
+      mediListId: regimen.mediListId,
+      scheduleType: regimen.scheduleType,
+      startDate: regimen.startDate,
+      endDate: regimen.endDate,
+      nextOccurrenceAt: regimen.nextOccurrenceAt,
+      daysOfWeek: regimen.daysOfWeek,
+      intervalDays: regimen.intervalDays,
+      cycleOnDays: regimen.cycleOnDays,
+      cycleBreakDays: regimen.cycleBreakDays,
+      medicineList: regimen.medicineList
+        ? {
+          mediListId: regimen.medicineList.mediListId,
+          mediNickname: regimen.medicineList.mediNickname,
+          pictureOption: regimen.medicineList.pictureOption,
+          medicine: regimen.medicineList.medicine,
+        }
+        : null,
+      times: regimen.times.map((t) => ({
+        timeId: t.timeId,
+        time: t.timeOfDay,
+        dose: t.dose,
+        unit: t.unit,
+        mealRelation: t.mealRelation,
+        mealOffsetMin: t.mealOffsetMin,
+      })),
+    })),
+  };
+}
+
+// ---------- GET BY ID ----------
+
+export async function getMedicineRegimenById(params: { userId: number; mediRegimenId: number }) {
+  const { userId, mediRegimenId } = params;
+
+  // Find regimen
+  const regimen = await findRegimenById(mediRegimenId);
+  if (!regimen) {
+    throw new ServiceError(404, { error: "Medicine regimen not found" });
+  }
+
+  // Check ownership
+  if (!regimen.medicineList) {
+    throw new ServiceError(404, { error: "Medicine list not found for this regimen" });
+  }
+
+  const profile = await findProfileByIdAndUserId(regimen.medicineList.profileId, userId);
+  if (!profile) {
+    throw new ServiceError(403, { error: "Not allowed to view this regimen" });
+  }
+
+  return {
+    mediRegimenId: regimen.mediRegimenId,
+    mediListId: regimen.mediListId,
+    scheduleType: regimen.scheduleType,
+    startDate: regimen.startDate,
+    endDate: regimen.endDate,
+    nextOccurrenceAt: regimen.nextOccurrenceAt,
+    daysOfWeek: regimen.daysOfWeek,
+    intervalDays: regimen.intervalDays,
+    cycleOnDays: regimen.cycleOnDays,
+    cycleBreakDays: regimen.cycleBreakDays,
+    medicineList: regimen.medicineList
+      ? {
+        mediListId: regimen.medicineList.mediListId,
+        mediNickname: regimen.medicineList.mediNickname,
+        pictureOption: regimen.medicineList.pictureOption,
+        medicine: regimen.medicineList.medicine,
+      }
+      : null,
+    times: regimen.times.map((t) => ({
+      timeId: t.timeId,
+      time: t.timeOfDay,
+      dose: t.dose,
+      unit: t.unit,
+      mealRelation: t.mealRelation,
+      mealOffsetMin: t.mealOffsetMin,
     })),
   };
 }
@@ -386,8 +488,15 @@ export async function updateMedicineRegimen(params: {
   intervalDays?: number | null;
   cycleOnDays?: number | null;
   cycleBreakDays?: number | null;
+  times?: Array<{
+    time: string;
+    dose: number;
+    unit: string;
+    mealRelation: MealRelation;
+    mealOffsetMin?: number | null;
+  }>;
 }) {
-  const { userId, mediRegimenId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays } = params;
+  const { userId, mediRegimenId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays, times } = params;
 
   // 1) Find regimen
   const existing = await findRegimenById(mediRegimenId);
@@ -415,7 +524,8 @@ export async function updateMedicineRegimen(params: {
     daysOfWeek !== undefined ||
     intervalDays !== undefined ||
     cycleOnDays !== undefined ||
-    cycleBreakDays !== undefined;
+    cycleBreakDays !== undefined ||
+    times !== undefined;
 
   if (!hasAnyUserUpdate) {
     throw new ServiceError(400, { error: "No fields to update" });
@@ -424,7 +534,12 @@ export async function updateMedicineRegimen(params: {
   // 4) Block irrelevant schedule fields in the request (allow null to clear)
   assertNoForbiddenScheduleFieldsProvided(finalScheduleType, { daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays });
 
-  // 5) Build update data
+  // 5) Validate times if provided
+  if (times !== undefined) {
+    validateTimes(times);
+  }
+
+  // 6) Build update data
   const updateData: {
     scheduleType?: ScheduleType;
     startDate?: Date;
@@ -444,14 +559,14 @@ export async function updateMedicineRegimen(params: {
   if (cycleOnDays !== undefined) updateData.cycleOnDays = cycleOnDays;
   if (cycleBreakDays !== undefined) updateData.cycleBreakDays = cycleBreakDays;
 
-  // 6) Get user timezone (default to Asia/Bangkok)
+  // 7) Get user timezone (default to Asia/Bangkok)
   const userAccount = await prisma.userAccount.findUnique({
     where: { userId },
     select: { timeZone: true },
   });
   const userTimeZone = userAccount?.timeZone ?? "Asia/Bangkok";
 
-  // 7) Recalculate nextOccurrenceAt with final merged values
+  // 8) Recalculate nextOccurrenceAt with final merged values
   const finalStartDate = startDate ?? existing.startDate;
   const finalEndDate = endDate !== undefined ? endDate : existing.endDate;
   const finalDaysOfWeek = daysOfWeek !== undefined ? daysOfWeek : existing.daysOfWeek;
@@ -473,14 +588,23 @@ export async function updateMedicineRegimen(params: {
   updateData.cycleOnDays = schedule.cycleOnDays;
   updateData.cycleBreakDays = schedule.cycleBreakDays;
 
-  // Convert existing times to timeOfDay format for calculateNextOccurrence
-  const timesWithTimeOfDay = existing.times.map((t) => ({
-    timeOfDay: t.timeOfDay,
-    dose: t.dose,
-    unit: t.unit,
-    mealRelation: t.mealRelation,
-    mealOffsetMin: t.mealOffsetMin,
-  }));
+  // 9) Determine which times to use for nextOccurrenceAt calculation
+  // If new times are provided, use them; otherwise use existing times
+  const timesForCalculation = times
+    ? times.map((t) => ({
+      timeOfDay: t.time,
+      dose: t.dose,
+      unit: t.unit,
+      mealRelation: t.mealRelation,
+      mealOffsetMin: t.mealRelation !== "NONE" ? t.mealOffsetMin! : null,
+    }))
+    : existing.times.map((t) => ({
+      timeOfDay: t.timeOfDay,
+      dose: t.dose,
+      unit: t.unit,
+      mealRelation: t.mealRelation,
+      mealOffsetMin: t.mealOffsetMin,
+    }));
 
   const nextOccurrenceAt = calculateNextOccurrence({
     scheduleType: finalScheduleType,
@@ -490,16 +614,23 @@ export async function updateMedicineRegimen(params: {
     intervalDays: schedule.intervalDays,
     cycleOnDays: schedule.cycleOnDays,
     cycleBreakDays: schedule.cycleBreakDays,
-    times: timesWithTimeOfDay,
+    times: timesForCalculation,
     userTimeZone,
   });
 
   updateData.nextOccurrenceAt = nextOccurrenceAt;
 
-  // 8) Update regimen (times stay unchanged)
+  // 10) Update regimen fields
   const updated = await updateRegimenFields(mediRegimenId, updateData);
 
-  // 9) Format response
+  // 11) If times are provided, replace them
+  let finalTimes = updated.times;
+  if (times !== undefined) {
+    const newTimes = await replaceRegimenTimes(mediRegimenId, timesForCalculation);
+    finalTimes = newTimes;
+  }
+
+  // 12) Format response
   return {
     mediRegimenId: updated.mediRegimenId,
     mediListId: updated.mediListId,
@@ -513,13 +644,13 @@ export async function updateMedicineRegimen(params: {
     nextOccurrenceAt: updated.nextOccurrenceAt,
     medicineList: updated.medicineList
       ? {
-          mediListId: updated.medicineList.mediListId,
-          mediNickname: updated.medicineList.mediNickname,
-          pictureOption: updated.medicineList.pictureOption,
-          medicine: updated.medicineList.medicine,
-        }
+        mediListId: updated.medicineList.mediListId,
+        mediNickname: updated.medicineList.mediNickname,
+        pictureOption: updated.medicineList.pictureOption,
+        medicine: updated.medicineList.medicine,
+      }
       : null,
-    times: updated.times.map((t) => ({
+    times: finalTimes.map((t) => ({
       timeId: t.timeId,
       time: t.timeOfDay,
       dose: t.dose,

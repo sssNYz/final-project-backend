@@ -11,6 +11,7 @@ export async function PATCH(request: Request) {
       const contentType = request.headers.get("content-type") || "";
 
       let mediListId: number | null = null;
+      let mediId: number | null | undefined = undefined; // undefined = not provided, null = unlink
       let mediNickname: string | null | undefined = undefined;
       let pictureFile: { buffer: Buffer; originalFilename: string } | null = null;
 
@@ -19,6 +20,9 @@ export async function PATCH(request: Request) {
         const body = await request.json();
         mediListId = Number(body.mediListId) || null;
         // only set if key exists in body
+        if ("mediId" in body) {
+          mediId = body.mediId === null ? null : Number(body.mediId) || null;
+        }
         if ("mediNickname" in body) {
           mediNickname = body.mediNickname ?? null;
         }
@@ -27,6 +31,12 @@ export async function PATCH(request: Request) {
       else if (contentType.includes("multipart/form-data")) {
         const formData = await request.formData();
         mediListId = Number(formData.get("mediListId")) || null;
+
+        const mediIdField = formData.get("mediId");
+        if (mediIdField !== null) {
+          // "null" string means unlink, otherwise parse as number
+          mediId = mediIdField === "null" ? null : Number(mediIdField) || null;
+        }
 
         const nicknameField = formData.get("mediNickname");
         if (nicknameField !== null) {
@@ -55,6 +65,7 @@ export async function PATCH(request: Request) {
       const result = await updateMedicineListItem({
         userId: prismaUser.userId,
         mediListId,
+        mediId,
         mediNickname,
         pictureFile,
       });

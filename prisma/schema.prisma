@@ -1,7 +1,8 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -60,7 +61,7 @@ model UserProfile {
   profilePicture String? @map("PROFILE_PICTURE")
 
   // Relations
-  user           UserAccount           @relation("UserToProfile", fields: [userId], references: [userId])
+  user           UserAccount     @relation("UserToProfile", fields: [userId], references: [userId])
   medicationLogs MedicationLog[]
   medicineLists  MedicineList[]
 
@@ -70,20 +71,20 @@ model UserProfile {
 /// MEDICINE_DATABASE
 model MedicineDatabase {
   mediId        Int          @id @default(autoincrement()) @map("MEDI_ID")
-  mediThName    String       @map("MEDI_TH_NAME")
-  mediEnName    String       @map("MEDI_EN_NAME")
-  mediTradeName String?      @map("MEDI_TRADE_NAME")
+  mediThName    String       @map("MEDI_TH_NAME") @db.VarChar(500)
+  mediEnName    String       @map("MEDI_EN_NAME") @db.VarChar(500)
+  mediTradeName String?      @map("MEDI_TRADE_NAME") @db.VarChar(500)
   mediType      MedicineType @map("MEDI_TYPE")
-  mediUse       String?      @map("MEDI_USE")
-  mediGuide     String?      @map("MEDI_GUIDE")
-  mediEffects   String?      @map("MEDI_EFFECTS")
-  mediNoUse     String?      @map("MEDI_NO_USE")
-  mediWarning   String?      @map("MEDI_WARNING")
-  mediStore     String?      @map("MEDI_STORE")
-  mediPicture   String?      @map("MEDI_PICTURE")
+  mediUse       String?      @map("MEDI_USE") @db.VarChar(500)
+  mediGuide     String?      @map("MEDI_GUIDE") @db.VarChar(500)
+  mediEffects   String?      @map("MEDI_EFFECTS") @db.VarChar(500)
+  mediNoUse     String?      @map("MEDI_NO_USE") @db.VarChar(500)
+  mediWarning   String?      @map("MEDI_WARNING") @db.VarChar(500)
+  mediStore     String?      @map("MEDI_STORE") @db.VarChar(500)
+  mediPicture   String?      @map("MEDI_PICTURE") @db.VarChar(500)
   createdAt     DateTime     @default(now()) @map("CREATED_AT")
   updatedAt     DateTime     @updatedAt @map("UPDATE_AT")
-  deletedAt     DateTime?    @map("DELETED_AT")
+  mediStatus    Boolean      @default(true) @map("MEDI_STATUS")
   adminId       Int?         @map("ADMIN_ID")
 
   // Relations
@@ -96,14 +97,15 @@ model MedicineDatabase {
 model MedicineList {
   mediListId    Int     @id @default(autoincrement()) @map("MEDI_LIST_ID")
   profileId     Int     @map("PROFILE_ID")
-  mediId        Int     @map("MEDI_ID")
+  mediId        Int?    @map("MEDI_ID") // Optional: user can create without linking to medicine database
   mediNickname  String? @map("MEDI_NICKNAME")
   pictureOption String? @map("PICTURE_OPTION")
 
   // Relations
   profile  UserProfile           @relation(fields: [profileId], references: [profileId])
-  medicine MedicineDatabase      @relation(fields: [mediId], references: [mediId])
+  medicine MedicineDatabase?     @relation(fields: [mediId], references: [mediId]) // Optional relation
   regimens UserMedicineRegimen[]
+  logs     MedicationLog[]
 
   @@map("MEDICINE_LIST")
 }
@@ -150,7 +152,7 @@ model UserRelationship {
 model MedicationLog {
   logId          Int             @id @default(autoincrement()) @map("LOG_ID")
   profileId      Int             @map("PROFILE_ID")
-  mediRegimenId  Int             @map("MEDI_REGIMEN_ID")
+  mediListId     Int             @map("MEDI_LIST_ID")
   scheduleTime   DateTime        @map("SCHEDULE_TIME")
   isReceived     Boolean         @map("IS_RECEIVED")
   pushSentAt     DateTime?       @map("PUSH_SENT_AT")
@@ -158,13 +160,16 @@ model MedicationLog {
   responseStatus ResponseStatus? @map("RESPONSE_STATUS")
   responseAt     DateTime?       @map("RESPONSE_AT")
   snoozedCount   Int?            @map("SNOOZED_COUNT")
+  nextSnoozeAt   DateTime?       @map("NEXT_SNOOZE_AT")
   note           String?         @map("NOTE")
 
   // Relations
-  profile UserProfile         @relation(fields: [profileId], references: [profileId])
-  regimen UserMedicineRegimen @relation(fields: [mediRegimenId], references: [mediRegimenId])
+  profile                          UserProfile          @relation(fields: [profileId], references: [profileId])
+  medicineList                     MedicineList         @relation(fields: [mediListId], references: [mediListId])
+  userMedicineRegimen              UserMedicineRegimen? @relation(fields: [userMedicineRegimenMediRegimenId], references: [mediRegimenId])
+  userMedicineRegimenMediRegimenId Int?
 
-  @@unique([profileId, mediRegimenId, scheduleTime])
+  @@unique([profileId, mediListId, scheduleTime])
   @@map("MEDICATION_LOG")
 }
 
@@ -220,9 +225,10 @@ enum MedicineType {
 
 enum RequestType {
   PROBLEM
-  HELP
-  IMPROVEMENT
   ADD_MEDICINE
+  NOTIFICATION
+  FUNCTION
+  OTHER
 }
 
 enum RequestStatus {

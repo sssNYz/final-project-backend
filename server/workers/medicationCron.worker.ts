@@ -4,8 +4,8 @@ import { prisma } from "../db/client";
 import { sendFcmMulticast } from "../push/fcm";
 import { calculateNextOccurrence } from "../medicineRegimen/nextOccurrence";
 
-const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
-const DEFAULT_LOOKAHEAD_MS = 5 * 60 * 1000;
+const DEFAULT_INTERVAL_MS = 60 * 1000;
+const DEFAULT_LOOKAHEAD_MS = 60 * 1000;
 const DEFAULT_MAX_REGIMENS_PER_TICK = 500;
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
@@ -41,6 +41,7 @@ async function processRegimen(regimen: {
   cycleBreakDays: number | null;
   times: { timeOfDay: string }[];
   medicineList: null | {
+    mediListId: number;
     profileId: number;
     profile: { userId: number; user: { timeZone: string | null } };
   };
@@ -55,17 +56,19 @@ async function processRegimen(regimen: {
   const userId = medicineList.profile.userId;
   const userTimeZone = medicineList.profile.user.timeZone ?? "Asia/Bangkok";
 
+  const mediListId = medicineList.mediListId;
+
   const log = await prisma.medicationLog.upsert({
     where: {
-      profileId_mediRegimenId_scheduleTime: {
+      profileId_mediListId_scheduleTime: {
         profileId,
-        mediRegimenId: regimen.mediRegimenId,
+        mediListId,
         scheduleTime,
       },
     },
     create: {
       profileId,
-      mediRegimenId: regimen.mediRegimenId,
+      mediListId,
       scheduleTime,
       isReceived: false,
     },
@@ -73,6 +76,12 @@ async function processRegimen(regimen: {
   });
 
   if (!log.pushSentAt) {
+    const delay = scheduleTime.getTime() - Date.now();
+    if (delay > 0) {
+      console.log(`[medication-cron] waiting ${delay}ms for regimen ${regimen.mediRegimenId}`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
     const deviceTokens = await prisma.deviceToken.findMany({
       where: { userId, revokedAt: null },
       select: { deviceTokenId: true, token: true },
@@ -89,10 +98,14 @@ async function processRegimen(regimen: {
             body: "It's time to take your medicine.",
           },
           data: {
+            type: "MEDICATION_REMINDER",
+            logId: String(log.logId),
             profileId: String(profileId),
+            mediListId: String(mediListId),
             mediRegimenId: String(regimen.mediRegimenId),
             scheduleTime: scheduleTime.toISOString(),
-            logId: String(log.logId),
+            snoozedCount: String(log.snoozedCount ?? 0),
+            isSnoozeReminder: "false",
           },
         });
 
@@ -166,6 +179,7 @@ async function tick() {
       times: { select: { timeOfDay: true } },
       medicineList: {
         select: {
+          mediListId: true,
           profileId: true,
           profile: {
             select: {
@@ -182,13 +196,15 @@ async function tick() {
   if (dueRegimens.length === 0) return;
 
   console.log(`[medication-cron] processing ${dueRegimens.length} regimens`);
-  for (const regimen of dueRegimens) {
-    try {
-      await processRegimen(regimen);
-    } catch (error) {
-      console.error("[medication-cron] failed to process regimen", regimen.mediRegimenId, error);
+
+  // Process in parallel so one wait doesn't block others
+  const results = await Promise.allSettled(dueRegimens.map(regimen => processRegimen(regimen)));
+
+  results.forEach((result, idx) => {
+    if (result.status === "rejected") {
+      console.error("[medication-cron] failed to process regimen", dueRegimens[idx].mediRegimenId, result.reason);
     }
-  }
+  });
 }
 
 let running = false;

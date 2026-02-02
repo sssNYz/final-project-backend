@@ -4,7 +4,7 @@ module.exports = {
       name: 'nextjs-backend',
       script: 'npm',
       args: 'run start',
-      cwd: '/root/Project/final-project-backend',
+      cwd: '/root/final-project-backend',
       env: {
         NODE_ENV: 'production',
         PORT: 3000
@@ -21,7 +21,7 @@ module.exports = {
       name: 'medication-cron-worker',
       script: 'npx',
       args: 'tsx server/workers/medicationCron.worker.ts',
-      cwd: '/root/Project/final-project-backend',
+      cwd: '/root/final-project-backend',
       env: {
         NODE_ENV: 'production'
       },
@@ -32,6 +32,20 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '512M'
+    },
+    {
+      name: 'antivirus-daemon',
+      script: './antivirus_daemon.sh',
+      cwd: '/root/final-project-backend',
+      interpreter: '/bin/bash',
+      env: {
+        NODE_ENV: 'production'
+      },
+      error_file: './logs/antivirus-error.log',
+      out_file: './logs/antivirus-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      autorestart: true
     }
   ]
 };

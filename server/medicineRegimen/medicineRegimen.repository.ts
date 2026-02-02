@@ -85,6 +85,34 @@ export async function listRegimensByProfileId(profileId: number) {
   });
 }
 
+export async function listRegimensByMediListId(mediListId: number) {
+  return prisma.userMedicineRegimen.findMany({
+    where: {
+      mediListId,
+    },
+    include: {
+      medicineList: {
+        include: {
+          medicine: {
+            select: {
+              mediId: true,
+              mediThName: true,
+              mediEnName: true,
+              mediTradeName: true,
+              mediType: true,
+              mediPicture: true,
+            },
+          },
+        },
+      },
+      times: {
+        orderBy: { timeOfDay: "asc" },
+      },
+    },
+    orderBy: { mediRegimenId: "desc" },
+  });
+}
+
 export async function createRegimenWithTimes(params: {
   mediListId: number;
   scheduleType: ScheduleType;
@@ -182,9 +210,52 @@ export async function updateRegimenFields(
 }
 
 export async function deleteRegimenById(mediRegimenId: number) {
-  // Prisma will cascade delete times automatically
-  return prisma.userMedicineRegimen.delete({
-    where: { mediRegimenId },
+  return prisma.$transaction(async (tx) => {
+    // 1) Delete all times for this regimen
+    await tx.userMedicineRegimenTime.deleteMany({
+      where: { mediRegimenId },
+    });
+
+    // 2) Delete the regimen
+    return tx.userMedicineRegimen.delete({
+      where: { mediRegimenId },
+    });
+  });
+}
+
+export async function replaceRegimenTimes(
+  mediRegimenId: number,
+  times: Array<{
+    timeOfDay: string;
+    dose: number;
+    unit: string;
+    mealRelation: MealRelation;
+    mealOffsetMin: number | null;
+  }>
+) {
+  return prisma.$transaction(async (tx) => {
+    // Delete all existing times for this regimen
+    await tx.userMedicineRegimenTime.deleteMany({
+      where: { mediRegimenId },
+    });
+
+    // Create new times
+    const createdTimes = await Promise.all(
+      times.map((timeData) =>
+        tx.userMedicineRegimenTime.create({
+          data: {
+            mediRegimenId,
+            timeOfDay: timeData.timeOfDay,
+            dose: timeData.dose,
+            unit: timeData.unit,
+            mealRelation: timeData.mealRelation,
+            mealOffsetMin: timeData.mealOffsetMin,
+          },
+        })
+      )
+    );
+
+    return createdTimes;
   });
 }
 

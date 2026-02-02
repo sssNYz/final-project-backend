@@ -105,6 +105,13 @@ export async function PATCH(request: NextRequest) {
     const mediStore = formData.get("mediStore");
     if (mediStore !== null) input.mediStore = String(mediStore);
 
+    const mediStatusValue = formData.get("mediStatus");
+    if (mediStatusValue !== null) {
+      const s = String(mediStatusValue).toLowerCase();
+      if (s === "true") input.mediStatus = true;
+      if (s === "false") input.mediStatus = false;
+    }
+
     const pictureFile = formData.get("picture") as File | null;
     if (pictureFile) {
       input.mediPicturePath = await saveMedicinePicture(pictureFile);

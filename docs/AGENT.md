@@ -397,3 +397,40 @@ Notes
 - Avoid `example(s)` in request/response bodies; the UI hides them to reduce noise.
 - Use `Admin - {Feature}` for `/api/admin/...` endpoints and `Mobile - {Feature}` for `/api/mobile/...`.
 - If you add new reusable models, prefer updating `components.schemas` and reference them with `$ref`.
+
+## Data Model Notes
+
+### MedicineList (User's Medicine Inventory)
+
+The `MedicineList` model represents a user's personal medicine collection per profile.
+
+Key design decision: **`mediId` is optional**.
+
+- Users can create medicine list items **without** linking to the `MedicineDatabase`.
+- This allows users to add custom/compounded medicines that don't exist in the database.
+- Users can link the medicine later via the update endpoint.
+
+Flow options:
+1. **With database link**: User selects medicine from database → `mediId` is set
+2. **Custom medicine**: User creates entry with just nickname/picture → `mediId` is null
+3. **Link later**: User updates existing custom entry to link `mediId` when medicine becomes available
+
+API behavior:
+- `POST /api/mobile/v1/medicine-list/create` - `mediId` is optional
+- `PATCH /api/mobile/v1/medicine-list/update` - Can set `mediId` to link, or `null` to unlink
+
+### MedicineRegimen (Schedule Updates)
+
+The `UserMedicineRegimen` update endpoint now supports updating schedule times.
+
+Key design decision: **Times are replaced, not merged**.
+
+- When `times` is provided in an update request, **all existing times are deleted** and the new times are created.
+- This means `timeId`s will be regenerated (old IDs are deleted, new IDs are created).
+- This is **safe** because `MedicationLog` records reference the `mediRegimenId`, not the individual `timeId`.
+
+API behavior:
+- `PATCH /api/mobile/v1/medicine-regimen/update`:
+  - Can update schedule fields (scheduleType, startDate, endDate, etc.)
+  - Can update `times` array (replaces all existing times)
+  - `times` format is identical to the create endpoint
