@@ -49,4 +49,8 @@ next-env.d.ts
 
 # one-off local backups
 /backups/
+# security & deployment
 ssl/
+deployment/ssl/
+certbot-webroot/
+deployment/archive/
