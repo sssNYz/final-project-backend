@@ -2,7 +2,7 @@
 echo "Starting Antivirus Daemon..."
 
 # Change to the correct directory
-cd /root/final-project-backend || exit
+cd /home/deploy/final-project-backend || exit
 
 while true; do
     echo "[$(date)] Scanning for malware..."

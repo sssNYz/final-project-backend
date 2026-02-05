@@ -1,0 +1,9 @@
+medi-buddy.duckdns.org {
+    # Automatic HTTPS with Let's Encrypt
+    reverse_proxy localhost:3000
+    
+    # Optional: phpMyAdmin on subdirectory
+    handle_path /phpmyadmin/* {
+        reverse_proxy localhost:8080
+    }
+}

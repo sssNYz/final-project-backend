@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://82.26.104.98",
-      "description": "Server"
+      "url": "https://medi-buddy.duckdns.org",
+      "description": "Production Server (HTTPS)"
     }
   ],
   "tags": [

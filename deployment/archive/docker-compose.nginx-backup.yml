@@ -15,28 +15,31 @@ services:
     image: phpmyadmin/phpmyadmin:latest
     restart: unless-stopped
     environment:
-      - PMA_HOST=db          # ← Change from "mysql" to "db" 
+      - PMA_HOST=db
     ports:
       - "8080:80"
     depends_on:
-      - db       
+      - db
 
-  nginx:
-    image: nginx:alpine
-    container_name: final_project_nginx
+  caddy:
+    image: caddy:latest
+    container_name: final_project_caddy
     restart: unless-stopped
+    network_mode: "host"  # Use host network to access localhost:3000
     ports:
-      - "80:80"  # Main port for all services
+      - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/ssl/certs:ro
-      - ./ssl:/etc/ssl/private:ro
-      - ./certbot-webroot:/var/www/certbot:ro
-      - ./nginx-logs:/var/log/nginx
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     depends_on:
-      - phpmyadmin             
+      - phpmyadmin
 
 volumes:
   db-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
     driver: local

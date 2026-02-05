@@ -1,5 +1,6 @@
 // app/api/admin/v1/medicine/count/route.ts
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 
 import { requireAuth } from "@/lib/auth";
 import { ServiceError } from "@/server/common/errors";

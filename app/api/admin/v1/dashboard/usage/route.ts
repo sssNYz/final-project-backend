@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+export const dynamic = 'force-dynamic'
 
 import { withRole } from "@/lib/apiHelpers"
 import { getAccountUsageStats } from "@/server/dashboard/dashboard.service"

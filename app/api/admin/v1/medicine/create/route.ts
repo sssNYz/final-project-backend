@@ -1,5 +1,6 @@
 // app/api/admin/v1/medicine/create/route.ts
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { MedicineType } from "@prisma/client";
 import fs from "fs";
 import path from "path";

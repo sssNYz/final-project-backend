@@ -4,7 +4,7 @@ module.exports = {
       name: 'nextjs-backend',
       script: 'npm',
       args: 'run start',
-      cwd: '/root/final-project-backend',
+      cwd: '/home/deploy/final-project-backend',
       env: {
         NODE_ENV: 'production',
         PORT: 3000
@@ -21,7 +21,7 @@ module.exports = {
       name: 'medication-cron-worker',
       script: 'npx',
       args: 'tsx server/workers/medicationCron.worker.ts',
-      cwd: '/root/final-project-backend',
+      cwd: '/home/deploy/final-project-backend',
       env: {
         NODE_ENV: 'production'
       },
@@ -35,8 +35,8 @@ module.exports = {
     },
     {
       name: 'antivirus-daemon',
-      script: './antivirus_daemon.sh',
-      cwd: '/root/final-project-backend',
+      script: './scripts/antivirus_daemon.sh',
+      cwd: '/home/deploy/final-project-backend',
       interpreter: '/bin/bash',
       env: {
         NODE_ENV: 'production'
