@@ -98,7 +98,7 @@ model MedicineList {
   mediListId    Int     @id @default(autoincrement()) @map("MEDI_LIST_ID")
   profileId     Int     @map("PROFILE_ID")
   mediId        Int?    @map("MEDI_ID") // Optional: user can create without linking to medicine database
-  mediNickname  String? @map("MEDI_NICKNAME")
+  mediNickname  String? @map("MEDI_NICKNAME") @db.VarChar(25)
   pictureOption String? @map("PICTURE_OPTION")
 
   // Relations
@@ -166,8 +166,8 @@ model MedicationLog {
   note           String?         @map("NOTE")
 
   // Relations
-  profile                          UserProfile          @relation(fields: [profileId], references: [profileId])
-  medicineList                     MedicineList         @relation(fields: [mediListId], references: [mediListId])
+  profile      UserProfile  @relation(fields: [profileId], references: [profileId])
+  medicineList MedicineList @relation(fields: [mediListId], references: [mediListId])
 
   @@unique([profileId, mediListId, scheduleTime])
   @@map("MEDICATION_LOG")

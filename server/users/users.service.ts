@@ -75,13 +75,16 @@ export async function updateCurrentUserProfile({
 export interface AdminAccountListItem {
   userId: number;
   email: string;
-  role: "admin" | "member";
+  role: "admin" | "superadmin" | "member";
   active: boolean;
   lastLogin: Date | null;
 }
 
-function mapRoleToAccountRole(role: string): "admin" | "member" {
-  if (role === "Admin" || role === "SuperAdmin") {
+function mapRoleToAccountRole(role: string): "admin" | "superadmin" | "member" {
+  if (role === "SuperAdmin") {
+    return "superadmin";
+  }
+  if (role === "Admin") {
     return "admin";
   }
 
