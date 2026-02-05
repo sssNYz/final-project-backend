@@ -161,13 +161,13 @@ model MedicationLog {
   responseAt     DateTime?       @map("RESPONSE_AT")
   snoozedCount   Int?            @map("SNOOZED_COUNT")
   nextSnoozeAt   DateTime?       @map("NEXT_SNOOZE_AT")
+  dose           Int?            @map("DOSE")
+  unit           String?         @map("UNIT")
   note           String?         @map("NOTE")
 
   // Relations
   profile                          UserProfile          @relation(fields: [profileId], references: [profileId])
   medicineList                     MedicineList         @relation(fields: [mediListId], references: [mediListId])
-  userMedicineRegimen              UserMedicineRegimen? @relation(fields: [userMedicineRegimenMediRegimenId], references: [mediRegimenId])
-  userMedicineRegimenMediRegimenId Int?
 
   @@unique([profileId, mediListId, scheduleTime])
   @@map("MEDICATION_LOG")
@@ -189,7 +189,6 @@ model UserMedicineRegimen {
   // Relations
   medicineList MedicineList?             @relation(fields: [mediListId], references: [mediListId])
   times        UserMedicineRegimenTime[]
-  logs         MedicationLog[]
 
   @@map("USER_MEDICINE_REGIMEN")
 }

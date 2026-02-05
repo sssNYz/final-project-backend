@@ -54,3 +54,4 @@ ssl/
 deployment/ssl/
 certbot-webroot/
 deployment/archive/
+public/uploads

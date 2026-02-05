@@ -3,6 +3,7 @@ import type { ScheduleType } from "@prisma/client";
 import { prisma } from "../db/client";
 import { sendFcmMulticast } from "../push/fcm";
 import { calculateNextOccurrence } from "../medicineRegimen/nextOccurrence";
+import { formatInTimeZone } from "date-fns-tz";
 
 const DEFAULT_INTERVAL_MS = 60 * 1000;
 const DEFAULT_LOOKAHEAD_MS = 60 * 1000;
@@ -39,7 +40,7 @@ async function processRegimen(regimen: {
   intervalDays: number | null;
   cycleOnDays: number | null;
   cycleBreakDays: number | null;
-  times: { timeOfDay: string }[];
+  times: { timeOfDay: string; dose: number; unit: string }[];
   medicineList: null | {
     mediListId: number;
     profileId: number;
@@ -55,8 +56,13 @@ async function processRegimen(regimen: {
   const profileId = medicineList.profileId;
   const userId = medicineList.profile.userId;
   const userTimeZone = medicineList.profile.user.timeZone ?? "Asia/Bangkok";
-
   const mediListId = medicineList.mediListId;
+
+  // Find the dose and unit for this schedule time
+  const timeString = formatInTimeZone(scheduleTime, userTimeZone, "HH:mm");
+  const matchingTime = regimen.times.find((t) => t.timeOfDay === timeString);
+  const dose = matchingTime?.dose ?? null;
+  const unit = matchingTime?.unit ?? null;
 
   const log = await prisma.medicationLog.upsert({
     where: {
@@ -71,6 +77,8 @@ async function processRegimen(regimen: {
       mediListId,
       scheduleTime,
       isReceived: false,
+      dose,
+      unit,
     },
     update: {},
   });
@@ -176,7 +184,7 @@ async function tick() {
     },
     take: MAX_REGIMENS_PER_TICK,
     include: {
-      times: { select: { timeOfDay: true } },
+      times: { select: { timeOfDay: true, dose: true, unit: true } },
       medicineList: {
         select: {
           mediListId: true,
