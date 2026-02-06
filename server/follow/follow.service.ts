@@ -1,6 +1,20 @@
 // server/follow/follow.service.ts
 import { ServiceError } from "@/server/common/errors";
+const SNOOZE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes (copied constant? No, this is follow service)
 import * as repo from "./follow.repository";
+
+// ---------- User Search ----------
+
+export async function searchUser(query: string) {
+    if (!query || query.length < 3) {
+        throw new ServiceError(400, { error: "Search query must be at least 3 characters long" });
+    }
+
+    const users = await repo.searchUsersByEmailPartial(query);
+    return {
+        users: users.map((u) => u.email),
+    };
+}
 
 // ---------- Sender: Send Invite ----------
 

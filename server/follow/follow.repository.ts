@@ -14,6 +14,21 @@ export async function findUserByEmail(email: string) {
     });
 }
 
+export async function searchUsersByEmailPartial(query: string) {
+    return prisma.userAccount.findMany({
+        where: {
+            email: {
+                contains: query.toLowerCase().trim(),
+            },
+            role: "User",
+        },
+        select: {
+            email: true,
+        },
+        take: 10,
+    });
+}
+
 // ---------- Relationship CRUD ----------
 
 export async function createRelationship(data: {
