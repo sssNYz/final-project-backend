@@ -52,19 +52,39 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
   return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - record.count, resetTime: record.resetTime };
 }
 
+// ============ Request Logging ============
+function logRequest(request: NextRequest, clientIP: string) {
+  const timestamp = new Date().toISOString();
+  const method = request.method;
+  const url = request.nextUrl.pathname + request.nextUrl.search;
+  const origin = request.headers.get("origin") || "no-origin";
+  const userAgent = request.headers.get("user-agent") || "no-user-agent";
+  const auth = request.headers.get("authorization") ? "Bearer ***" : "no-auth";
+
+  console.log(`\n========== INCOMING REQUEST ==========`);
+  console.log(`[${timestamp}] ${method} ${url}`);
+  console.log(`IP: ${clientIP} | Origin: ${origin}`);
+  console.log(`Auth: ${auth}`);
+  console.log(`User-Agent: ${userAgent}`);
+  console.log(`=======================================\n`);
+}
+
 // ============ Middleware ============
 
 export function middleware(request: NextRequest) {
   // Only handle API routes
   if (request.nextUrl.pathname.startsWith("/api")) {
     const origin = request.headers.get("origin");
+    const clientIP = getClientIP(request);
+
+    // Log all incoming requests
+    logRequest(request, clientIP);
 
     // Skip rate limiting for health check endpoints
     const isHealthCheck = request.nextUrl.pathname === "/api/health";
 
     // Apply rate limiting (skip for OPTIONS preflight requests)
     if (!isHealthCheck && request.method !== "OPTIONS") {
-      const clientIP = getClientIP(request);
       const rateLimit = checkRateLimit(clientIP);
 
       if (!rateLimit.allowed) {
@@ -129,7 +149,6 @@ export function middleware(request: NextRequest) {
 
     // Add rate limit headers to successful responses
     if (!request.nextUrl.pathname.includes("/api/health")) {
-      const clientIP = getClientIP(request);
       const record = rateLimitStore.get(clientIP);
       if (record) {
         response.headers.set("X-RateLimit-Limit", String(MAX_REQUESTS_PER_WINDOW));
