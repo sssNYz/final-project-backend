@@ -1,6 +1,7 @@
-// server/follow/follow.repository.ts
 import { prisma } from "@/server/db/client";
 import { RelationshipStatus } from "@prisma/client";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 // ---------- User Lookup ----------
 
@@ -229,5 +230,33 @@ export async function findMedicationLogsByProfileId(
         orderBy: { scheduleTime: "desc" },
         take: options.limit,
         skip: options.offset,
+    });
+}
+
+// ---------- File Operations ----------
+
+export async function saveRelationshipPicture(
+    file: { buffer: Buffer; originalFilename: string },
+    relationshipId: number,
+    name?: string
+) {
+    const uploadDir = join(process.cwd(), "public", "uploads", "user-relationship-picture");
+    await mkdir(uploadDir, { recursive: true });
+
+    const timestamp = Date.now();
+    const extension = file.originalFilename.split(".").pop() || "jpg";
+    const sanitizedName = (name || "unnamed").replace(/[^a-zA-Z0-9_-]/g, "");
+    const fileName = `${relationshipId}_${sanitizedName}_${timestamp}.${extension}`;
+    const filePath = join(uploadDir, fileName);
+
+    await writeFile(filePath, file.buffer);
+
+    return `/uploads/user-relationship-picture/${fileName}`;
+}
+
+export async function updateRelationshipPicture(relationshipId: number, pictureUrl: string) {
+    return prisma.userRelationship.update({
+        where: { relationshipId },
+        data: { accountPicture: pictureUrl },
     });
 }

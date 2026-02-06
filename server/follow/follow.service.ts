@@ -3,7 +3,7 @@ import { ServiceError } from "@/server/common/errors";
 const SNOOZE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes (copied constant? No, this is follow service)
 import * as repo from "./follow.repository";
 
-import { saveProfilePicture } from "../profile/profile.repository";
+// (removed import)
 
 // ---------- User Search ----------
 
@@ -50,8 +50,7 @@ export async function sendInvite(params: {
         });
     }
 
-    // Handle picture upload
-    let finalPicture = accountPicture;
+    // Validate picture file if present
     if (accountPictureFile) {
         const fileExtension = accountPictureFile.originalFilename.split(".").pop()?.toLowerCase();
         const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
@@ -68,8 +67,6 @@ export async function sendInvite(params: {
                 error: "File size must be less than 5MB",
             });
         }
-
-        finalPicture = await saveProfilePicture(accountPictureFile, ownerUserId);
     }
 
     // 4. Validate profileIds belong to owner
@@ -88,15 +85,35 @@ export async function sendInvite(params: {
         validProfileIds = ownerProfiles.map((p) => p.profileId);
     }
 
-    // 5. Create relationship
+    // 5. Create relationship (use string picture or default initially)
+    let initialPicture = accountPicture || "/default-profile/GIU AMA 209-12.jpg";
+
+    // If file is provided, we will update picture later. 
+    // But if we want to show default while uploading (unlikely to fail), or just keep default if upload fails?
+    // We already validated file. 
+
     const relationship = await repo.createRelationship({
         ownerUserId,
         viewerUserId: targetUser.userId,
         isReceiverEmail: email.toLowerCase().trim(),
         profileIds: validProfileIds,
         name: name || undefined,
-        accountPicture: finalPicture || "/default-profile/GIU AMA 209-12.jpg",
+        accountPicture: initialPicture,
     });
+
+    // 6. Save file if provided and update relationship
+    if (accountPictureFile) {
+        // Now we have relationship.relationshipId
+        try {
+            const newUrl = await repo.saveRelationshipPicture(accountPictureFile, relationship.relationshipId, name);
+            await repo.updateRelationshipPicture(relationship.relationshipId, newUrl);
+            relationship.accountPicture = newUrl;
+        } catch (error) {
+            console.error("Failed to save relationship picture:", error);
+            // Non-critical, keep relationship created but with default picture? 
+            // Or rollback? For now, we just log and keep default.
+        }
+    }
 
     return {
         message: "Invite sent successfully",
@@ -105,6 +122,7 @@ export async function sendInvite(params: {
             viewerEmail: email,
             profileIds: validProfileIds,
             status: relationship.status,
+            accountPicture: relationship.accountPicture,
         },
     };
 }
