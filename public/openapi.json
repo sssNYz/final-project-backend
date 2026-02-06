@@ -5813,6 +5813,31 @@
                   "email"
                 ]
               }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "accountPicture": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "profileIds": {
+                    "type": "string",
+                    "description": "JSON array of profile IDs, e.g. '[1, 2]'"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
             }
           }
         },
