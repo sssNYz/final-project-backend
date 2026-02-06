@@ -3,6 +3,8 @@ import { ServiceError } from "@/server/common/errors";
 const SNOOZE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes (copied constant? No, this is follow service)
 import * as repo from "./follow.repository";
 
+import { saveProfilePicture } from "../profile/profile.repository";
+
 // ---------- User Search ----------
 
 export async function searchUser(query: string) {
@@ -24,8 +26,9 @@ export async function sendInvite(params: {
     profileIds?: number[] | null;
     name?: string;
     accountPicture?: string;
+    accountPictureFile?: { buffer: Buffer; originalFilename: string } | null;
 }) {
-    const { ownerUserId, email, profileIds, name, accountPicture } = params;
+    const { ownerUserId, email, profileIds, name, accountPicture, accountPictureFile } = params;
 
     // 1. Check if email exists in database
     const targetUser = await repo.findUserByEmail(email);
@@ -45,6 +48,28 @@ export async function sendInvite(params: {
             error: "Relationship already exists",
             status: existingRelationship.status,
         });
+    }
+
+    // Handle picture upload
+    let finalPicture = accountPicture;
+    if (accountPictureFile) {
+        const fileExtension = accountPictureFile.originalFilename.split(".").pop()?.toLowerCase();
+        const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
+
+        if (!isValidImage) {
+            throw new ServiceError(400, {
+                error: "Only image files are allowed (jpg, jpeg, png, webp)",
+            });
+        }
+
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (accountPictureFile.buffer.length > maxSize) {
+            throw new ServiceError(400, {
+                error: "File size must be less than 5MB",
+            });
+        }
+
+        finalPicture = await saveProfilePicture(accountPictureFile, ownerUserId);
     }
 
     // 4. Validate profileIds belong to owner
@@ -70,7 +95,7 @@ export async function sendInvite(params: {
         isReceiverEmail: email.toLowerCase().trim(),
         profileIds: validProfileIds,
         name: name || undefined,
-        accountPicture: accountPicture || "/default-profile/GIU AMA 209-12.jpg",
+        accountPicture: finalPicture || "/default-profile/GIU AMA 209-12.jpg",
     });
 
     return {
