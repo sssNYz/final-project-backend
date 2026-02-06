@@ -5799,6 +5799,14 @@
                       "type": "integer"
                     },
                     "description": "Profile IDs to share. If empty, shares all profiles."
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the sender as seen by the follower"
+                  },
+                  "accountPicture": {
+                    "type": "string",
+                    "description": "Picture URL of the sender (optional)"
                   }
                 },
                 "required": [

@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     return withAuth(request, async ({ prismaUser }) => {
         try {
             const body = await request.json();
-            const { email, profileIds } = body;
+            const { email, profileIds, name, accountPicture } = body;
 
             if (!email || typeof email !== "string") {
                 return NextResponse.json(
@@ -23,6 +23,8 @@ export async function POST(request: Request) {
                 ownerUserId: prismaUser.userId,
                 email,
                 profileIds: profileIds ?? null,
+                name,
+                accountPicture,
             });
 
             return NextResponse.json(result, { status: 201 });

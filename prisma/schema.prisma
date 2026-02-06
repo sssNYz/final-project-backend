@@ -138,6 +138,8 @@ model UserRelationship {
   isReceiverEmail String             @map("IS_RECEIVER_EMAIL")
   profileIds      Json?              @map("PROFILE_IDS")
   status          RelationshipStatus @default(PENDING) @map("STATUS")
+  name            String?            @map("NAME")
+  accountPicture  String?            @map("ACCOUNT_PICTURE")
   createdAt       DateTime           @default(now()) @map("CREATED_AT")
   updatedAt       DateTime           @updatedAt @map("UPDATED_AT")
 
@@ -163,6 +165,7 @@ model MedicationLog {
   nextSnoozeAt   DateTime?       @map("NEXT_SNOOZE_AT")
   dose           Int?            @map("DOSE")
   unit           String?         @map("UNIT")
+  mealRelation   MealRelation?   @map("MEAL_RELATION")
   note           String?         @map("NOTE")
 
   // Relations

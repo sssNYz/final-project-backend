@@ -36,6 +36,8 @@ export async function createRelationship(data: {
     viewerUserId: number;
     isReceiverEmail: string;
     profileIds: number[];
+    name?: string;
+    accountPicture?: string;
 }) {
     return prisma.userRelationship.create({
         data: {
@@ -44,6 +46,8 @@ export async function createRelationship(data: {
             isReceiverEmail: data.isReceiverEmail,
             profileIds: data.profileIds,
             status: "PENDING",
+            name: data.name,
+            accountPicture: data.accountPicture,
         },
     });
 }

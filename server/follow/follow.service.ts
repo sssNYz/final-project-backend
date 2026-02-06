@@ -22,8 +22,10 @@ export async function sendInvite(params: {
     ownerUserId: number;
     email: string;
     profileIds?: number[] | null;
+    name?: string;
+    accountPicture?: string;
 }) {
-    const { ownerUserId, email, profileIds } = params;
+    const { ownerUserId, email, profileIds, name, accountPicture } = params;
 
     // 1. Check if email exists in database
     const targetUser = await repo.findUserByEmail(email);
@@ -67,6 +69,8 @@ export async function sendInvite(params: {
         viewerUserId: targetUser.userId,
         isReceiverEmail: email.toLowerCase().trim(),
         profileIds: validProfileIds,
+        name: name || undefined,
+        accountPicture: accountPicture || "/default-profile/GIU AMA 209-12.jpg",
     });
 
     return {
@@ -177,6 +181,8 @@ export async function getPendingInvites(viewerUserId: number) {
         return {
             relationshipId: r.relationshipId,
             ownerEmail: r.ownerUser.email,
+            name: r.name,
+            accountPicture: r.accountPicture,
             sharedProfiles: sharedProfileIds.map((id) => {
                 const profile = profileMap.get(id);
                 return profile
@@ -250,6 +256,8 @@ export async function getFollowing(viewerUserId: number) {
         return {
             relationshipId: r.relationshipId,
             ownerEmail: r.ownerUser.email,
+            name: r.name,
+            accountPicture: r.accountPicture,
             sharedProfiles: sharedProfileIds.map((id) => {
                 const profile = profileMap.get(id);
                 return profile
@@ -288,6 +296,8 @@ export async function getFollowingDetail(params: {
         relationship: {
             relationshipId: relationship.relationshipId,
             ownerEmail: relationship.ownerUser.email,
+            name: relationship.name,
+            accountPicture: relationship.accountPicture,
         },
         profiles: profiles.map((p) => ({
             profileId: p.profileId,
