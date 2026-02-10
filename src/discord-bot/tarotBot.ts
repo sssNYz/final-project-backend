@@ -11,12 +11,15 @@ import {
 import { deck as TAROT_DECK } from './card.js';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
+import fs from 'fs';
+import path from 'path';
 
 // Load env vars
 dotenv.config();
 
 // Configuration
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
+const CONFIG_FILE = path.join(process.cwd(), 'src/discord-bot/tarot-config.json');
 
 if (!TOKEN) {
     console.error("❌ Error: DISCORD_BOT_TOKEN is missing in .env file.");
@@ -25,10 +28,37 @@ if (!TOKEN) {
 
 // Memory Storage
 // Key: UserId, Value: Date String (YYYY-MM-DD)
+// Note: User draws reset on restart, which is acceptable for now.
 const lastDraws = new Map<string, string>();
 
-// Store the Target Channel ID for daily posts
+// Store the Target Channel ID for daily posts (Persisted)
 let dailyChannelId: string | null = null;
+
+// Persistence Helpers
+function loadConfig() {
+    try {
+        if (fs.existsSync(CONFIG_FILE)) {
+            const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
+            const config = JSON.parse(data);
+            if (config.dailyChannelId) {
+                dailyChannelId = config.dailyChannelId;
+                console.log(`📂 Loaded Daily Channel ID from config: ${dailyChannelId}`);
+            }
+        }
+    } catch (error) {
+        console.error("⚠️ Failed to load config:", error);
+    }
+}
+
+function saveConfig() {
+    try {
+        const config = { dailyChannelId };
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2)); // Pretty print
+        console.log("💾 Saved config to file.");
+    } catch (error) {
+        console.error("❌ Failed to save config:", error);
+    }
+}
 
 const client = new Client({
     intents: [
@@ -64,6 +94,9 @@ async function sendDailyTarotMessage(channelId: string) {
 client.once('ready', () => {
     console.log(`🔮 Tarot Bot is online as ${client.user?.tag}`);
 
+    // Load persisted config on startup
+    loadConfig();
+
     // Schedule: 07:00:05 AM Thailand Time = 00:00:05 UTC
     // Cron pattern: Second(5) Minute(0) Hour(0) * * *
     cron.schedule('5 0 0 * * *', () => {
@@ -85,7 +118,8 @@ client.on('messageCreate', async (message) => {
         if (!message.member?.permissions.has("Administrator")) return;
 
         dailyChannelId = message.channel.id;
-        await message.reply("✅ **Daily Channel Set!**\nI will post the Tarot button here every day at **07:00:05 AM (Thailand Time)**.");
+        saveConfig(); // Save to file!
+        await message.reply("✅ **Daily Channel Set!**\nI saved this channel to memory. I will post here every morning at **07:00:05 (Thailand Time)**.");
     }
 
     // 2. Test the message immediately
@@ -125,6 +159,7 @@ client.on('interactionCreate', async (interaction) => {
             }
 
             // 3. Pick Random Card
+            // Access named export
             const randomCard = TAROT_DECK[Math.floor(Math.random() * TAROT_DECK.length)];
 
             // 4. Save State

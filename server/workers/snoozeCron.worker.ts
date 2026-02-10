@@ -50,7 +50,7 @@ async function processSnoozeLog(log: Awaited<ReturnType<typeof repo.findLogsForS
     }
 
     try {
-        const response = await sendFcmMulticast({
+        const payload = {
             tokens,
             notification: {
                 title: `Reminder (${snoozedCount}/${MAX_SNOOZE_COUNT})`,
@@ -65,7 +65,11 @@ async function processSnoozeLog(log: Awaited<ReturnType<typeof repo.findLogsForS
                 snoozedCount: String(snoozedCount),
                 isSnoozeReminder: "true",
             },
-        });
+        };
+
+        console.log("[snooze-cron] Sending payload:", JSON.stringify(payload.data, null, 2));
+
+        const response = await sendFcmMulticast(payload);
 
         // Handle revoked tokens
         const revokedCodes = new Set([

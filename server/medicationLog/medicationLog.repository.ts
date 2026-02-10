@@ -20,6 +20,7 @@ export async function findLogById(logId: number) {
                 select: {
                     profileId: true,
                     profileName: true,
+                    profilePicture: true,
                     userId: true,
                 },
             },
@@ -88,6 +89,11 @@ export async function listLogsByProfileId(
                             mediPicture: true,
                         },
                     },
+                },
+            },
+            profile: {
+                select: {
+                    profilePicture: true,
                 },
             },
         },

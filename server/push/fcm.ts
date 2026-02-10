@@ -36,6 +36,13 @@ export async function sendFcmMulticast(
 ): Promise<BatchResponse> {
   const app = getFirebaseApp();
   const messaging = getMessaging(app);
+
+  console.log("---- [FCM Debug: SENDING] ----");
+  console.log("Notification:", JSON.stringify(message.notification, null, 2));
+  console.log("Data:", JSON.stringify(message.data, null, 2));
+  console.log("Token Count:", message.tokens.length);
+  console.log("------------------------------");
+
   return messaging.sendEachForMulticast(message);
 }
 
