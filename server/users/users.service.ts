@@ -5,6 +5,7 @@ import {
   deleteUserAccount,
   findAllUserAccounts,
   findUserBySupabaseOrEmail,
+  findUserByUserId,
   updateUserAccount,
 } from "@/server/users/users.repository";
 import { deleteSupabaseUser } from "@/server/supabase/admin";
@@ -100,7 +101,7 @@ export async function listAdminAccountsForDashboard(): Promise<
     userId: user.userId,
     email: user.email,
     role: mapRoleToAccountRole(user.role),
-    active: user.deletedAt == null,
+    active: user.status === true && user.deletedAt == null,
     lastLogin: user.lastLogin,
   }));
 }
@@ -156,4 +157,28 @@ export async function deleteAdminAccount({
 
     throw error;
   }
+}
+
+
+export async function adminUpdateUserStatus(
+  userId: number,
+  status: boolean
+): Promise<PublicUserAccount> {
+  const user = await findUserByUserId(userId);
+
+  if (!user) {
+    throw new ServiceError(404, {
+      error: "User not found",
+    });
+  }
+
+  if (user.role === "SuperAdmin") {
+    throw new ServiceError(403, {
+      error: "Cannot change status of SuperAdmin",
+    });
+  }
+
+  const updatedUser = await updateUserAccount(userId, { status });
+
+  return serializeUserAccount(updatedUser);
 }

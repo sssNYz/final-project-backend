@@ -56,6 +56,7 @@ export async function withAuth(
         supabaseUserId: true,
         provider: true,
         role: true,
+        status: true,
         tutorialDone: true,
         lastLogin: true,
         createdAt: true,
@@ -64,11 +65,21 @@ export async function withAuth(
 
     if (!prismaUser) {
       return NextResponse.json(
-        { 
+        {
           error: "User not found in database",
           message: "Please call /api/mobile/v1/auth/sync-user to create your account"
         },
         { status: 404 }
+      );
+    }
+
+    if (prismaUser.status === false) {
+      return NextResponse.json(
+        {
+          error: "Account banned",
+          message: "Your account has been suspended. Please contact support.",
+        },
+        { status: 403 }
       );
     }
 
@@ -100,7 +111,7 @@ export function hasRole(userRole: string, requiredRole: "SuperAdmin" | "Admin" |
   const roleHierarchy = ["User", "Admin", "SuperAdmin"];
   const userRoleIndex = roleHierarchy.indexOf(userRole);
   const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
-  
+
   return userRoleIndex >= requiredRoleIndex;
 }
 
@@ -127,7 +138,7 @@ export async function withRole(
         { status: 403 }
       );
     }
-    
+
     return await handler(context);
   });
 }

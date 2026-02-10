@@ -41,3 +41,54 @@ export async function DELETE(
   });
 }
 
+
+// PATCH /api/admin/v1/users/[userId]
+// อัปเดตสถานะของผู้ใช้งาน (banned/active)
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ userId: string }> }
+) {
+  return withRole(request, "Admin", async () => {
+    try {
+      const { userId: idParam } = await context.params;
+      const userId = Number.parseInt(idParam, 10);
+      const body = await request.json();
+      const { status } = body;
+
+      if (typeof status !== "boolean") {
+        return NextResponse.json(
+          { error: "status must be a boolean" },
+          { status: 400 }
+        );
+      }
+
+      if (!Number.isFinite(userId) || userId <= 0) {
+        return NextResponse.json(
+          { error: "Invalid userId" },
+          { status: 400 }
+        );
+      }
+
+      // Dynamic import to avoid circular dependency issues if any, though likely safe here
+      const { adminUpdateUserStatus } = await import("@/server/users/users.service");
+
+      const updatedUser = await adminUpdateUserStatus(userId, status);
+
+      return NextResponse.json(
+        { message: "User status updated successfully", user: updatedUser },
+        { status: 200 }
+      );
+    } catch (error) {
+      console.error("Error in PATCH /api/admin/v1/users/[userId]:", error);
+
+      if (error instanceof ServiceError) {
+        return NextResponse.json(error.body, { status: error.statusCode });
+      }
+
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
+  });
+}

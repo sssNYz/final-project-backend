@@ -122,6 +122,7 @@ export async function syncUserAccount({
     normalizedEmail
   );
 
+
   const incomingProvider = normalizeProviderInput(provider);
 
   if (!existingUser) {
@@ -136,6 +137,14 @@ export async function syncUserAccount({
       message: "User created successfully",
       user: serializeUserAccount(createdUser),
     };
+  }
+
+  // Block login if user is banned
+  if (existingUser.status === false) {
+    throw new ServiceError(403, {
+      error: "Account banned",
+      message: "Your account has been suspended. Please contact support.",
+    });
   }
 
   const existingProvider = normalizeProviderFromDb(existingUser.provider, Boolean(existingUser.password));
