@@ -62,6 +62,12 @@ const groups = [
         pathPrefix: "/api/admin/v1/",
     },
     {
+        id: "admin-v2",
+        title: "🖥️ Admin API v2",
+        description: "Admin dashboard & management endpoints (v2).",
+        pathPrefix: "/api/admin/v2/",
+    },
+    {
         id: "mobile-v1",
         title: "📱 Mobile API v1",
         description: "Mobile client endpoints (v1).",

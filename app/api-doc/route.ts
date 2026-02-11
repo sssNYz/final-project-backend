@@ -432,7 +432,8 @@ export async function GET() {
           { id: 'mobile-v2', label: 'v2', badge: 'NEW',    badgeClass: 'new',    info: '5 endpoints'  },
         ],
         admin: [
-          { id: 'admin-v1', label: 'v1', badge: 'STABLE', badgeClass: 'stable', info: '14 endpoints' },
+          { id: "admin-v1", label: "v1", badge: "STABLE", badgeClass: "stable", info: "15 endpoints" },
+          { id: "admin-v2", label: "v2", badge: "NEW",    badgeClass: "new",    info: "1 endpoint"   },
         ],
       };
 

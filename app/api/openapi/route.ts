@@ -8,7 +8,7 @@ import { join } from "path";
  * Serves the requested split OpenAPI spec from public/specs/.
  * Falls back to the full spec (public/openapi.json) when no query param is given.
  */
-const VALID_SPECS = new Set(["admin-v1", "mobile-v1", "mobile-v2"]);
+const VALID_SPECS = new Set(["admin-v1", "admin-v2", "mobile-v1", "mobile-v2"]);
 
 export async function GET(req: NextRequest) {
   try {

@@ -2148,24 +2148,13 @@
         ]
       }
     },
-    "/api/admin/v2/users/{userId}": {
-      "delete": {
+    "/api/admin/v2/users/delete": {
+      "post": {
         "tags": [
           "Admin - Users"
         ],
-        "summary": "Delete user strictly (V2)",
-        "description": "Permanently delete a user and all their data (profiles, logs, relations). Requires 'CONFIRM' string.",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "User ID to delete"
-          }
-        ],
+        "summary": "Bulk delete users strictly (V2)",
+        "description": "Permanently delete multiple users and all their data (profiles, logs, relations). Requires 'CONFIRM' string.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2173,6 +2162,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "userIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Array of User IDs to delete"
+                  },
                   "confirm": {
                     "type": "string",
                     "enum": [
@@ -2182,6 +2178,7 @@
                   }
                 },
                 "required": [
+                  "userIds",
                   "confirm"
                 ]
               }
@@ -2190,7 +2187,7 @@
         },
         "responses": {
           "200": {
-            "description": "User deleted successfully",
+            "description": "Users deleted successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -2224,8 +2221,8 @@
               }
             }
           },
-          "404": {
-            "description": "User not found",
+          "403": {
+            "description": "Forbidden (e.g., trying to delete SuperAdmin)",
             "content": {
               "application/json": {
                 "schema": {

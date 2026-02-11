@@ -5,78 +5,83 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { deleteSupabaseUser } from "@/server/supabase/admin";
 
-const DeleteUserV2Schema = z.object({
+const BulkDeleteUserV2Schema = z.object({
+    userIds: z.array(z.number()),
     confirm: z.literal("CONFIRM"),
 });
 
-export async function DELETE(
-    request: NextRequest,
-    context: { params: Promise<{ userId: string }> }
-) {
+export async function POST(request: NextRequest) {
     return withRole(request, "Admin", async () => {
         try {
-            const { userId: idParam } = await context.params;
-            const userId = Number.parseInt(idParam, 10);
             const body = await request.json();
-
-            const validation = DeleteUserV2Schema.safeParse(body);
+            const validation = BulkDeleteUserV2Schema.safeParse(body);
 
             if (!validation.success) {
                 return NextResponse.json(
-                    { error: "Confirmation text 'CONFIRM' is required in the body." },
+                    { error: "Body must include 'userIds' (number[]) and 'confirm': 'CONFIRM'." },
                     { status: 400 }
                 );
             }
 
-            if (!Number.isFinite(userId) || userId <= 0) {
-                return NextResponse.json({ error: "Invalid userId" }, { status: 400 });
+            const { userIds } = validation.data;
+            if (userIds.length === 0) {
+                return NextResponse.json({ message: "No users selected for deletion." }, { status: 200 });
             }
 
-            // Check if user exists
-            const user = await prisma.userAccount.findUnique({
-                where: { userId },
-                select: { userId: true, supabaseUserId: true, role: true },
+            // Check if any SuperAdmin is selected
+            const superAdmins = await prisma.userAccount.findMany({
+                where: {
+                    userId: { in: userIds },
+                    role: "SuperAdmin",
+                },
+                select: { userId: true },
             });
 
-            if (!user) {
-                return NextResponse.json({ error: "User not found" }, { status: 404 });
-            }
-
-            if (user.role === "SuperAdmin") {
+            if (superAdmins.length > 0) {
                 return NextResponse.json(
-                    { error: "Cannot delete SuperAdmin account via this API" },
+                    { error: "Cannot delete SuperAdmin accounts. Please deselect them." },
                     { status: 403 }
                 );
             }
 
-            // Perform destructive deletion in transaction
+            // Fetch users to get Supabase IDs for later deletion
+            const usersToDelete = await prisma.userAccount.findMany({
+                where: { userId: { in: userIds } },
+                select: { userId: true, supabaseUserId: true }
+            });
+
+            if (usersToDelete.length === 0) {
+                return NextResponse.json({ message: "No matching users found." }, { status: 200 });
+            }
+
+            // Perform destructive deletion in single transaction for all users
             await prisma.$transaction(async (tx) => {
-                // 1. Unlink requests handled by this user (if they were an admin)
+                // 1. Unlink requests handled by these users (if they were admins)
                 await tx.userRequest.updateMany({
-                    where: { adminId: userId },
+                    where: { adminId: { in: userIds } },
                     data: { adminId: null },
                 });
 
                 // 2. Delete DeviceTokens
                 await tx.deviceToken.deleteMany({
-                    where: { userId },
+                    where: { userId: { in: userIds } },
                 });
 
                 // 3. Delete UserRelationships (Owner or Viewer)
                 await tx.userRelationship.deleteMany({
                     where: {
-                        OR: [{ ownerUserId: userId }, { viewerUserId: userId }],
+                        OR: [{ ownerUserId: { in: userIds } }, { viewerUserId: { in: userIds } }],
                     },
                 });
 
-                // 4. Delete UserRequests created by this user
+                // 4. Delete UserRequests created by these users
                 await tx.userRequest.deleteMany({
-                    where: { userId },
+                    where: { userId: { in: userIds } },
                 });
 
-                // 5. Get all Profile IDs for this user
+                // 5. Get all Profile IDs for these users
                 const profiles = await tx.userProfile.findMany({
-                    where: { userId },
+                    where: { userId: { in: userIds } },
                     select: { profileId: true },
                 });
                 const profileIds = profiles.map((p) => p.profileId);
@@ -87,7 +92,7 @@ export async function DELETE(
                         where: { profileId: { in: profileIds } },
                     });
 
-                    // 7. Get MedicineList IDs linked to these profiles to find Regimens
+                    // 7. Get MedicineList IDs linked to these profiles
                     const medicineLists = await tx.medicineList.findMany({
                         where: { profileId: { in: profileIds } },
                         select: { mediListId: true },
@@ -95,8 +100,8 @@ export async function DELETE(
                     const mediListIds = medicineLists.map((ml) => ml.mediListId);
 
                     if (mediListIds.length > 0) {
-                        // 8. Delete RegimenTimes linked to Regimens linked to MedicineLists
-                        // First find regimenIds
+                        // 8. Delete Regimen Time
+                        // Get regimenIds first
                         const regimens = await tx.userMedicineRegimen.findMany({
                             where: { mediListId: { in: mediListIds } },
                             select: { mediRegimenId: true },
@@ -122,37 +127,36 @@ export async function DELETE(
 
                     // 11. Delete UserProfile
                     await tx.userProfile.deleteMany({
-                        where: { userId },
+                        where: { profileId: { in: profileIds } },
                     });
                 }
 
                 // 12. Finally, delete UserAccount
-                await tx.userAccount.delete({
-                    where: { userId },
+                await tx.userAccount.deleteMany({
+                    where: { userId: { in: userIds } },
                 });
             });
 
-            // 13. Delete from Supabase if applicable
-            if (user.supabaseUserId) {
-                // We catch errors here so we don't fail the response if Supabase fails (since DB is already clean)
-                // or we can just log it. "deleteAdminAccount" throws 502. 
-                // Since this is a "strictly delete everything", maybe we should try best effort.
-                // However, the transaction committed, so DB data is GONE.
-                // We should attempt Supabase delete.
-                const { error } = await deleteSupabaseUser(user.supabaseUserId);
-                if (error) {
-                    console.error(`Failed to delete Supabase user ${user.supabaseUserId}:`, error);
-                    // We explicitly decide NOT to fail the request because the DB part is done.
-                    // Returning 200 with a warning in logs is better than 500 when the main job is done.
-                }
+            // 13. Delete from Supabase in parallel
+            // We do this after transaction success. If this fails, DB is already clean.
+            const supabaseDeletionPromises = usersToDelete
+                .filter((u) => u.supabaseUserId)
+                .map((u) => deleteSupabaseUser(u.supabaseUserId!)); // ! is safe because of filter
+
+            const results = await Promise.allSettled(supabaseDeletionPromises);
+
+            const failed = results.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error));
+
+            if (failed.length > 0) {
+                console.warn(`Some Supabase users could not be deleted involved in bulk delete.`, failed);
             }
 
             return NextResponse.json(
-                { message: "User and all associated data deleted successfully" },
+                { message: `Successfully deleted ${usersToDelete.length} users and associated data.` },
                 { status: 200 }
             );
         } catch (error) {
-            console.error("Error in DELETE /api/admin/v2/users/[userId]:", error);
+            console.error("Error in POST /api/admin/v2/users/delete:", error);
             return NextResponse.json(
                 { error: "Internal server error" },
                 { status: 500 }
