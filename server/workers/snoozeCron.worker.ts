@@ -2,6 +2,7 @@ import "dotenv/config";
 import { prisma } from "../db/client";
 import * as repo from "../medicationLog/medicationLog.repository";
 import { notificationQueue } from "../queue/client";
+import cron from "node-cron";
 
 const DEFAULT_INTERVAL_MS = 60 * 1000; // 1 minute
 const MAX_SNOOZE_COUNT = 3;
@@ -67,15 +68,12 @@ async function safeTick() {
     }
 }
 
-console.log(`[snooze-cron] started intervalMs=${INTERVAL_MS}`);
+console.log(`[snooze-cron] started intervalMs=${INTERVAL_MS} (using node-cron for :00 alignment)`);
 
-await safeTick();
-const interval = setInterval(safeTick, INTERVAL_MS);
-// Don't call interval.unref() - we want this process to stay alive
+cron.schedule("* * * * *", safeTick);
 
 async function shutdown(signal: string) {
     console.log(`[snooze-cron] shutting down (${signal})`);
-    clearInterval(interval);
     await prisma.$disconnect();
     process.exit(0);
 }

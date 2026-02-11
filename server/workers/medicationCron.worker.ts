@@ -5,6 +5,7 @@ import { prisma } from "../db/client";
 import { calculateNextOccurrence } from "../medicineRegimen/nextOccurrence";
 import { formatInTimeZone } from "date-fns-tz";
 import { notificationQueue } from "../queue/client";
+import cron from "node-cron";
 
 const DEFAULT_INTERVAL_MS = 60 * 1000;
 const DEFAULT_LOOKAHEAD_MS = 60 * 1000;
@@ -172,16 +173,13 @@ async function safeTick() {
 }
 
 console.log(
-  `[medication-cron] started intervalMs=${INTERVAL_MS} lookaheadMs=${LOOKAHEAD_MS}`,
+  `[medication-cron] started intervalMs=${INTERVAL_MS} lookaheadMs=${LOOKAHEAD_MS} (using node-cron for :00 alignment)`,
 );
 
-await safeTick();
-const interval = setInterval(safeTick, INTERVAL_MS);
-interval.unref();
+cron.schedule("* * * * *", safeTick);
 
 async function shutdown(signal: string) {
   console.log(`[medication-cron] shutting down (${signal})`);
-  clearInterval(interval);
   await prisma.$disconnect();
   process.exit(0);
 }
