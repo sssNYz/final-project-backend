@@ -42,7 +42,7 @@
   },
   "paths": {
     "/api/admin/v2/users/delete": {
-      "post": {
+      "delete": {
         "tags": [
           "Admin - Users"
         ],

@@ -10,7 +10,7 @@ const BulkDeleteUserV2Schema = z.object({
     confirm: z.literal("CONFIRM"),
 });
 
-export async function POST(request: NextRequest) {
+export async function DELETE(request: NextRequest) {
     return withRole(request, "Admin", async () => {
         try {
             const body = await request.json();

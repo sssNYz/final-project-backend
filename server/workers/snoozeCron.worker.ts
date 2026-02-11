@@ -1,10 +1,9 @@
 import "dotenv/config";
 import { prisma } from "../db/client";
-import { sendFcmMulticast } from "../push/fcm";
 import * as repo from "../medicationLog/medicationLog.repository";
+import { notificationQueue } from "../queue/client";
 
 const DEFAULT_INTERVAL_MS = 60 * 1000; // 1 minute
-const SNOOZE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_SNOOZE_COUNT = 3;
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
@@ -20,98 +19,26 @@ const INTERVAL_MS = parsePositiveInt(
 
 async function processSnoozeLog(log: Awaited<ReturnType<typeof repo.findLogsForSnoozeReminder>>[0]) {
     const snoozedCount = log.snoozedCount ?? 0;
-    const userId = log.profile.userId;
-    const profileId = log.profileId;
-    const logId = log.logId;
 
-    // Get medicine name for notification
-    const medicineName =
-        log.medicineList?.mediNickname ||
-        log.medicineList?.medicine?.mediEnName ||
-        log.medicineList?.medicine?.mediThName ||
-        "your medicine";
-
-    // Load device tokens
-    const deviceTokens = await prisma.deviceToken.findMany({
-        where: { userId, revokedAt: null },
-        select: { deviceTokenId: true, token: true },
-    });
-
-    const tokens = deviceTokens.map((row) => row.token).filter(Boolean);
-
-    if (tokens.length === 0) {
-        console.log(`[snooze-cron] No device tokens for user ${userId}, skipping log ${logId}`);
-        // Clear nextSnoozeAt since we can't notify
-        await repo.updateLogAfterSnoozeReminder(logId, {
-            nextSnoozeAt: null,
-            pushSentAt: new Date(),
-        });
+    // Check Max Snooze limit
+    if (snoozedCount >= MAX_SNOOZE_COUNT) {
+        await repo.markLogAsAutoSkipped(log.logId);
+        console.log(`[snooze-cron] Auto-skipped log ${log.logId} after ${MAX_SNOOZE_COUNT} snoozes`);
         return;
     }
 
-    try {
-        const payload = {
-            tokens,
-            notification: {
-                title: `Reminder (${snoozedCount}/${MAX_SNOOZE_COUNT})`,
-                body: `Time to take ${medicineName}. You snoozed this earlier.`,
-            },
-            data: {
-                type: "SNOOZE_REMINDER",
-                logId: String(logId),
-                profileId: String(profileId),
-                mediListId: String(log.medicineList?.mediListId ?? ""),
-                scheduleTime: log.scheduleTime.toISOString(),
-                snoozedCount: String(snoozedCount),
-                isSnoozeReminder: "true",
-            },
-        };
+    // Clear nextSnoozeAt so we don't pick it up again immediately.
+    // We assume the worker will successfully send the notification.
+    await repo.updateLogAfterSnoozeReminder(log.logId, {
+        nextSnoozeAt: null,
+        pushSentAt: new Date(),
+    });
 
-        console.log("[snooze-cron] Sending payload:", JSON.stringify(payload.data, null, 2));
-
-        const response = await sendFcmMulticast(payload);
-
-        // Handle revoked tokens
-        const revokedCodes = new Set([
-            "messaging/registration-token-not-registered",
-            "messaging/invalid-registration-token",
-        ]);
-
-        const revokeIds: number[] = [];
-        response.responses.forEach((result, idx) => {
-            if (result.success) return;
-            const code = (result.error as { code?: string } | undefined)?.code;
-            if (code && revokedCodes.has(code)) {
-                revokeIds.push(deviceTokens[idx]!.deviceTokenId);
-            }
-        });
-
-        if (revokeIds.length > 0) {
-            await prisma.deviceToken.updateMany({
-                where: { deviceTokenId: { in: revokeIds } },
-                data: { revokedAt: new Date() },
-            });
-        }
-
-        if (response.successCount > 0) {
-            console.log(`[snooze-cron] Sent snooze reminder ${snoozedCount}/${MAX_SNOOZE_COUNT} for log ${logId}`);
-
-            // Check if this was the last snooze reminder
-            if (snoozedCount >= MAX_SNOOZE_COUNT) {
-                // Auto-skip after max snoozes
-                await repo.markLogAsAutoSkipped(logId);
-                console.log(`[snooze-cron] Auto-skipped log ${logId} after ${MAX_SNOOZE_COUNT} snoozes`);
-            } else {
-                // Clear nextSnoozeAt - user needs to press snooze again to schedule next reminder
-                await repo.updateLogAfterSnoozeReminder(logId, {
-                    nextSnoozeAt: null,
-                    pushSentAt: new Date(),
-                });
-            }
-        }
-    } catch (error) {
-        console.error("[snooze-cron] FCM send failed", logId, error);
-    }
+    // Enqueue the job for reliable sending
+    await notificationQueue.add("send-notification", {
+        logId: log.logId,
+        isSnooze: true
+    });
 }
 
 async function tick() {
@@ -119,21 +46,14 @@ async function tick() {
 
     if (dueSnoozes.length === 0) return;
 
-    console.log(`[snooze-cron] processing ${dueSnoozes.length} snooze reminders`);
+    console.log(`[snooze-cron] Processing ${dueSnoozes.length} snoozes -> Queue`);
 
     const results = await Promise.allSettled(
         dueSnoozes.map((log) => processSnoozeLog(log))
     );
 
-    results.forEach((result, idx) => {
-        if (result.status === "rejected") {
-            console.error(
-                "[snooze-cron] failed to process snooze",
-                dueSnoozes[idx].logId,
-                result.reason
-            );
-        }
-    });
+    const successCount = results.filter(r => r.status === "fulfilled").length;
+    console.log(`[snooze-cron] Enqueued ${successCount} snoozes.`);
 }
 
 let running = false;
@@ -162,4 +82,3 @@ async function shutdown(signal: string) {
 
 process.on("SIGINT", () => void shutdown("SIGINT"));
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
-
