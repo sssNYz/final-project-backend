@@ -9,6 +9,7 @@ import {
   listMedicineListByProfileId,
   updateMedicineListRow,
   deleteMedicineListRow,
+  deleteMedicineListCascade,
   saveMedicineListPicture,
   deleteMedicineListPictureFile,
 } from "./medicineList.repository";
@@ -229,4 +230,42 @@ export async function deleteMedicineListItem(params: { userId: number; mediListI
 
 
 
+export async function deleteMedicineListV2(params: {
+  userId: number;
+  mediListId: number;
+  confirmation: string;
+}) {
+  const { userId, mediListId, confirmation } = params;
 
+  if (confirmation !== "CONFIRM") {
+    throw new ServiceError(400, {
+      error: "Invalid confirmation string. Expected 'CONFIRM'.",
+    });
+  }
+
+  // 1) Find item
+  const existing = await findMedicineListById(mediListId);
+  if (!existing) {
+    throw new ServiceError(404, { error: "Medicine list item not found" });
+  }
+
+  // 2) Check profile belongs to user
+  const profile = await findProfileByIdAndUserId(existing.profileId, userId);
+  if (!profile) {
+    throw new ServiceError(403, { error: "Not allowed to delete this item" });
+  }
+
+  // 3) Delete picture file (best-effort)
+  // We do this BEFORE DB delete in case DB fails? No, usually after or parallel. 
+  // But inside transaction is hard for file system. 
+  // We'll trust the DB transaction succeeds mostly. 
+  // If we delete file first and DB fails, we lost the file but still have the record.
+  // If we delete DB first and file fails, we have orphaned file.
+  // Let's delete file first, similar to V1.
+  await deleteMedicineListPictureFile(existing.pictureOption);
+
+  // 4) Cascading delete in DB
+  await deleteMedicineListCascade(mediListId);
+
+  return { message: "Medicine list item and related data deleted successfully" };
+}

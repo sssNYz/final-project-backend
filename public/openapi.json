@@ -4554,6 +4554,85 @@
         }
       }
     },
+    "/api/mobile/v2/medicine-list/delete": {
+      "delete": {
+        "tags": [
+          "Mobile - MedicineList"
+        ],
+        "summary": "Delete medicine list item (V2) with confirmation",
+        "description": "Delete a medicine list item by ID with cascading delete. Removes logs and regimens associated with this item. Requires explicit confirmation string 'CONFIRM'.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": {
+                    "type": "integer"
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "example": "CONFIRM"
+                  }
+                },
+                "required": [
+                  "mediListId",
+                  "confirmation"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineListDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (Missing confirmation or invalid string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine list item not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mobile/v1/medicine-regimen/create": {
       "post": {
         "tags": [
