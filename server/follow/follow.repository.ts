@@ -340,3 +340,45 @@ export async function deleteOldPicture(picturePath: string | null | undefined) {
         // File might not exist, ignore silently
     }
 }
+
+// ---------- Cleanup Operations ----------
+
+export async function removeProfileFromAllRelationships(profileId: number) {
+    // 1. Find all relationships that *might* contain this profileId.
+    // Using array_contains if supported by Prisma+MySQL, or fallback to fetching potential matches.
+    // Since we want to be safe and `profileIds` is a JSON array of numbers:
+
+    // We'll fetch all relationships where profileIds is not null, then filter and update in memory loop.
+    // This is safer than relying on JSON syntax nuances across Prisma versions without running tests.
+    // Also, usually the number of relationships referencing a single profile is small (just followers).
+
+    // Optimisation: We can try to filter by string containment of the ID to reduce set size.
+    // e.g. contains `"${profileId}"` or just `${profileId}`.
+    // But basic "findMany" is safest.
+
+    const allRelationships = await prisma.userRelationship.findMany({
+        where: {
+            status: { in: ["APPROVED", "PENDING"] },
+            // We'll filter profileIds in memory since strictly typed Prisma JSON filtering can be tricky with nulls
+        },
+    });
+
+    const updates = [];
+
+    for (const rel of allRelationships) {
+        const ids = rel.profileIds as number[] | null;
+        if (Array.isArray(ids) && ids.includes(profileId)) {
+            const newIds = ids.filter((id) => id !== profileId);
+            updates.push(
+                prisma.userRelationship.update({
+                    where: { relationshipId: rel.relationshipId },
+                    data: { profileIds: newIds },
+                })
+            );
+        }
+    }
+
+    if (updates.length > 0) {
+        await prisma.$transaction(updates);
+    }
+}

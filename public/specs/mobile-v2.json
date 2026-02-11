@@ -15,6 +15,10 @@
     {
       "name": "Mobile - Follow V2",
       "description": "Mobile - Follow V2"
+    },
+    {
+      "name": "Mobile - Users",
+      "description": "Mobile user profile operations"
     }
   ],
   "components": {
@@ -37,10 +41,100 @@
             "type": "string"
           }
         }
+      },
+      "DeleteProfileResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
       }
     }
   },
   "paths": {
+    "/api/mobile/v2/profile/delete": {
+      "delete": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Delete a profile (V2) with confirmation",
+        "description": "Delete a profile by ID with cascading delete. Requires explicit confirmation string 'CONFIRM' in body. Removes profile from all relationships and deletes all related data.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": {
+                    "type": "integer"
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "example": "CONFIRM"
+                  }
+                },
+                "required": [
+                  "profileId",
+                  "confirmation"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (Missing confirmation or invalid string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mobile/v2/follow/list-following": {
       "get": {
         "tags": [

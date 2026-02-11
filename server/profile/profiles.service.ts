@@ -1,69 +1,72 @@
 import { ServiceError } from "../common/errors";
-import { 
-    createUserProfile, 
-    listProfilesByUserId, 
-    saveProfilePicture,
-    findProfileByIdAndUserId, 
-    updateUserProfile, 
-    deleteUserProfile,
-    deleteProfilePictureFile } from "./profile.repository";
+import {
+  createUserProfile,
+  listProfilesByUserId,
+  saveProfilePicture,
+  findProfileByIdAndUserId,
+  updateUserProfile,
+  deleteUserProfile,
+  deleteProfilePictureFile,
+  deleteUserProfileCascade
+} from "./profile.repository";
+import { removeProfileFromAllRelationships } from "../follow/follow.repository";
 
 function toStringOrNull(value: unknown): string | null {
-    if (typeof value !== "string") return null;
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 export async function createProfileForUser(params: {
-    userId: number;
-    profileName: string;
-    profilePictureFile?: { buffer: Buffer; originalFilename: string } | null;
-    profilePictureUrl?: string | null;
+  userId: number;
+  profileName: string;
+  profilePictureFile?: { buffer: Buffer; originalFilename: string } | null;
+  profilePictureUrl?: string | null;
 }) {
-    const { userId, profileName, profilePictureFile, profilePictureUrl } = params;
+  const { userId, profileName, profilePictureFile, profilePictureUrl } = params;
 
-    let finalPictureUrl: string | null = null;
+  let finalPictureUrl: string | null = null;
 
-    if (profilePictureFile) {
-        const fileExtension = profilePictureFile.originalFilename.split(".").pop()?.toLowerCase();
-        const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
+  if (profilePictureFile) {
+    const fileExtension = profilePictureFile.originalFilename.split(".").pop()?.toLowerCase();
+    const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
 
-        if (!isValidImage) {
-            throw new ServiceError(400, {
-                error: "Only image files are allowed (jpg, jpeg, png, webp)",
-            });
-        }
-
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (profilePictureFile.buffer.length > maxSize) {
-            throw new ServiceError(400, {
-                error: "File size must be less than 5MB",
-            });
-        }
-
-        finalPictureUrl = await saveProfilePicture(profilePictureFile, userId);
-    } else if (profilePictureUrl) {
-        finalPictureUrl = toStringOrNull(profilePictureUrl);
+    if (!isValidImage) {
+      throw new ServiceError(400, {
+        error: "Only image files are allowed (jpg, jpeg, png, webp)",
+      });
     }
 
-    const profile = await createUserProfile({
-        userId,
-        profileName,
-        profilePicture: finalPictureUrl,
-    });
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (profilePictureFile.buffer.length > maxSize) {
+      throw new ServiceError(400, {
+        error: "File size must be less than 5MB",
+      });
+    }
 
-    return {
-        profileId: profile.profileId,
-        profileName: profile.profileName,
-        profilePicture: profile.profilePicture,
-    };
+    finalPictureUrl = await saveProfilePicture(profilePictureFile, userId);
+  } else if (profilePictureUrl) {
+    finalPictureUrl = toStringOrNull(profilePictureUrl);
+  }
+
+  const profile = await createUserProfile({
+    userId,
+    profileName,
+    profilePicture: finalPictureUrl,
+  });
+
+  return {
+    profileId: profile.profileId,
+    profileName: profile.profileName,
+    profilePicture: profile.profilePicture,
+  };
 }
 
 export async function listProfilesForUser(userId: number) {
-    const profiles = await listProfilesByUserId(userId);
-    return {
-        profiles,
-    };
+  const profiles = await listProfilesByUserId(userId);
+  return {
+    profiles,
+  };
 }
 
 // Update one profile (only if it belongs to this user)
@@ -139,24 +142,61 @@ export async function updateProfileForUser(params: {
 
 // Delete one profile (only if it belongs to this user)
 export async function deleteProfileForUser(params: {
-    userId: number;
-    profileId: number;
-  }) {
-    const { userId, profileId } = params;
-  
-    // 1) make sure profile exists and belongs to this user
-    const existing = await findProfileByIdAndUserId(profileId, userId);
-    if (!existing) {
-      throw new ServiceError(404, { error: "Profile not found" });
-    }
-  
-    // 2) delete picture file from disk
-    await deleteProfilePictureFile(existing.profilePicture);
-    
-    // 3) delete in DB
-    await deleteUserProfile(profileId);
-  
-    return {
-      message: "Profile deleted",
-    };
+  userId: number;
+  profileId: number;
+}) {
+  const { userId, profileId } = params;
+
+  // 1) make sure profile exists and belongs to this user
+  const existing = await findProfileByIdAndUserId(profileId, userId);
+  if (!existing) {
+    throw new ServiceError(404, { error: "Profile not found" });
   }
+
+  // 2) delete picture file from disk
+  await deleteProfilePictureFile(existing.profilePicture);
+
+  // 3) delete in DB
+  await deleteUserProfile(profileId);
+
+  return {
+    message: "Profile deleted",
+  };
+}
+
+// V2 Delete: Cascading delete with confirmation
+export async function deleteProfileForUserV2(params: {
+  userId: number;
+  profileId: number;
+  confirmation: string;
+}) {
+  const { userId, profileId, confirmation } = params;
+
+  // 1. Verify confirmation string
+  if (confirmation !== "CONFIRM") {
+    throw new ServiceError(400, {
+      error: 'Confirmation string must be exactly "CONFIRM"',
+    });
+  }
+
+  // 2. Check existence and ownership
+  const existing = await findProfileByIdAndUserId(profileId, userId);
+  if (!existing) {
+    throw new ServiceError(404, { error: "Profile not found" });
+  }
+
+  // 3. Remove from all relationships (followers)
+  await removeProfileFromAllRelationships(profileId);
+
+  // 4. Delete profile picture file from disk
+  if (existing.profilePicture) {
+    await deleteProfilePictureFile(existing.profilePicture);
+  }
+
+  // 5. Cascading delete in DB
+  await deleteUserProfileCascade(profileId);
+
+  return {
+    message: "Profile and all related data deleted successfully",
+  };
+}
