@@ -52,3 +52,9 @@ export async function deleteUserAccount(
     where,
   });
 }
+
+export async function findUserByUserId(userId: number) {
+  return prisma.userAccount.findUnique({
+    where: { userId },
+  });
+}

@@ -23,6 +23,7 @@ services:
 
   caddy:
     image: caddy:latest
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     container_name: final_project_caddy
     restart: unless-stopped
     network_mode: "host"  # Use host network to access localhost:3000 (ports 80/443 automatically available)

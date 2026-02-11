@@ -117,6 +117,40 @@ export async function deleteMedicineListRow(mediListId: number) {
   });
 }
 
+export async function deleteMedicineListCascade(mediListId: number) {
+  return prisma.$transaction(async (tx) => {
+    // 1. Delete MedicationLogs related to this medicine list item
+    await tx.medicationLog.deleteMany({
+      where: { mediListId },
+    });
+
+    // 2. Find all regimens for this medicine list item
+    const regimens = await tx.userMedicineRegimen.findMany({
+      where: { mediListId },
+      select: { mediRegimenId: true },
+    });
+
+    const regimenIds = regimens.map((r) => r.mediRegimenId);
+
+    if (regimenIds.length > 0) {
+      // 3. Delete all regimen times
+      await tx.userMedicineRegimenTime.deleteMany({
+        where: { mediRegimenId: { in: regimenIds } },
+      });
+
+      // 4. Delete the regimens themselves
+      await tx.userMedicineRegimen.deleteMany({
+        where: { mediRegimenId: { in: regimenIds } },
+      });
+    }
+
+    // 5. Finally, delete the MedicineList item
+    return tx.medicineList.delete({
+      where: { mediListId },
+    });
+  });
+}
+
 // ---------- File IO helpers ----------
 
 /**

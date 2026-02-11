@@ -1,0 +1,4795 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "📱 Mobile API v1",
+    "version": "0.1.0",
+    "description": "Mobile client endpoints (v1)."
+  },
+  "servers": [
+    {
+      "url": "https://medi-buddy.duckdns.org",
+      "description": "Production Server (HTTPS)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Mobile - Auth",
+      "description": "Mobile authentication and account sync"
+    },
+    {
+      "name": "Mobile - Follow",
+      "description": "Sender/Follower system for sharing medication profiles with family/caregivers"
+    },
+    {
+      "name": "Mobile - MedicationLog",
+      "description": "Mobile medication log (history, response handling)"
+    },
+    {
+      "name": "Mobile - Medicine",
+      "description": "Mobile medicine database search and detail"
+    },
+    {
+      "name": "Mobile - MedicineList",
+      "description": "Mobile user medicine list (per profile)"
+    },
+    {
+      "name": "Mobile - MedicineRegimen",
+      "description": "Mobile user medicine regimen schedules"
+    },
+    {
+      "name": "Mobile - UserRequest",
+      "description": "Mobile user request (submit feedback, problems, etc.)"
+    },
+    {
+      "name": "Mobile - Users",
+      "description": "Mobile user profile operations"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token"
+      }
+    },
+    "schemas": {
+      "CreateUserRequestResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/UserRequestItem"
+          }
+        },
+        "required": [
+          "message",
+          "request"
+        ]
+      },
+      "UserRequestItem": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "requestType": {
+            "$ref": "#/components/schemas/RequestType"
+          },
+          "requestTitle": {
+            "type": "string"
+          },
+          "requestDetails": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RequestStatus"
+          },
+          "adminId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "picture": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "integer"
+              },
+              "email": {
+                "type": "string"
+              }
+            }
+          },
+          "admin": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "userId": {
+                "type": "integer"
+              },
+              "email": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "requestId",
+          "userId",
+          "requestType",
+          "requestTitle",
+          "requestDetails",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "RequestStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "REJECTED",
+          "DONE"
+        ]
+      },
+      "RequestType": {
+        "type": "string",
+        "enum": [
+          "PROBLEM",
+          "ADD_MEDICINE",
+          "NOTIFICATION",
+          "FUNCTION",
+          "OTHER"
+        ]
+      },
+      "MedicationLogResponseResult": {
+        "type": "object",
+        "properties": {
+          "log": {
+            "$ref": "#/components/schemas/MedicationLogItem"
+          },
+          "message": {
+            "type": "string"
+          },
+          "wasAutoSkipped": {
+            "type": "boolean",
+            "description": "True if max snooze count was reached and status was auto-set to SKIP"
+          },
+          "nextReminderAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the next snooze reminder will be sent (if snoozed)"
+          },
+          "snoozedCount": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Current snooze count (if snoozed)"
+          }
+        },
+        "required": [
+          "log",
+          "message"
+        ]
+      },
+      "MedicationLogItem": {
+        "type": "object",
+        "properties": {
+          "logId": {
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "integer"
+          },
+          "mediListId": {
+            "type": "integer"
+          },
+          "scheduleTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isReceived": {
+            "type": "boolean"
+          },
+          "pushSentAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "responseStatus": {
+            "$ref": "#/components/schemas/ResponseStatus",
+            "nullable": true
+          },
+          "responseAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "snoozedCount": {
+            "type": "integer",
+            "nullable": true
+          },
+          "nextSnoozeAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "medicineList": {
+            "$ref": "#/components/schemas/MedicineListItem",
+            "nullable": true
+          }
+        },
+        "required": [
+          "logId",
+          "profileId",
+          "mediListId",
+          "scheduleTime",
+          "isReceived"
+        ]
+      },
+      "MedicineListItem": {
+        "type": "object",
+        "properties": {
+          "mediListId": {
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "integer"
+          },
+          "mediId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Optional: can be null if not linked to medicine database"
+          },
+          "mediNickname": {
+            "type": "string",
+            "nullable": true
+          },
+          "pictureOption": {
+            "type": "string",
+            "nullable": true
+          },
+          "medicine": {
+            "$ref": "#/components/schemas/MedicineListMedicineInfo",
+            "nullable": true
+          }
+        },
+        "required": [
+          "mediListId",
+          "profileId"
+        ]
+      },
+      "MedicineListMedicineInfo": {
+        "type": "object",
+        "properties": {
+          "mediId": {
+            "type": "integer"
+          },
+          "mediThName": {
+            "type": "string"
+          },
+          "mediEnName": {
+            "type": "string"
+          },
+          "mediTradeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediType": {
+            "$ref": "#/components/schemas/MedicineType"
+          },
+          "mediPicture": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "mediId",
+          "mediThName",
+          "mediEnName",
+          "mediType"
+        ]
+      },
+      "MedicineType": {
+        "type": "string",
+        "enum": [
+          "ORAL",
+          "TOPICAL"
+        ]
+      },
+      "ResponseStatus": {
+        "type": "string",
+        "enum": [
+          "TAKE",
+          "SKIP",
+          "SNOOZE"
+        ],
+        "description": "User response to medication reminder"
+      },
+      "MedicationLogResponseBody": {
+        "type": "object",
+        "properties": {
+          "logId": {
+            "type": "integer"
+          },
+          "responseStatus": {
+            "$ref": "#/components/schemas/ResponseStatus"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "logId",
+          "responseStatus"
+        ]
+      },
+      "MedicationLogDetailResponse": {
+        "type": "object",
+        "properties": {
+          "log": {
+            "$ref": "#/components/schemas/MedicationLogItem"
+          }
+        },
+        "required": [
+          "log"
+        ]
+      },
+      "MedicationLogListResponse": {
+        "type": "object",
+        "properties": {
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicationLogItem"
+            }
+          }
+        },
+        "required": [
+          "logs"
+        ]
+      },
+      "MedicineRegimenDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "MedicineRegimenUpdateRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/MedicineRegimenUpdateAnyRequest"
+          },
+          {
+            "$ref": "#/components/schemas/MedicineRegimenUpdateDailyRequest"
+          },
+          {
+            "$ref": "#/components/schemas/MedicineRegimenUpdateWeeklyRequest"
+          },
+          {
+            "$ref": "#/components/schemas/MedicineRegimenUpdateIntervalRequest"
+          },
+          {
+            "$ref": "#/components/schemas/MedicineRegimenUpdateCycleRequest"
+          }
+        ]
+      },
+      "MedicineRegimenUpdateCycleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "CYCLE"
+            ]
+          },
+          "cycleOnDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cycleBreakDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "mediRegimenId",
+          "scheduleType",
+          "cycleOnDays",
+          "cycleBreakDays"
+        ]
+      },
+      "MedicineRegimenUpdateIntervalRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "INTERVAL"
+            ]
+          },
+          "intervalDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "mediRegimenId",
+          "scheduleType",
+          "intervalDays"
+        ]
+      },
+      "MedicineRegimenUpdateWeeklyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY"
+            ]
+          },
+          "daysOfWeek": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayOfWeek"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "mediRegimenId",
+          "scheduleType",
+          "daysOfWeek"
+        ]
+      },
+      "DayOfWeek": {
+        "type": "string",
+        "enum": [
+          "SUN",
+          "MON",
+          "TUE",
+          "WED",
+          "THU",
+          "FRI",
+          "SAT"
+        ],
+        "description": "Day of week values (SUN=Sunday ... SAT=Saturday)"
+      },
+      "MedicineRegimenUpdateDailyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "DAILY"
+            ]
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Required when scheduleType is DAILY"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "mediRegimenId",
+          "scheduleType",
+          "endDate"
+        ]
+      },
+      "MedicineRegimenUpdateAnyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediRegimenId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "$ref": "#/components/schemas/ScheduleType"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Required when scheduleType is DAILY"
+          },
+          "daysOfWeek": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayOfWeek"
+            },
+            "nullable": true,
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Only for WEEKLY schedule. Must be null/omitted for other schedule types."
+          },
+          "intervalDays": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Only for INTERVAL schedule. Must be null/omitted for other schedule types."
+          },
+          "cycleOnDays": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Only for CYCLE schedule. Must be null/omitted for other schedule types."
+          },
+          "cycleBreakDays": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "description": "Only for CYCLE schedule. Must be null/omitted for other schedule types."
+          },
+          "times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenTimeInput"
+            },
+            "minItems": 1,
+            "description": "Optional. If provided, all existing times for this regimen will be replaced with the new times. TimeIds will be regenerated."
+          }
+        },
+        "required": [
+          "mediRegimenId"
+        ]
+      },
+      "MedicineRegimenTimeInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "time": {
+            "type": "string",
+            "description": "Time in HH:MM format (00:00-23:59)"
+          },
+          "dose": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "unit": {
+            "type": "string"
+          },
+          "mealRelation": {
+            "$ref": "#/components/schemas/MealRelation"
+          },
+          "mealOffsetMin": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "description": "Required when mealRelation is not NONE; must be null/omitted when mealRelation is NONE"
+          }
+        },
+        "required": [
+          "time",
+          "dose",
+          "unit",
+          "mealRelation"
+        ]
+      },
+      "MealRelation": {
+        "type": "string",
+        "enum": [
+          "BEFORE_MEAL",
+          "AFTER_MEAL",
+          "WITH_MEAL",
+          "NONE"
+        ]
+      },
+      "ScheduleType": {
+        "type": "string",
+        "enum": [
+          "DAILY",
+          "WEEKLY",
+          "INTERVAL",
+          "CYCLE"
+        ]
+      },
+      "MedicineRegimenListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "MedicineRegimenItem": {
+        "type": "object",
+        "properties": {
+          "mediRegimenId": {
+            "type": "integer"
+          },
+          "mediListId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "scheduleType": {
+            "$ref": "#/components/schemas/ScheduleType"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "nextOccurrenceAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "daysOfWeek": {
+            "type": "string",
+            "nullable": true
+          },
+          "intervalDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "cycleOnDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "cycleBreakDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "medicineList": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "mediListId": {
+                "type": "integer"
+              },
+              "mediNickname": {
+                "type": "string",
+                "nullable": true
+              },
+              "pictureOption": {
+                "type": "string",
+                "nullable": true
+              },
+              "medicine": {
+                "$ref": "#/components/schemas/MedicineListMedicineInfo"
+              }
+            }
+          },
+          "times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenTime"
+            }
+          }
+        },
+        "required": [
+          "mediRegimenId",
+          "scheduleType",
+          "startDate",
+          "times"
+        ]
+      },
+      "MedicineRegimenTime": {
+        "type": "object",
+        "properties": {
+          "timeId": {
+            "type": "integer"
+          },
+          "time": {
+            "type": "string",
+            "description": "Time in HH:MM format (e.g., '09:00')"
+          },
+          "dose": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "unit": {
+            "type": "string"
+          },
+          "mealRelation": {
+            "$ref": "#/components/schemas/MealRelation"
+          },
+          "mealOffsetMin": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Required when mealRelation is not NONE; must be null/omitted when mealRelation is NONE"
+          }
+        },
+        "required": [
+          "timeId",
+          "time",
+          "dose",
+          "unit",
+          "mealRelation"
+        ]
+      },
+      "MedicineRegimenCreateRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/MedicineRegimenCreateDailyRequest"
+          },
+          {
+            "$ref": "#/components/schemas/MedicineRegimenCreateWeeklyRequest"
+          },
+          {
+            "$ref": "#/components/schemas/MedicineRegimenCreateIntervalRequest"
+          },
+          {
+            "$ref": "#/components/schemas/MedicineRegimenCreateCycleRequest"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "scheduleType",
+          "mapping": {
+            "DAILY": "#/components/schemas/MedicineRegimenCreateDailyRequest",
+            "WEEKLY": "#/components/schemas/MedicineRegimenCreateWeeklyRequest",
+            "INTERVAL": "#/components/schemas/MedicineRegimenCreateIntervalRequest",
+            "CYCLE": "#/components/schemas/MedicineRegimenCreateCycleRequest"
+          }
+        }
+      },
+      "MedicineRegimenCreateCycleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "CYCLE"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cycleOnDays": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Required for CYCLE schedule."
+          },
+          "cycleBreakDays": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Required for CYCLE schedule."
+          },
+          "times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenTimeInput"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "mediListId",
+          "scheduleType",
+          "startDate",
+          "cycleOnDays",
+          "cycleBreakDays",
+          "times"
+        ]
+      },
+      "MedicineRegimenCreateIntervalRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "INTERVAL"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "intervalDays": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Required for INTERVAL schedule."
+          },
+          "times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenTimeInput"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "mediListId",
+          "scheduleType",
+          "startDate",
+          "intervalDays",
+          "times"
+        ]
+      },
+      "MedicineRegimenCreateWeeklyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "WEEKLY"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "daysOfWeek": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayOfWeek"
+            },
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Required for WEEKLY schedule."
+          },
+          "times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenTimeInput"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "mediListId",
+          "scheduleType",
+          "startDate",
+          "daysOfWeek",
+          "times"
+        ]
+      },
+      "MedicineRegimenCreateDailyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mediListId": {
+            "type": "integer"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": [
+              "DAILY"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Required for DAILY schedule"
+          },
+          "times": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRegimenTimeInput"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "mediListId",
+          "scheduleType",
+          "startDate",
+          "endDate",
+          "times"
+        ]
+      },
+      "MedicineListDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "MedicineListListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineListItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "MobileMedicineDetailResponse": {
+        "type": "object",
+        "properties": {
+          "medicine": {
+            "$ref": "#/components/schemas/MobileMedicineDetail"
+          }
+        },
+        "required": [
+          "medicine"
+        ]
+      },
+      "MobileMedicineDetail": {
+        "type": "object",
+        "properties": {
+          "mediId": {
+            "type": "integer"
+          },
+          "mediThName": {
+            "type": "string"
+          },
+          "mediEnName": {
+            "type": "string"
+          },
+          "mediTradeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediType": {
+            "$ref": "#/components/schemas/MedicineType"
+          },
+          "mediUse": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediGuide": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediEffects": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediNoUse": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediWarning": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediStore": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediPicture": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stored path like uploads/medicine_database/xxx.jpg"
+          }
+        },
+        "required": [
+          "mediId",
+          "mediThName",
+          "mediEnName",
+          "mediType"
+        ]
+      },
+      "MobileMedicineListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileMedicineListItem"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PagedMeta"
+          }
+        },
+        "required": [
+          "items",
+          "meta"
+        ]
+      },
+      "PagedMeta": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "MobileMedicineListItem": {
+        "type": "object",
+        "properties": {
+          "mediId": {
+            "type": "integer"
+          },
+          "mediPicture": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stored path like uploads/medicine_database/xxx.jpg"
+          },
+          "mediThName": {
+            "type": "string"
+          },
+          "mediEnName": {
+            "type": "string"
+          },
+          "mediTradeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediType": {
+            "$ref": "#/components/schemas/MedicineType"
+          }
+        },
+        "required": [
+          "mediId",
+          "mediThName",
+          "mediEnName",
+          "mediType"
+        ]
+      },
+      "DeleteProfileResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ListProfilesResponse": {
+        "type": "object",
+        "properties": {
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserProfile"
+            }
+          }
+        },
+        "required": [
+          "profiles"
+        ]
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "integer"
+          },
+          "profileName": {
+            "type": "string"
+          },
+          "profilePicture": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "profileId",
+          "profileName"
+        ]
+      },
+      "CreateProfileResponse": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "integer"
+          },
+          "profileName": {
+            "type": "string"
+          },
+          "profilePicture": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "profileId",
+          "profileName"
+        ]
+      },
+      "UpdateUserBody": {
+        "type": "object",
+        "properties": {
+          "tutorialDone": {
+            "type": "boolean",
+            "description": "Mark onboarding/tutorial as completed"
+          }
+        }
+      },
+      "CheckEmailResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "existing",
+              "new"
+            ]
+          }
+        }
+      },
+      "PublicUserAccount": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "supabaseUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "email",
+              "google",
+              "email,google",
+              null
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "User",
+              "Admin",
+              "SuperAdmin"
+            ]
+          },
+          "tutorialDone": {
+            "type": "boolean"
+          },
+          "lastLogin": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "role",
+          "tutorialDone",
+          "createdAt"
+        ]
+      },
+      "SyncBody": {
+        "type": "object",
+        "properties": {
+          "supabaseUserId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Use 'email' or 'google'. If a user has both, the stored value will be 'email,google'. Legacy input 'both' is still accepted.",
+            "enum": [
+              "email",
+              "google",
+              "email,google",
+              "both"
+            ]
+          },
+          "allowMerge": {
+            "type": "boolean",
+            "description": "Legacy flag (accepted but no longer required)"
+          }
+        },
+        "required": [
+          "supabaseUserId",
+          "email",
+          "provider"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "PublicUserAccountWithProfiles": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PublicUserAccount"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "profiles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "profileId": {
+                      "type": "integer"
+                    },
+                    "profileName": {
+                      "type": "string"
+                    },
+                    "profilePicture": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/api/mobile/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Mobile - Auth"
+        ],
+        "summary": "Get current user profile",
+        "description": "Return the authenticated user's profile (with profiles).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/PublicUserAccountWithProfiles"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found in DB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/sync-user": {
+      "get": {
+        "tags": [
+          "Mobile - Auth"
+        ],
+        "summary": "Docs for sync-user",
+        "description": "Returns usage information for POST /api/mobile/v1/auth/sync-user.",
+        "responses": {
+          "200": {
+            "description": "Usage info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Mobile - Auth"
+        ],
+        "summary": "Sync or create mobile user",
+        "description": "Create or update a user in Prisma after Supabase authentication. If the same email logs in with multiple providers, provider is stored as 'email,google'.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated or merged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/PublicUserAccount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/PublicUserAccount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token does not match provided user data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/check-email": {
+      "post": {
+        "tags": [
+          "Mobile - Auth"
+        ],
+        "summary": "Check email status",
+        "description": "Check if an email already exists before Google OAuth to decide on merge UI.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckEmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/device-token": {
+      "get": {
+        "tags": [
+          "Mobile - Auth"
+        ],
+        "summary": "Docs for device-token",
+        "description": "Returns usage information for POST /api/mobile/v1/auth/device-token.",
+        "responses": {
+          "200": {
+            "description": "Usage info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Mobile - Auth"
+        ],
+        "summary": "Save or update device FCM token",
+        "description": "Register a device FCM token for the current user. One user can have many tokens (phone, tablet, emulator). If the same token is sent again, it will be updated (no duplicate).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "FCM device token (required)"
+                  },
+                  "platform": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional: 'android', 'ios', or 'web'"
+                  },
+                  "deviceId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional: device identifier from app"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              },
+              "example": {
+                "token": "fcm_token_here...",
+                "platform": "android",
+                "deviceId": "my-device-123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token saved or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "deviceToken": {
+                      "type": "object",
+                      "properties": {
+                        "deviceTokenId": {
+                          "type": "integer"
+                        },
+                        "token": {
+                          "type": "string"
+                        },
+                        "platform": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "deviceId": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "lastSeenAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found (sync-user not called yet)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/users/update": {
+      "patch": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Update current user profile",
+        "description": "Update safe fields for the current authenticated user (currently only tutorialDone).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/PublicUserAccount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid fields to update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found in DB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Update current user profile (POST alternative)",
+        "description": "Same as PATCH, provided for clients that prefer POST.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/PublicUserAccount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid fields to update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found in DB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/profile/create": {
+      "post": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Create profile",
+        "description": "Create a user profile. Send either an image file (multipart) or a public image URL.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileName": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file (jpg, jpeg, png, webp)"
+                  },
+                  "profilePicture": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Public image URL (alternative to file)"
+                  }
+                },
+                "required": [
+                  "profileName"
+                ]
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "image/jpeg, image/png, image/webp"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Profile created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/profile/list": {
+      "get": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "List current user's profiles",
+        "description": "Returns all profiles for the authenticated user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profiles list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListProfilesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/profile/update": {
+      "patch": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Update a profile",
+        "description": "Update a profile's name or picture. Send either an image file (multipart) or a public image URL. At least one of profileName, file, profilePicture must be provided.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "profileName": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file (jpg, jpeg, png, webp)"
+                  },
+                  "profilePicture": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Public image URL (alternative to file)"
+                  }
+                },
+                "required": [
+                  "profileId"
+                ]
+              },
+              "encoding": {
+                "file": {
+                  "contentType": "image/jpeg, image/png, image/webp"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/profile/delete": {
+      "delete": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Delete a profile",
+        "description": "Delete a profile by ID. You can send profileId in query (?profileId=1). Backend also accepts JSON body or multipart/form-data.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "description": "Profile ID to delete",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                },
+                "required": [
+                  "profileId"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                },
+                "required": [
+                  "profileId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid profileId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine/list": {
+      "get": {
+        "tags": [
+          "Mobile - Medicine"
+        ],
+        "summary": "Search medicines for user",
+        "description": "Search medicine database by name (Thai, English, or Trade name). Returns basic info and picture path. User must be logged in.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by name (Thai, English, or Trade name)"
+          },
+          {
+            "name": "mediType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/MedicineType"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "A-Z",
+              "enum": [
+                "A-Z",
+                "Z-A",
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMedicineListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine/detail": {
+      "get": {
+        "tags": [
+          "Mobile - Medicine"
+        ],
+        "summary": "Get medicine detail by ID",
+        "description": "Get full medicine detail by mediId. User must be logged in.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mediId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMedicineDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/create": {
+      "post": {
+        "tags": [
+          "Mobile - MedicineList"
+        ],
+        "summary": "Add medicine to profile list",
+        "description": "Add a medicine to the user profile list. mediId is optional - user can create custom medicine entry without linking to MedicineDatabase and link later via update endpoint.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": {
+                    "type": "integer"
+                  },
+                  "mediId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Optional: ID from MedicineDatabase. Can be omitted for custom medicines."
+                  },
+                  "mediNickname": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "picture": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "profileId"
+                ]
+              },
+              "encoding": {
+                "picture": {
+                  "contentType": "image/jpeg, image/png, image/webp"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": {
+                    "type": "integer"
+                  },
+                  "mediId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Optional: ID from MedicineDatabase. Can be omitted for custom medicines."
+                  },
+                  "mediNickname": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "profileId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile or medicine not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Medicine already in this profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/list": {
+      "get": {
+        "tags": [
+          "Mobile - MedicineList"
+        ],
+        "summary": "List medicines for a profile",
+        "description": "List all medicine list items for a given profile.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Profile ID to list medicines for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineListListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "profileId required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found or not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/update": {
+      "patch": {
+        "tags": [
+          "Mobile - MedicineList"
+        ],
+        "summary": "Update medicine list item",
+        "description": "Update nickname, picture, or link/unlink medicine. Set mediId to link to MedicineDatabase, set to null to unlink.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": {
+                    "type": "integer"
+                  },
+                  "mediId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Medicine ID to link, or 'null' string to unlink"
+                  },
+                  "mediNickname": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "picture": {
+                    "type": "string",
+                    "format": "binary",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "mediListId"
+                ]
+              },
+              "encoding": {
+                "picture": {
+                  "contentType": "image/jpeg, image/png, image/webp"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": {
+                    "type": "integer"
+                  },
+                  "mediId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Medicine ID to link, or null to unlink"
+                  },
+                  "mediNickname": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "mediListId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineListItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to update this item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine list item or medicine not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Medicine already in this profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-list/delete": {
+      "delete": {
+        "tags": [
+          "Mobile - MedicineList"
+        ],
+        "summary": "Delete medicine list item",
+        "description": "Delete a medicine from the profile list. Also deletes the picture file if exists.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "mediListId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineListDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "mediListId required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to delete this item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine list item not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/create": {
+      "post": {
+        "tags": [
+          "Mobile - MedicineRegimen"
+        ],
+        "summary": "Create medicine regimen",
+        "description": "Create a new medicine regimen with schedule settings and multiple times. Schedule type determines which fields are required: DAILY requires endDate, WEEKLY requires daysOfWeek, INTERVAL requires intervalDays, CYCLE requires cycleOnDays and cycleBreakDays. Fields not applicable to the selected scheduleType are rejected. Each time must have mealOffsetMin when mealRelation is not NONE (and must be null/omitted when mealRelation is NONE).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MedicineRegimenCreateRequest"
+              },
+              "examples": {
+                "DAILY": {
+                  "summary": "DAILY (requires endDate)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "DAILY",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": "2026-12-31T00:00:00.000Z",
+                    "times": [
+                      {
+                        "time": "09:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "BEFORE_MEAL",
+                        "mealOffsetMin": 30
+                      }
+                    ]
+                  }
+                },
+                "WEEKLY": {
+                  "summary": "WEEKLY (pick daysOfWeek from dropdown)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "WEEKLY",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": null,
+                    "daysOfWeek": [
+                      "MON",
+                      "WED",
+                      "FRI"
+                    ],
+                    "times": [
+                      {
+                        "time": "09:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "NONE"
+                      }
+                    ]
+                  }
+                },
+                "INTERVAL": {
+                  "summary": "INTERVAL (every N days)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "INTERVAL",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": null,
+                    "intervalDays": 2,
+                    "times": [
+                      {
+                        "time": "09:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "WITH_MEAL",
+                        "mealOffsetMin": 0
+                      }
+                    ]
+                  }
+                },
+                "CYCLE": {
+                  "summary": "CYCLE (on/off pattern)",
+                  "value": {
+                    "mediListId": 123,
+                    "scheduleType": "CYCLE",
+                    "startDate": "2026-01-01T00:00:00.000Z",
+                    "endDate": null,
+                    "cycleOnDays": 7,
+                    "cycleBreakDays": 3,
+                    "times": [
+                      {
+                        "time": "09:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "AFTER_MEAL",
+                        "mealOffsetMin": 30
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRegimenItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to create regimen for this medicine list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine list not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/list": {
+      "get": {
+        "tags": [
+          "Mobile - MedicineRegimen"
+        ],
+        "summary": "List medicine regimens for a profile",
+        "description": "List all medicine regimens for a given profile, including their times.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Profile ID to list regimens for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRegimenListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "profileId required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found or not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/detail": {
+      "get": {
+        "tags": [
+          "Mobile - MedicineRegimen"
+        ],
+        "summary": "Get medicine regimen detail",
+        "description": "Get full details of a single medicine regimen, including all times. Use this to populate update forms.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mediRegimenId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Regimen ID to get details for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRegimenItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "mediRegimenId required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to view this regimen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine regimen not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/list/by-medicine": {
+      "get": {
+        "tags": [
+          "Mobile - MedicineRegimen"
+        ],
+        "summary": "List medicine regimens by medicine list ID",
+        "description": "List all medicine regimens for a specific medicine (medicine list), including their times. This allows viewing regimens associated with a particular medicine entry.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "medicineListId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Medicine list ID to filter regimens"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRegimenListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "medicineListId required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to view regimens for this medicine list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine list not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/update": {
+      "patch": {
+        "tags": [
+          "Mobile - MedicineRegimen"
+        ],
+        "summary": "Update medicine regimen",
+        "description": "Update regimen schedule fields and/or times. If times are provided, all existing times will be replaced with the new ones. If scheduleType is DAILY, endDate is required. Fields not applicable to the final scheduleType are rejected; the server also normalizes schedule fields to keep the regimen consistent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MedicineRegimenUpdateRequest"
+              },
+              "examples": {
+                "ChangeToWeekly": {
+                  "summary": "Change scheduleType to WEEKLY",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "WEEKLY",
+                    "daysOfWeek": [
+                      "MON",
+                      "WED",
+                      "FRI"
+                    ]
+                  }
+                },
+                "ChangeToInterval": {
+                  "summary": "Change scheduleType to INTERVAL",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "INTERVAL",
+                    "intervalDays": 2
+                  }
+                },
+                "ChangeToCycle": {
+                  "summary": "Change scheduleType to CYCLE",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "CYCLE",
+                    "cycleOnDays": 7,
+                    "cycleBreakDays": 3
+                  }
+                },
+                "SetDailyEndDate": {
+                  "summary": "DAILY requires endDate",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "scheduleType": "DAILY",
+                    "endDate": "2026-12-31T00:00:00.000Z"
+                  }
+                },
+                "UpdateTimes": {
+                  "summary": "Update medication times only",
+                  "value": {
+                    "mediRegimenId": 999,
+                    "times": [
+                      {
+                        "time": "09:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "BEFORE_MEAL",
+                        "mealOffsetMin": 30
+                      },
+                      {
+                        "time": "21:00",
+                        "dose": 1,
+                        "unit": "tablet",
+                        "mealRelation": "AFTER_MEAL",
+                        "mealOffsetMin": 15
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRegimenItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to update this regimen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine regimen not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medicine-regimen/delete": {
+      "delete": {
+        "tags": [
+          "Mobile - MedicineRegimen"
+        ],
+        "summary": "Delete medicine regimen",
+        "description": "Delete a medicine regimen. All associated times are automatically deleted.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mediRegimenId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Regimen ID to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRegimenDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "mediRegimenId required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to delete this regimen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine regimen not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medication-log/list": {
+      "get": {
+        "tags": [
+          "Mobile - MedicationLog"
+        ],
+        "summary": "List medication logs",
+        "description": "List medication logs for a profile with optional date filtering. Returns medication history with response status.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Profile ID to list logs for"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter logs from this date (ISO format)"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter logs until this date (ISO format)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "description": "Maximum number of logs to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Number of logs to skip (for pagination)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of medication logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationLogListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing profileId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied to profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medication-log/{logId}": {
+      "get": {
+        "tags": [
+          "Mobile - MedicationLog"
+        ],
+        "summary": "Get medication log detail",
+        "description": "Get details of a single medication log by ID.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "logId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Medication log ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medication log detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationLogDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Log not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medication-log/response": {
+      "post": {
+        "tags": [
+          "Mobile - MedicationLog"
+        ],
+        "summary": "Respond to medication reminder",
+        "description": "Handle user response to medication reminder. Supports TAKE, SKIP, and SNOOZE actions. Snooze will schedule a reminder in 5 minutes (max 3 times). After 3 snoozes, status is auto-set to SKIP.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MedicationLogResponseBody"
+              },
+              "examples": {
+                "take": {
+                  "summary": "Mark as taken",
+                  "value": {
+                    "logId": 123,
+                    "responseStatus": "TAKE"
+                  }
+                },
+                "skip": {
+                  "summary": "Skip medication",
+                  "value": {
+                    "logId": 123,
+                    "responseStatus": "SKIP",
+                    "note": "Feeling better, not needed"
+                  }
+                },
+                "snooze": {
+                  "summary": "Snooze for 5 minutes",
+                  "value": {
+                    "logId": 123,
+                    "responseStatus": "SNOOZE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationLogResponseResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Log not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/user-request/create": {
+      "post": {
+        "tags": [
+          "Mobile - UserRequest"
+        ],
+        "summary": "Create user request",
+        "description": "Submit a request (feedback, problem, help, improvement, add medicine). requestDetails is required except for ADD_MEDICINE type where it can be empty. Picture upload is optional.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestType": {
+                    "$ref": "#/components/schemas/RequestType"
+                  },
+                  "requestTitle": {
+                    "type": "string"
+                  },
+                  "requestDetails": {
+                    "type": "string",
+                    "description": "Required except for ADD_MEDICINE (can be empty)"
+                  },
+                  "picture": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Upload image file (jpg, png, webp). Optional."
+                  }
+                },
+                "required": [
+                  "requestType",
+                  "requestTitle"
+                ]
+              },
+              "encoding": {
+                "picture": {
+                  "contentType": "image/jpeg, image/png, image/webp"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestType": {
+                    "$ref": "#/components/schemas/RequestType"
+                  },
+                  "requestTitle": {
+                    "type": "string"
+                  },
+                  "requestDetails": {
+                    "type": "string",
+                    "description": "Required except for ADD_MEDICINE (can be empty)"
+                  }
+                },
+                "required": [
+                  "requestType",
+                  "requestTitle"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/search-user": {
+      "get": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Search user by email",
+        "description": "Search for users by partial email match (min 3 chars). Returns list of matching emails.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3
+            },
+            "description": "Partial email to search for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of matching emails",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (missing query or too short)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/invite": {
+      "post": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Send follow invite",
+        "description": "Send an invite to another user by email to allow them to view your medication profiles.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Email of the user to invite"
+                  },
+                  "profileIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Profile IDs to share. If empty, shares all profiles."
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the sender as seen by the follower"
+                  },
+                  "accountPicture": {
+                    "type": "string",
+                    "description": "Picture URL of the sender (optional)"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "accountPicture": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "profileIds": {
+                    "type": "string",
+                    "description": "JSON array of profile IDs, e.g. '[1, 2]'"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invite sent successfully"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Relationship already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/followers": {
+      "get": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Get my followers",
+        "description": "Get list of users who are following me (I am the sender/owner).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of followers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "followers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "relationshipId": {
+                            "type": "integer"
+                          },
+                          "viewerEmail": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Nickname for this follower"
+                          },
+                          "accountPicture": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Picture path for this follower"
+                          },
+                          "sharedProfiles": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "profileId": {
+                                  "type": "integer"
+                                },
+                                "profileName": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/followers/update": {
+      "patch": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Update follower (nickname, picture, profiles)",
+        "description": "Update a follower's nickname, profile picture, and/or shared profiles. All fields are optional. Use multipart/form-data to upload a picture file.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New nickname for this follower"
+                  },
+                  "profileIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "New list of profile IDs to share"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New nickname for this follower"
+                  },
+                  "accountPicture": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Profile picture file (jpg, jpeg, png, webp, max 5MB)"
+                  },
+                  "profileIds": {
+                    "type": "string",
+                    "description": "JSON array of profile IDs, e.g. '[1, 2]'"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Follower updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "relationship": {
+                      "type": "object",
+                      "properties": {
+                        "relationshipId": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "accountPicture": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "profileIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer"
+                          }
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (invalid file type or size)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/followers/remove": {
+      "delete": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Remove a follower",
+        "description": "Remove a follower (cancel the relationship).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Follower removed"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/invites": {
+      "get": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Get pending invites",
+        "description": "Get my pending invites (where I am the viewer/follower).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of pending invites"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/invites/accept": {
+      "post": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Accept an invite",
+        "description": "Accept an invite to follow someone.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite accepted"
+          },
+          "400": {
+            "description": "Invite already processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invite not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/invites/reject": {
+      "post": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Reject an invite",
+        "description": "Reject an invite from someone.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite rejected"
+          },
+          "400": {
+            "description": "Invite already processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invite not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/following": {
+      "get": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Get people I follow",
+        "description": "Get list of people I'm following (I am the viewer/follower).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of people I'm following"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/following/detail": {
+      "get": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Get following detail",
+        "description": "Get details of a specific following relationship including shared profiles.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relationship details with shared profiles"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/following/logs": {
+      "get": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Get medication logs for followed profile",
+        "description": "Get medication logs for a profile that is shared with you. This is the main endpoint for monitoring if someone took their medicine.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medication logs for the profile"
+          },
+          "400": {
+            "description": "Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Profile not shared with you / relationship not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/follow/following/remove": {
+      "delete": {
+        "tags": [
+          "Mobile - Follow"
+        ],
+        "summary": "Unfollow someone",
+        "description": "Stop following someone (unfollow).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unfollowed successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

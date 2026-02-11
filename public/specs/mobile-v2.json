@@ -1,0 +1,898 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "📱 Mobile API v2",
+    "version": "0.1.0",
+    "description": "Mobile client endpoints (v2). Newer versions of existing v1 endpoints with enhanced features."
+  },
+  "servers": [
+    {
+      "url": "https://medi-buddy.duckdns.org",
+      "description": "Production Server (HTTPS)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Mobile - Follow V2",
+      "description": "Mobile - Follow V2"
+    },
+    {
+      "name": "Mobile - MedicineList",
+      "description": "Mobile user medicine list (per profile)"
+    },
+    {
+      "name": "Mobile - Users",
+      "description": "Mobile user profile operations"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token"
+      }
+    },
+    "schemas": {
+      "MedicineListDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "DeleteProfileResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/api/mobile/v2/profile/delete": {
+      "delete": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Delete a profile (V2) with confirmation",
+        "description": "Delete a profile by ID with cascading delete. Requires explicit confirmation string 'CONFIRM' in body. Removes profile from all relationships and deletes all related data.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profileId": {
+                    "type": "integer"
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "example": "CONFIRM"
+                  }
+                },
+                "required": [
+                  "profileId",
+                  "confirmation"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (Missing confirmation or invalid string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/medicine-list/delete": {
+      "delete": {
+        "tags": [
+          "Mobile - MedicineList"
+        ],
+        "summary": "Delete medicine list item (V2) with confirmation",
+        "description": "Delete a medicine list item by ID with cascading delete. Removes logs and regimens associated with this item. Requires explicit confirmation string 'CONFIRM'.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediListId": {
+                    "type": "integer"
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "example": "CONFIRM"
+                  }
+                },
+                "required": [
+                  "mediListId",
+                  "confirmation"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineListDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (Missing confirmation or invalid string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine list item not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/follow/list-following": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "List people I follow (V2)",
+        "description": "Returns the list of people the authenticated user follows, showing ownerNickname and ownerPicture (customized by the follower).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of following relationships",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "following": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "relationshipId": {
+                            "type": "integer"
+                          },
+                          "ownerEmail": {
+                            "type": "string"
+                          },
+                          "ownerNickname": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Nickname for the owner, set by the follower"
+                          },
+                          "ownerPicture": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Picture path for the owner, set by the follower"
+                          },
+                          "sharedProfiles": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "profileId": {
+                                  "type": "integer"
+                                },
+                                "profileName": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/follow/following/detail": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "Get following detail (V2)",
+        "description": "Returns the detail of a specific following relationship, showing ownerNickname and ownerPicture.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Following detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "relationship": {
+                      "type": "object",
+                      "properties": {
+                        "relationshipId": {
+                          "type": "integer"
+                        },
+                        "ownerEmail": {
+                          "type": "string"
+                        },
+                        "ownerNickname": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "ownerPicture": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "profiles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "profileId": {
+                            "type": "integer"
+                          },
+                          "profileName": {
+                            "type": "string"
+                          },
+                          "profilePicture": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship is not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/follow/update-following": {
+      "patch": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "Update following (owner nickname/picture)",
+        "description": "Viewer (follower) updates the owner's nickname and/or picture. Supports multipart/form-data for file upload.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ownerNickname": {
+                    "type": "string",
+                    "description": "Nickname for the owner (set by follower)"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ownerNickname": {
+                    "type": "string",
+                    "description": "Nickname for the owner (set by follower)"
+                  },
+                  "ownerPicture": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Picture file for the owner (jpg, jpeg, png, webp, max 5MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Following updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "relationship": {
+                      "type": "object",
+                      "properties": {
+                        "relationshipId": {
+                          "type": "integer"
+                        },
+                        "ownerNickname": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "ownerPicture": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (invalid file type or size)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship is not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/follow/following/logs": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "Get medication logs for followed profile (V2)",
+        "description": "Returns medication logs with full medicine names (Thai, English, Trade) and note.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medication logs with full details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "logId": {
+                            "type": "integer"
+                          },
+                          "scheduleTime": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "medicineName": {
+                            "type": "string",
+                            "description": "Display name (nickname or fallback)"
+                          },
+                          "mediThName": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Thai medicine name"
+                          },
+                          "mediEnName": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "English medicine name"
+                          },
+                          "mediTradeName": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Trade/brand medicine name"
+                          },
+                          "dose": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "unit": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "responseStatus": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "responseAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "note": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Log note"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship not approved or profile not shared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/follow/following/list-regimen": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "List medicine regimens for followed profile",
+        "description": "Returns all medicine regimens for a shared profile. Use this to see what medicine someone you follow is taking, including schedule and dosage details.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of medicine regimens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "regimens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "mediRegimenId": {
+                            "type": "integer"
+                          },
+                          "mediListId": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "mediNickname": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "medicine": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "mediId": {
+                                "type": "integer"
+                              },
+                              "mediThName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediEnName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediTradeName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediType": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediPicture": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          },
+                          "scheduleType": {
+                            "type": "string"
+                          },
+                          "startDate": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endDate": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "daysOfWeek": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "intervalDays": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "cycleOnDays": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "cycleBreakDays": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "times": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "timeId": {
+                                  "type": "integer"
+                                },
+                                "timeOfDay": {
+                                  "type": "string"
+                                },
+                                "dose": {
+                                  "type": "integer"
+                                },
+                                "unit": {
+                                  "type": "string"
+                                },
+                                "mealRelation": {
+                                  "type": "string"
+                                },
+                                "mealOffsetMin": {
+                                  "type": "integer",
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship not approved or profile not shared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
