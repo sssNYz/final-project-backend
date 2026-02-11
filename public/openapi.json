@@ -6985,6 +6985,172 @@
           }
         }
       }
+    },
+    "/api/mobile/v2/follow/following/logs": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "Get medication logs for followed profile (V2)",
+        "description": "Returns medication logs with full medicine names (Thai, English, Trade) and note.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medication logs with full details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "logId": {
+                            "type": "integer"
+                          },
+                          "scheduleTime": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "medicineName": {
+                            "type": "string",
+                            "description": "Display name (nickname or fallback)"
+                          },
+                          "mediThName": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Thai medicine name"
+                          },
+                          "mediEnName": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "English medicine name"
+                          },
+                          "mediTradeName": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Trade/brand medicine name"
+                          },
+                          "dose": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "unit": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "responseStatus": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "responseAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "note": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Log note"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship not approved or profile not shared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

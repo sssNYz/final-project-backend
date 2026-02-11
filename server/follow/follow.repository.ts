@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db/client";
 import { RelationshipStatus } from "@prisma/client";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 
 // ---------- User Lookup ----------
@@ -249,6 +249,7 @@ export async function findMedicationLogsByProfileId(
                         select: {
                             mediThName: true,
                             mediEnName: true,
+                            mediTradeName: true,
                         },
                     },
                 },
@@ -293,4 +294,17 @@ export async function updateRelationshipOwnerPicture(relationshipId: number, pic
         where: { relationshipId },
         data: { ownerPicture: pictureUrl },
     });
+}
+
+export async function deleteOldPicture(picturePath: string | null | undefined) {
+    if (!picturePath) return;
+    // Only delete files in our uploads directory
+    if (!picturePath.startsWith("/uploads/user-relationship-picture/")) return;
+
+    try {
+        const fullPath = join(process.cwd(), "public", picturePath);
+        await unlink(fullPath);
+    } catch {
+        // File might not exist, ignore silently
+    }
 }

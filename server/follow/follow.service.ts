@@ -194,6 +194,8 @@ export async function updateFollower(params: {
                 relationshipId,
                 viewerNickname || relationship.viewerNickname || undefined
             );
+            // Delete old picture to free storage
+            await repo.deleteOldPicture(relationship.viewerPicture);
         } catch (error) {
             console.error("Failed to save relationship picture:", error);
         }
@@ -554,6 +556,8 @@ export async function updateFollowing(params: {
                 relationshipId,
                 ownerNickname || relationship.ownerNickname || undefined
             );
+            // Delete old picture to free storage
+            await repo.deleteOldPicture(relationship.ownerPicture);
         } catch (error) {
             console.error("Failed to save owner picture:", error);
         }
@@ -575,4 +579,63 @@ export async function updateFollowing(params: {
             status: updated.status,
         },
     };
+}
+
+// ---------- V2: Get Following Medication Logs ----------
+
+export async function getFollowingLogsV2(params: {
+    viewerUserId: number;
+    relationshipId: number;
+    profileId: number;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+    offset?: number;
+}) {
+    const { viewerUserId, relationshipId, profileId } = params;
+
+    // 1. Verify relationship
+    const relationship = await repo.findRelationshipByIdAndViewer(relationshipId, viewerUserId);
+    if (!relationship) {
+        throw new ServiceError(404, { error: "Relationship not found" });
+    }
+
+    if (relationship.status !== "APPROVED") {
+        throw new ServiceError(403, { error: "Relationship is not approved" });
+    }
+
+    // 2. Check if profileId is in shared profiles
+    const sharedProfileIds = (relationship.profileIds as number[]) || [];
+    if (!sharedProfileIds.includes(profileId)) {
+        throw new ServiceError(403, { error: "This profile is not shared with you" });
+    }
+
+    // 3. Get logs
+    const logs = await repo.findMedicationLogsByProfileId(profileId, {
+        startDate: params.startDate ? new Date(params.startDate) : undefined,
+        endDate: params.endDate ? new Date(params.endDate) : undefined,
+        limit: params.limit,
+        offset: params.offset,
+    });
+
+    // 4. Format response with full medicine details and note
+    const formattedLogs = logs.map((log) => ({
+        logId: log.logId,
+        scheduleTime: log.scheduleTime,
+        medicineName:
+            log.medicineList.mediNickname ||
+            log.medicineList.medicine?.mediThName ||
+            log.medicineList.medicine?.mediEnName ||
+            "Unknown",
+        mediThName: log.medicineList.medicine?.mediThName || null,
+        mediEnName: log.medicineList.medicine?.mediEnName || null,
+        mediTradeName: log.medicineList.medicine?.mediTradeName || null,
+        dose: log.dose,
+        unit: log.unit,
+        responseStatus: log.responseStatus,
+        responseAt: log.responseAt,
+        note: log.note,
+    }));
+
+    return { logs: formattedLogs };
 }
