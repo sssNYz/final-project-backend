@@ -639,3 +639,66 @@ export async function getFollowingLogsV2(params: {
 
     return { logs: formattedLogs };
 }
+
+// ---------- V2: Get Following Regimens ----------
+
+export async function getFollowingRegimensV2(params: {
+    viewerUserId: number;
+    relationshipId: number;
+    profileId: number;
+}) {
+    const { viewerUserId, relationshipId, profileId } = params;
+
+    // 1. Verify relationship
+    const relationship = await repo.findRelationshipByIdAndViewer(relationshipId, viewerUserId);
+    if (!relationship) {
+        throw new ServiceError(404, { error: "Relationship not found" });
+    }
+
+    if (relationship.status !== "APPROVED") {
+        throw new ServiceError(403, { error: "Relationship is not approved" });
+    }
+
+    // 2. Check if profileId is in shared profiles
+    const sharedProfileIds = (relationship.profileIds as number[]) || [];
+    if (!sharedProfileIds.includes(profileId)) {
+        throw new ServiceError(403, { error: "This profile is not shared with you" });
+    }
+
+    // 3. Get regimens
+    const regimens = await repo.findRegimensByProfileId(profileId);
+
+    // 4. Format response
+    const formattedRegimens = regimens.map((r) => ({
+        mediRegimenId: r.mediRegimenId,
+        mediListId: r.mediListId,
+        mediNickname: r.medicineList?.mediNickname || null,
+        medicine: r.medicineList?.medicine
+            ? {
+                mediId: r.medicineList.medicine.mediId,
+                mediThName: r.medicineList.medicine.mediThName,
+                mediEnName: r.medicineList.medicine.mediEnName,
+                mediTradeName: r.medicineList.medicine.mediTradeName,
+                mediType: r.medicineList.medicine.mediType,
+                mediPicture: r.medicineList.medicine.mediPicture,
+            }
+            : null,
+        scheduleType: r.scheduleType,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        daysOfWeek: r.daysOfWeek,
+        intervalDays: r.intervalDays,
+        cycleOnDays: r.cycleOnDays,
+        cycleBreakDays: r.cycleBreakDays,
+        times: r.times.map((t) => ({
+            timeId: t.timeId,
+            timeOfDay: t.timeOfDay,
+            dose: t.dose,
+            unit: t.unit,
+            mealRelation: t.mealRelation,
+            mealOffsetMin: t.mealOffsetMin,
+        })),
+    }));
+
+    return { regimens: formattedRegimens };
+}

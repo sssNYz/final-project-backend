@@ -7151,6 +7151,185 @@
           }
         }
       }
+    },
+    "/api/mobile/v2/follow/following/list-regimen": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "List medicine regimens for followed profile",
+        "description": "Returns all medicine regimens for a shared profile. Use this to see what medicine someone you follow is taking, including schedule and dosage details.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of medicine regimens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "regimens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "mediRegimenId": {
+                            "type": "integer"
+                          },
+                          "mediListId": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "mediNickname": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "medicine": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "mediId": {
+                                "type": "integer"
+                              },
+                              "mediThName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediEnName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediTradeName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediType": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "mediPicture": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          },
+                          "scheduleType": {
+                            "type": "string"
+                          },
+                          "startDate": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endDate": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "daysOfWeek": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "intervalDays": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "cycleOnDays": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "cycleBreakDays": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "times": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "timeId": {
+                                  "type": "integer"
+                                },
+                                "timeOfDay": {
+                                  "type": "string"
+                                },
+                                "dose": {
+                                  "type": "integer"
+                                },
+                                "unit": {
+                                  "type": "string"
+                                },
+                                "mealRelation": {
+                                  "type": "string"
+                                },
+                                "mealOffsetMin": {
+                                  "type": "integer",
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship not approved or profile not shared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

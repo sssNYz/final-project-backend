@@ -261,6 +261,38 @@ export async function findMedicationLogsByProfileId(
     });
 }
 
+// ---------- Regimen Queries ----------
+
+export async function findRegimensByProfileId(profileId: number) {
+    return prisma.userMedicineRegimen.findMany({
+        where: {
+            medicineList: {
+                profileId,
+            },
+        },
+        include: {
+            medicineList: {
+                include: {
+                    medicine: {
+                        select: {
+                            mediId: true,
+                            mediThName: true,
+                            mediEnName: true,
+                            mediTradeName: true,
+                            mediType: true,
+                            mediPicture: true,
+                        },
+                    },
+                },
+            },
+            times: {
+                orderBy: { timeOfDay: "asc" },
+            },
+        },
+        orderBy: { mediRegimenId: "desc" },
+    });
+}
+
 // ---------- File Operations ----------
 
 export async function saveRelationshipPicture(
