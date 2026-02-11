@@ -6665,6 +6665,326 @@
           }
         }
       }
+    },
+    "/api/mobile/v2/follow/list-following": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "List people I follow (V2)",
+        "description": "Returns the list of people the authenticated user follows, showing ownerNickname and ownerPicture (customized by the follower).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of following relationships",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "following": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "relationshipId": {
+                            "type": "integer"
+                          },
+                          "ownerEmail": {
+                            "type": "string"
+                          },
+                          "ownerNickname": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Nickname for the owner, set by the follower"
+                          },
+                          "ownerPicture": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Picture path for the owner, set by the follower"
+                          },
+                          "sharedProfiles": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "profileId": {
+                                  "type": "integer"
+                                },
+                                "profileName": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/follow/following/detail": {
+      "get": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "Get following detail (V2)",
+        "description": "Returns the detail of a specific following relationship, showing ownerNickname and ownerPicture.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Following detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "relationship": {
+                      "type": "object",
+                      "properties": {
+                        "relationshipId": {
+                          "type": "integer"
+                        },
+                        "ownerEmail": {
+                          "type": "string"
+                        },
+                        "ownerNickname": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "ownerPicture": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "profiles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "profileId": {
+                            "type": "integer"
+                          },
+                          "profileName": {
+                            "type": "string"
+                          },
+                          "profilePicture": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship is not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v2/follow/update-following": {
+      "patch": {
+        "tags": [
+          "Mobile - Follow V2"
+        ],
+        "summary": "Update following (owner nickname/picture)",
+        "description": "Viewer (follower) updates the owner's nickname and/or picture. Supports multipart/form-data for file upload.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "relationshipId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ownerNickname": {
+                    "type": "string",
+                    "description": "Nickname for the owner (set by follower)"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ownerNickname": {
+                    "type": "string",
+                    "description": "Nickname for the owner (set by follower)"
+                  },
+                  "ownerPicture": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Picture file for the owner (jpg, jpeg, png, webp, max 5MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Following updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "relationship": {
+                      "type": "object",
+                      "properties": {
+                        "relationshipId": {
+                          "type": "integer"
+                        },
+                        "ownerNickname": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "ownerPicture": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (invalid file type or size)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Relationship is not approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

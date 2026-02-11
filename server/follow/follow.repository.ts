@@ -37,8 +37,8 @@ export async function createRelationship(data: {
     viewerUserId: number;
     isReceiverEmail: string;
     profileIds: number[];
-    name?: string;
-    accountPicture?: string;
+    viewerNickname?: string;
+    viewerPicture?: string;
 }) {
     return prisma.userRelationship.create({
         data: {
@@ -47,8 +47,8 @@ export async function createRelationship(data: {
             isReceiverEmail: data.isReceiverEmail,
             profileIds: data.profileIds,
             status: "PENDING",
-            name: data.name,
-            accountPicture: data.accountPicture,
+            viewerNickname: data.viewerNickname,
+            viewerPicture: data.viewerPicture,
         },
     });
 }
@@ -167,14 +167,27 @@ export async function updateRelationshipProfiles(relationshipId: number, profile
 
 export async function updateRelationshipDetails(
     relationshipId: number,
-    data: { name?: string; accountPicture?: string; profileIds?: number[] }
+    data: { viewerNickname?: string; viewerPicture?: string; profileIds?: number[] }
 ) {
     return prisma.userRelationship.update({
         where: { relationshipId },
         data: {
-            ...(data.name !== undefined && { name: data.name }),
-            ...(data.accountPicture !== undefined && { accountPicture: data.accountPicture }),
+            ...(data.viewerNickname !== undefined && { viewerNickname: data.viewerNickname }),
+            ...(data.viewerPicture !== undefined && { viewerPicture: data.viewerPicture }),
             ...(data.profileIds !== undefined && { profileIds: data.profileIds }),
+        },
+    });
+}
+
+export async function updateFollowingDetails(
+    relationshipId: number,
+    data: { ownerNickname?: string; ownerPicture?: string }
+) {
+    return prisma.userRelationship.update({
+        where: { relationshipId },
+        data: {
+            ...(data.ownerNickname !== undefined && { ownerNickname: data.ownerNickname }),
+            ...(data.ownerPicture !== undefined && { ownerPicture: data.ownerPicture }),
         },
     });
 }
@@ -268,9 +281,16 @@ export async function saveRelationshipPicture(
     return `/uploads/user-relationship-picture/${fileName}`;
 }
 
-export async function updateRelationshipPicture(relationshipId: number, pictureUrl: string) {
+export async function updateRelationshipViewerPicture(relationshipId: number, pictureUrl: string) {
     return prisma.userRelationship.update({
         where: { relationshipId },
-        data: { accountPicture: pictureUrl },
+        data: { viewerPicture: pictureUrl },
+    });
+}
+
+export async function updateRelationshipOwnerPicture(relationshipId: number, pictureUrl: string) {
+    return prisma.userRelationship.update({
+        where: { relationshipId },
+        data: { ownerPicture: pictureUrl },
     });
 }

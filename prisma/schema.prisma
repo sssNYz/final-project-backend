@@ -138,8 +138,10 @@ model UserRelationship {
   isReceiverEmail String             @map("IS_RECEIVER_EMAIL")
   profileIds      Json?              @map("PROFILE_IDS")
   status          RelationshipStatus @default(PENDING) @map("STATUS")
-  name            String?            @map("NAME")
-  accountPicture  String?            @map("ACCOUNT_PICTURE")
+  viewerNickname  String?            @map("VIEWER_NICKNAME")
+  viewerPicture   String?            @map("VIEWER_PICTURE")
+  ownerNickname   String?            @map("OWNER_NICKNAME")
+  ownerPicture    String?            @map("OWNER_PICTURE")
   createdAt       DateTime           @default(now()) @map("CREATED_AT")
   updatedAt       DateTime           @updatedAt @map("UPDATED_AT")
 

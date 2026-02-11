@@ -1,10 +1,26 @@
 // server/follow/follow.service.ts
 import { ServiceError } from "@/server/common/errors";
-const SNOOZE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes (copied constant? No, this is follow service)
 import * as repo from "./follow.repository";
 
-// (removed import)
+// ---------- Helpers ----------
 
+function validateImageFile(file: { buffer: Buffer; originalFilename: string }) {
+    const fileExtension = file.originalFilename.split(".").pop()?.toLowerCase();
+    const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
+
+    if (!isValidImage) {
+        throw new ServiceError(400, {
+            error: "Only image files are allowed (jpg, jpeg, png, webp)",
+        });
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.buffer.length > maxSize) {
+        throw new ServiceError(400, {
+            error: "File size must be less than 5MB",
+        });
+    }
+}
 // ---------- User Search ----------
 
 export async function searchUser(query: string) {
@@ -29,6 +45,7 @@ export async function sendInvite(params: {
     accountPictureFile?: { buffer: Buffer; originalFilename: string } | null;
 }) {
     const { ownerUserId, email, profileIds, name, accountPicture, accountPictureFile } = params;
+    // Note: name/accountPicture from invite are stored as viewerNickname/viewerPicture
 
     // 1. Check if email exists in database
     const targetUser = await repo.findUserByEmail(email);
@@ -52,21 +69,7 @@ export async function sendInvite(params: {
 
     // Validate picture file if present
     if (accountPictureFile) {
-        const fileExtension = accountPictureFile.originalFilename.split(".").pop()?.toLowerCase();
-        const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
-
-        if (!isValidImage) {
-            throw new ServiceError(400, {
-                error: "Only image files are allowed (jpg, jpeg, png, webp)",
-            });
-        }
-
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (accountPictureFile.buffer.length > maxSize) {
-            throw new ServiceError(400, {
-                error: "File size must be less than 5MB",
-            });
-        }
+        validateImageFile(accountPictureFile);
     }
 
     // 4. Validate profileIds belong to owner
@@ -88,30 +91,23 @@ export async function sendInvite(params: {
     // 5. Create relationship (use string picture or default initially)
     let initialPicture = accountPicture || "/default-profile/GIU AMA 209-12.jpg";
 
-    // If file is provided, we will update picture later. 
-    // But if we want to show default while uploading (unlikely to fail), or just keep default if upload fails?
-    // We already validated file. 
-
     const relationship = await repo.createRelationship({
         ownerUserId,
         viewerUserId: targetUser.userId,
         isReceiverEmail: email.toLowerCase().trim(),
         profileIds: validProfileIds,
-        name: name || undefined,
-        accountPicture: initialPicture,
+        viewerNickname: name || undefined,
+        viewerPicture: initialPicture,
     });
 
     // 6. Save file if provided and update relationship
     if (accountPictureFile) {
-        // Now we have relationship.relationshipId
         try {
             const newUrl = await repo.saveRelationshipPicture(accountPictureFile, relationship.relationshipId, name);
-            await repo.updateRelationshipPicture(relationship.relationshipId, newUrl);
-            relationship.accountPicture = newUrl;
+            await repo.updateRelationshipViewerPicture(relationship.relationshipId, newUrl);
+            relationship.viewerPicture = newUrl;
         } catch (error) {
             console.error("Failed to save relationship picture:", error);
-            // Non-critical, keep relationship created but with default picture? 
-            // Or rollback? For now, we just log and keep default.
         }
     }
 
@@ -122,7 +118,7 @@ export async function sendInvite(params: {
             viewerEmail: email,
             profileIds: validProfileIds,
             status: relationship.status,
-            accountPicture: relationship.accountPicture,
+            viewerPicture: relationship.viewerPicture,
         },
     };
 }
@@ -143,8 +139,8 @@ export async function getFollowers(ownerUserId: number) {
         return {
             relationshipId: r.relationshipId,
             viewerEmail: r.viewerUser.email,
-            name: r.name,
-            accountPicture: r.accountPicture,
+            viewerNickname: r.viewerNickname,
+            viewerPicture: r.viewerPicture,
             sharedProfiles: sharedProfileIds.map((id) => {
                 const profile = profileMap.get(id);
                 return profile
@@ -165,10 +161,10 @@ export async function updateFollower(params: {
     ownerUserId: number;
     relationshipId: number;
     profileIds?: number[];
-    name?: string;
-    accountPictureFile?: { buffer: Buffer; originalFilename: string } | null;
+    viewerNickname?: string;
+    viewerPictureFile?: { buffer: Buffer; originalFilename: string } | null;
 }) {
-    const { ownerUserId, relationshipId, profileIds, name, accountPictureFile } = params;
+    const { ownerUserId, relationshipId, profileIds, viewerNickname, viewerPictureFile } = params;
 
     // 1. Check relationship exists and belongs to owner
     const relationship = await repo.findRelationshipByIdAndOwner(relationshipId, ownerUserId);
@@ -177,22 +173,8 @@ export async function updateFollower(params: {
     }
 
     // 2. Validate picture file if present
-    if (accountPictureFile) {
-        const fileExtension = accountPictureFile.originalFilename.split(".").pop()?.toLowerCase();
-        const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
-
-        if (!isValidImage) {
-            throw new ServiceError(400, {
-                error: "Only image files are allowed (jpg, jpeg, png, webp)",
-            });
-        }
-
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (accountPictureFile.buffer.length > maxSize) {
-            throw new ServiceError(400, {
-                error: "File size must be less than 5MB",
-            });
-        }
+    if (viewerPictureFile) {
+        validateImageFile(viewerPictureFile);
     }
 
     // 3. Validate profileIds belong to owner (if provided)
@@ -205,12 +187,12 @@ export async function updateFollower(params: {
 
     // 4. Save picture file if provided
     let newPictureUrl: string | undefined;
-    if (accountPictureFile) {
+    if (viewerPictureFile) {
         try {
             newPictureUrl = await repo.saveRelationshipPicture(
-                accountPictureFile,
+                viewerPictureFile,
                 relationshipId,
-                name || relationship.name || undefined
+                viewerNickname || relationship.viewerNickname || undefined
             );
         } catch (error) {
             console.error("Failed to save relationship picture:", error);
@@ -218,9 +200,9 @@ export async function updateFollower(params: {
     }
 
     // 5. Update relationship details
-    const updateData: { name?: string; accountPicture?: string; profileIds?: number[] } = {};
-    if (name !== undefined) updateData.name = name;
-    if (newPictureUrl) updateData.accountPicture = newPictureUrl;
+    const updateData: { viewerNickname?: string; viewerPicture?: string; profileIds?: number[] } = {};
+    if (viewerNickname !== undefined) updateData.viewerNickname = viewerNickname;
+    if (newPictureUrl) updateData.viewerPicture = newPictureUrl;
     if (validProfileIds !== undefined) updateData.profileIds = validProfileIds;
 
     const updated = await repo.updateRelationshipDetails(relationshipId, updateData);
@@ -229,8 +211,8 @@ export async function updateFollower(params: {
         message: "Follower updated successfully",
         relationship: {
             relationshipId: updated.relationshipId,
-            name: updated.name,
-            accountPicture: updated.accountPicture,
+            viewerNickname: updated.viewerNickname,
+            viewerPicture: updated.viewerPicture,
             profileIds: validProfileIds ?? (updated.profileIds as number[]),
             status: updated.status,
         },
@@ -271,8 +253,8 @@ export async function getPendingInvites(viewerUserId: number) {
         return {
             relationshipId: r.relationshipId,
             ownerEmail: r.ownerUser.email,
-            name: r.name,
-            accountPicture: r.accountPicture,
+            viewerNickname: r.viewerNickname,
+            viewerPicture: r.viewerPicture,
             sharedProfiles: sharedProfileIds.map((id) => {
                 const profile = profileMap.get(id);
                 return profile
@@ -346,8 +328,8 @@ export async function getFollowing(viewerUserId: number) {
         return {
             relationshipId: r.relationshipId,
             ownerEmail: r.ownerUser.email,
-            name: r.name,
-            accountPicture: r.accountPicture,
+            viewerNickname: r.viewerNickname,
+            viewerPicture: r.viewerPicture,
             sharedProfiles: sharedProfileIds.map((id) => {
                 const profile = profileMap.get(id);
                 return profile
@@ -386,8 +368,8 @@ export async function getFollowingDetail(params: {
         relationship: {
             relationshipId: relationship.relationshipId,
             ownerEmail: relationship.ownerUser.email,
-            name: relationship.name,
-            accountPicture: relationship.accountPicture,
+            viewerNickname: relationship.viewerNickname,
+            viewerPicture: relationship.viewerPicture,
         },
         profiles: profiles.map((p) => ({
             profileId: p.profileId,
@@ -468,4 +450,129 @@ export async function unfollow(params: {
     await repo.updateRelationshipStatus(relationshipId, "CANCELLED");
 
     return { message: "Unfollowed successfully" };
+}
+
+// ========== V2: Follower Functions ==========
+
+// ---------- V2: Get Following List (shows ownerNickname/ownerPicture) ----------
+
+export async function getFollowingV2(viewerUserId: number) {
+    const relationships = await repo.findFollowingByViewer(viewerUserId);
+
+    const allProfileIds = relationships.flatMap((r) => (r.profileIds as number[]) || []);
+    const uniqueProfileIds = [...new Set(allProfileIds)];
+    const profiles = await repo.findProfilesByIds(uniqueProfileIds);
+    const profileMap = new Map(profiles.map((p) => [p.profileId, p]));
+
+    const following = relationships.map((r) => {
+        const sharedProfileIds = (r.profileIds as number[]) || [];
+        return {
+            relationshipId: r.relationshipId,
+            ownerEmail: r.ownerUser.email,
+            ownerNickname: r.ownerNickname,
+            ownerPicture: r.ownerPicture,
+            sharedProfiles: sharedProfileIds.map((id) => {
+                const profile = profileMap.get(id);
+                return profile
+                    ? { profileId: id, profileName: profile.profileName }
+                    : { profileId: id, profileName: "Unknown" };
+            }),
+            status: r.status,
+            createdAt: r.createdAt,
+        };
+    });
+
+    return { following };
+}
+
+// ---------- V2: Get Following Detail (shows ownerNickname/ownerPicture) ----------
+
+export async function getFollowingDetailV2(params: {
+    viewerUserId: number;
+    relationshipId: number;
+}) {
+    const { viewerUserId, relationshipId } = params;
+
+    const relationship = await repo.findRelationshipByIdAndViewer(relationshipId, viewerUserId);
+    if (!relationship) {
+        throw new ServiceError(404, { error: "Relationship not found" });
+    }
+
+    if (relationship.status !== "APPROVED") {
+        throw new ServiceError(403, { error: "Relationship is not approved" });
+    }
+
+    const sharedProfileIds = (relationship.profileIds as number[]) || [];
+    const profiles = await repo.findProfilesByIds(sharedProfileIds);
+
+    return {
+        relationship: {
+            relationshipId: relationship.relationshipId,
+            ownerEmail: relationship.ownerUser.email,
+            ownerNickname: relationship.ownerNickname,
+            ownerPicture: relationship.ownerPicture,
+        },
+        profiles: profiles.map((p) => ({
+            profileId: p.profileId,
+            profileName: p.profileName,
+            profilePicture: p.profilePicture,
+        })),
+    };
+}
+
+// ---------- V2: Update Following (viewer updates ownerNickname/ownerPicture) ----------
+
+export async function updateFollowing(params: {
+    viewerUserId: number;
+    relationshipId: number;
+    ownerNickname?: string;
+    ownerPictureFile?: { buffer: Buffer; originalFilename: string } | null;
+}) {
+    const { viewerUserId, relationshipId, ownerNickname, ownerPictureFile } = params;
+
+    // 1. Check relationship exists and belongs to viewer
+    const relationship = await repo.findRelationshipByIdAndViewer(relationshipId, viewerUserId);
+    if (!relationship) {
+        throw new ServiceError(404, { error: "Relationship not found" });
+    }
+
+    if (relationship.status !== "APPROVED") {
+        throw new ServiceError(403, { error: "Relationship is not approved" });
+    }
+
+    // 2. Validate picture file if present
+    if (ownerPictureFile) {
+        validateImageFile(ownerPictureFile);
+    }
+
+    // 3. Save picture file if provided
+    let newPictureUrl: string | undefined;
+    if (ownerPictureFile) {
+        try {
+            newPictureUrl = await repo.saveRelationshipPicture(
+                ownerPictureFile,
+                relationshipId,
+                ownerNickname || relationship.ownerNickname || undefined
+            );
+        } catch (error) {
+            console.error("Failed to save owner picture:", error);
+        }
+    }
+
+    // 4. Update relationship details
+    const updateData: { ownerNickname?: string; ownerPicture?: string } = {};
+    if (ownerNickname !== undefined) updateData.ownerNickname = ownerNickname;
+    if (newPictureUrl) updateData.ownerPicture = newPictureUrl;
+
+    const updated = await repo.updateFollowingDetails(relationshipId, updateData);
+
+    return {
+        message: "Following updated successfully",
+        relationship: {
+            relationshipId: updated.relationshipId,
+            ownerNickname: updated.ownerNickname,
+            ownerPicture: updated.ownerPicture,
+            status: updated.status,
+        },
+    };
 }

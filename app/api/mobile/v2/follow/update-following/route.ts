@@ -1,11 +1,11 @@
-// app/api/mobile/v1/follow/followers/update/route.ts
+// app/api/mobile/v2/follow/update-following/route.ts
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/apiHelpers";
-import { updateFollower } from "@/server/follow/follow.service";
+import { updateFollowing } from "@/server/follow/follow.service";
 import { ServiceError } from "@/server/common/errors";
 
-// PATCH /api/mobile/v1/follow/followers/update?relationshipId=...
-// Update follower nickname, picture, and/or shared profiles
+// PATCH /api/mobile/v2/follow/update-following?relationshipId=...
+// Viewer (follower) updates owner's nickname and picture
 export async function PATCH(request: Request) {
     return withAuth(request, async ({ prismaUser }) => {
         try {
@@ -22,55 +22,42 @@ export async function PATCH(request: Request) {
 
             const contentType = request.headers.get("content-type") || "";
 
-            let viewerNickname: string | undefined;
-            let viewerPictureFile: { buffer: Buffer; originalFilename: string } | null = null;
-            let profileIds: number[] | undefined;
+            let ownerNickname: string | undefined;
+            let ownerPictureFile: { buffer: Buffer; originalFilename: string } | null = null;
 
             if (contentType.includes("multipart/form-data")) {
                 const formData = await request.formData();
 
                 // Parse nickname
-                const rawName = formData.get("name");
+                const rawName = formData.get("ownerNickname");
                 if (rawName && typeof rawName === "string") {
-                    viewerNickname = rawName;
+                    ownerNickname = rawName;
                 }
 
                 // Parse picture file
-                const rawPicture = formData.get("accountPicture");
+                const rawPicture = formData.get("ownerPicture");
                 if (rawPicture instanceof File) {
                     const arrayBuffer = await rawPicture.arrayBuffer();
-                    viewerPictureFile = {
+                    ownerPictureFile = {
                         buffer: Buffer.from(arrayBuffer),
                         originalFilename: rawPicture.name,
                     };
                 }
-
-                // Parse profileIds from string
-                const rawProfileIds = formData.get("profileIds");
-                if (rawProfileIds && typeof rawProfileIds === "string") {
-                    try {
-                        profileIds = JSON.parse(rawProfileIds);
-                    } catch {
-                        // ignore invalid json
-                    }
-                }
             } else {
                 const body = await request.json();
-                viewerNickname = body.name;
-                profileIds = body.profileIds;
+                ownerNickname = body.ownerNickname;
             }
 
-            const result = await updateFollower({
-                ownerUserId: prismaUser.userId,
+            const result = await updateFollowing({
+                viewerUserId: prismaUser.userId,
                 relationshipId,
-                profileIds,
-                viewerNickname,
-                viewerPictureFile,
+                ownerNickname,
+                ownerPictureFile,
             });
 
             return NextResponse.json(result, { status: 200 });
         } catch (error: unknown) {
-            console.error("Error updating follower:", error);
+            console.error("Error updating following:", error);
 
             if (error instanceof ServiceError) {
                 return NextResponse.json(error.body, { status: error.statusCode });
