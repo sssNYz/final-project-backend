@@ -5,7 +5,7 @@ import { updateFollower } from "@/server/follow/follow.service";
 import { ServiceError } from "@/server/common/errors";
 
 // PATCH /api/mobile/v1/follow/followers/update?relationshipId=...
-// Update the profiles shared with a follower
+// Update follower nickname, picture, and/or shared profiles
 export async function PATCH(request: Request) {
     return withAuth(request, async ({ prismaUser }) => {
         try {
@@ -20,20 +20,52 @@ export async function PATCH(request: Request) {
                 );
             }
 
-            const body = await request.json();
-            const { profileIds } = body;
+            const contentType = request.headers.get("content-type") || "";
 
-            if (!Array.isArray(profileIds)) {
-                return NextResponse.json(
-                    { error: "profileIds must be an array" },
-                    { status: 400 }
-                );
+            let name: string | undefined;
+            let accountPictureFile: { buffer: Buffer; originalFilename: string } | null = null;
+            let profileIds: number[] | undefined;
+
+            if (contentType.includes("multipart/form-data")) {
+                const formData = await request.formData();
+
+                // Parse name (nickname)
+                const rawName = formData.get("name");
+                if (rawName && typeof rawName === "string") {
+                    name = rawName;
+                }
+
+                // Parse picture file
+                const rawPicture = formData.get("accountPicture");
+                if (rawPicture instanceof File) {
+                    const arrayBuffer = await rawPicture.arrayBuffer();
+                    accountPictureFile = {
+                        buffer: Buffer.from(arrayBuffer),
+                        originalFilename: rawPicture.name,
+                    };
+                }
+
+                // Parse profileIds from string
+                const rawProfileIds = formData.get("profileIds");
+                if (rawProfileIds && typeof rawProfileIds === "string") {
+                    try {
+                        profileIds = JSON.parse(rawProfileIds);
+                    } catch {
+                        // ignore invalid json
+                    }
+                }
+            } else {
+                const body = await request.json();
+                name = body.name;
+                profileIds = body.profileIds;
             }
 
             const result = await updateFollower({
                 ownerUserId: prismaUser.userId,
                 relationshipId,
                 profileIds,
+                name,
+                accountPictureFile,
             });
 
             return NextResponse.json(result, { status: 200 });

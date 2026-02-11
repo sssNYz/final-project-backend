@@ -165,6 +165,20 @@ export async function updateRelationshipProfiles(relationshipId: number, profile
     });
 }
 
+export async function updateRelationshipDetails(
+    relationshipId: number,
+    data: { name?: string; accountPicture?: string; profileIds?: number[] }
+) {
+    return prisma.userRelationship.update({
+        where: { relationshipId },
+        data: {
+            ...(data.name !== undefined && { name: data.name }),
+            ...(data.accountPicture !== undefined && { accountPicture: data.accountPicture }),
+            ...(data.profileIds !== undefined && { profileIds: data.profileIds }),
+        },
+    });
+}
+
 // ---------- Profile Queries ----------
 
 export async function findProfilesByOwner(ownerUserId: number) {

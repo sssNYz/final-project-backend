@@ -6014,7 +6014,61 @@
         ],
         "responses": {
           "200": {
-            "description": "List of followers"
+            "description": "List of followers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "followers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "relationshipId": {
+                            "type": "integer"
+                          },
+                          "viewerEmail": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Nickname for this follower"
+                          },
+                          "accountPicture": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Picture path for this follower"
+                          },
+                          "sharedProfiles": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "profileId": {
+                                  "type": "integer"
+                                },
+                                "profileName": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized",
@@ -6034,8 +6088,8 @@
         "tags": [
           "Mobile - Follow"
         ],
-        "summary": "Update follower shared profiles",
-        "description": "Update which profiles are shared with a specific follower.",
+        "summary": "Update follower (nickname, picture, profiles)",
+        "description": "Update a follower's nickname, profile picture, and/or shared profiles. All fields are optional. Use multipart/form-data to upload a picture file.",
         "security": [
           {
             "bearerAuth": []
@@ -6052,12 +6106,16 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New nickname for this follower"
+                  },
                   "profileIds": {
                     "type": "array",
                     "items": {
@@ -6065,20 +6123,74 @@
                     },
                     "description": "New list of profile IDs to share"
                   }
-                },
-                "required": [
-                  "profileIds"
-                ]
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New nickname for this follower"
+                  },
+                  "accountPicture": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Profile picture file (jpg, jpeg, png, webp, max 5MB)"
+                  },
+                  "profileIds": {
+                    "type": "string",
+                    "description": "JSON array of profile IDs, e.g. '[1, 2]'"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Follower profiles updated"
+            "description": "Follower updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "relationship": {
+                      "type": "object",
+                      "properties": {
+                        "relationshipId": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "accountPicture": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "profileIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer"
+                          }
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Bad request",
+            "description": "Bad request (invalid file type or size)",
             "content": {
               "application/json": {
                 "schema": {

@@ -143,6 +143,8 @@ export async function getFollowers(ownerUserId: number) {
         return {
             relationshipId: r.relationshipId,
             viewerEmail: r.viewerUser.email,
+            name: r.name,
+            accountPicture: r.accountPicture,
             sharedProfiles: sharedProfileIds.map((id) => {
                 const profile = profileMap.get(id);
                 return profile
@@ -162,9 +164,11 @@ export async function getFollowers(ownerUserId: number) {
 export async function updateFollower(params: {
     ownerUserId: number;
     relationshipId: number;
-    profileIds: number[];
+    profileIds?: number[];
+    name?: string;
+    accountPictureFile?: { buffer: Buffer; originalFilename: string } | null;
 }) {
-    const { ownerUserId, relationshipId, profileIds } = params;
+    const { ownerUserId, relationshipId, profileIds, name, accountPictureFile } = params;
 
     // 1. Check relationship exists and belongs to owner
     const relationship = await repo.findRelationshipByIdAndOwner(relationshipId, ownerUserId);
@@ -172,19 +176,62 @@ export async function updateFollower(params: {
         throw new ServiceError(404, { error: "Relationship not found" });
     }
 
-    // 2. Validate profileIds belong to owner
-    const ownerProfiles = await repo.findProfilesByOwner(ownerUserId);
-    const ownerProfileIds = ownerProfiles.map((p) => p.profileId);
-    const validProfileIds = profileIds.filter((id) => ownerProfileIds.includes(id));
+    // 2. Validate picture file if present
+    if (accountPictureFile) {
+        const fileExtension = accountPictureFile.originalFilename.split(".").pop()?.toLowerCase();
+        const isValidImage = ["jpg", "jpeg", "png", "webp"].includes(fileExtension || "");
 
-    // 3. Update
-    const updated = await repo.updateRelationshipProfiles(relationshipId, validProfileIds);
+        if (!isValidImage) {
+            throw new ServiceError(400, {
+                error: "Only image files are allowed (jpg, jpeg, png, webp)",
+            });
+        }
+
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (accountPictureFile.buffer.length > maxSize) {
+            throw new ServiceError(400, {
+                error: "File size must be less than 5MB",
+            });
+        }
+    }
+
+    // 3. Validate profileIds belong to owner (if provided)
+    let validProfileIds: number[] | undefined;
+    if (profileIds && Array.isArray(profileIds)) {
+        const ownerProfiles = await repo.findProfilesByOwner(ownerUserId);
+        const ownerProfileIds = ownerProfiles.map((p) => p.profileId);
+        validProfileIds = profileIds.filter((id) => ownerProfileIds.includes(id));
+    }
+
+    // 4. Save picture file if provided
+    let newPictureUrl: string | undefined;
+    if (accountPictureFile) {
+        try {
+            newPictureUrl = await repo.saveRelationshipPicture(
+                accountPictureFile,
+                relationshipId,
+                name || relationship.name || undefined
+            );
+        } catch (error) {
+            console.error("Failed to save relationship picture:", error);
+        }
+    }
+
+    // 5. Update relationship details
+    const updateData: { name?: string; accountPicture?: string; profileIds?: number[] } = {};
+    if (name !== undefined) updateData.name = name;
+    if (newPictureUrl) updateData.accountPicture = newPictureUrl;
+    if (validProfileIds !== undefined) updateData.profileIds = validProfileIds;
+
+    const updated = await repo.updateRelationshipDetails(relationshipId, updateData);
 
     return {
-        message: "Follower profiles updated",
+        message: "Follower updated successfully",
         relationship: {
             relationshipId: updated.relationshipId,
-            profileIds: validProfileIds,
+            name: updated.name,
+            accountPicture: updated.accountPicture,
+            profileIds: validProfileIds ?? (updated.profileIds as number[]),
             status: updated.status,
         },
     };
