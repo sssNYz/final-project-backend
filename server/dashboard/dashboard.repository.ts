@@ -18,11 +18,11 @@ export async function fetchAccountUsageRows(params?: {
   const scheduleFilter: Prisma.MedicationLogWhereInput | undefined =
     from || to
       ? {
-          scheduleTime: {
-            ...(from ? { gte: from } : {}),
-            ...(to ? { lte: to } : {}),
-          },
-        }
+        scheduleTime: {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lte: to } : {}),
+        },
+      }
       : undefined
 
   const users = await prisma.userAccount.findMany({
@@ -48,10 +48,10 @@ export async function fetchAccountUsageRows(params?: {
 
   return users.map((user) => {
     const profileCount = user.profiles.length
-    const medicationLogCount = user.profiles.reduce(
-      (total, profile) => total + profile.medicationLogs.length,
-      0,
-    )
+
+    // Combine logs from all profiles
+    const allLogs = user.profiles.flatMap((p) => p.medicationLogs)
+    const medicationLogCount = allLogs.length
 
     return {
       userId: user.userId,
@@ -60,5 +60,24 @@ export async function fetchAccountUsageRows(params?: {
       medicationLogCount,
     }
   })
+}
+
+export async function fetchGlobalLogDateRange(): Promise<{
+  minDate: Date | null
+  maxDate: Date | null
+}> {
+  const result = await prisma.medicationLog.aggregate({
+    _min: {
+      scheduleTime: true,
+    },
+    _max: {
+      scheduleTime: true,
+    },
+  })
+
+  return {
+    minDate: result._min.scheduleTime,
+    maxDate: result._max.scheduleTime,
+  }
 }
 

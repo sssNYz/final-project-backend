@@ -1,7 +1,14 @@
 import {
   fetchAccountUsageRows,
+  fetchGlobalLogDateRange,
   type AccountUsageRow,
 } from "@/server/dashboard/dashboard.repository"
+
+export interface AccountUsageStatsResult {
+  items: AccountUsageItem[]
+  globalMinDate: Date | null
+  globalMaxDate: Date | null
+}
 
 export interface AccountUsageItem {
   accountId: number
@@ -31,23 +38,32 @@ function endOfDay(date: Date): Date {
 export async function getAccountUsageStats(params: {
   fromDate?: string | null
   toDate?: string | null
-}): Promise<AccountUsageItem[]> {
+}): Promise<AccountUsageStatsResult> {
   const fromRaw = parseDateOnly(params.fromDate)
   const toRaw = parseDateOnly(params.toDate)
 
   const from = fromRaw
   const to = toRaw ? endOfDay(toRaw) : undefined
 
-  const rows: AccountUsageRow[] = await fetchAccountUsageRows({
-    from: from ?? undefined,
-    to: to ?? undefined,
-  })
+  const [rows, globalRange] = await Promise.all([
+    fetchAccountUsageRows({
+      from: from ?? undefined,
+      to: to ?? undefined,
+    }),
+    fetchGlobalLogDateRange(),
+  ])
 
-  return rows.map((row) => ({
+  const items = rows.map((row) => ({
     accountId: row.userId,
     accountLabel: row.email,
     patientCount: row.profileCount,
     medicationLogCount: row.medicationLogCount,
   }))
+
+  return {
+    items,
+    globalMinDate: globalRange.minDate,
+    globalMaxDate: globalRange.maxDate,
+  }
 }
 
