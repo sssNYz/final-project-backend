@@ -29,7 +29,8 @@ Example tag definitions:
 "tags": [
   { "name": "Admin - Auth", "description": "Admin authentication and management" },
   { "name": "Admin - Medicine", "description": "Admin medicine database management" },
-  { "name": "Mobile - Auth", "description": "Mobile authentication and account sync" },
+  { "name": "Mobile - Auth", "description": "Mobile authentication (Supabase)" },
+  { "name": "Mobile - Auth (V2)", "description": "Mobile authentication (JWT V2)" },
   { "name": "Mobile - Users", "description": "Mobile user profile operations" }
 ]
 ```
@@ -41,9 +42,9 @@ Note: Swagger UI groups by tag. Using the `Admin - ...` / `Mobile - ...` prefix 
 For each path/method in `public/openapi.json`:
 
 1. Path + version
-   - Mobile endpoints: `/api/mobile/v1/{feature}/{action}`
+   - Mobile endpoints: `/api/mobile/v1/{feature}/{action}` (or `/api/auth/v2/...`)
    - Admin endpoints: `/api/admin/v1/{feature}/{action}`
-   - Use `v1` until a breaking change requires `v2`.
+   - Use `v1` generally, unless a V2 system (like Auth V2) is implemented.
 
 2. Tags (required)
    - Exactly one tag per operation, using the patterns above.
