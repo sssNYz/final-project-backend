@@ -42,6 +42,7 @@ async function processRegimen(regimen: {
   intervalDays: number | null;
   cycleOnDays: number | null;
   cycleBreakDays: number | null;
+  intervalHour: number | null;
   times: { timeOfDay: string; dose: number; unit: string; mealRelation: MealRelation }[];
   medicineList: null | {
     mediListId: number;
@@ -61,11 +62,27 @@ async function processRegimen(regimen: {
   const mediListId = medicineList.mediListId;
 
   // Find the dose and unit for this schedule time
-  const timeString = formatInTimeZone(scheduleTime, userTimeZone, "HH:mm");
-  const matchingTime = regimen.times.find((t) => t.timeOfDay === timeString);
-  const dose = matchingTime?.dose ?? null;
-  const unit = matchingTime?.unit ?? null;
-  const mealRelation = matchingTime?.mealRelation ?? null;
+  let dose: number | null = null;
+  let unit: string | null = null;
+  let mealRelation: MealRelation | null = null;
+
+  if (regimen.intervalHour && regimen.intervalHour >= 1) {
+    // intervalHour mode: use the first time entry as the dose template
+    // (the actual scheduled time is dynamically generated and won't match any stored timeOfDay)
+    const template = regimen.times[0];
+    if (template) {
+      dose = template.dose;
+      unit = template.unit;
+      mealRelation = template.mealRelation;
+    }
+  } else {
+    // Standard mode: match exact timeOfDay string
+    const timeString = formatInTimeZone(scheduleTime, userTimeZone, "HH:mm");
+    const matchingTime = regimen.times.find((t) => t.timeOfDay === timeString);
+    dose = matchingTime?.dose ?? null;
+    unit = matchingTime?.unit ?? null;
+    mealRelation = matchingTime?.mealRelation ?? null;
+  }
 
   const log = await prisma.medicationLog.upsert({
     where: {
@@ -96,6 +113,7 @@ async function processRegimen(regimen: {
     intervalDays: regimen.intervalDays,
     cycleOnDays: regimen.cycleOnDays,
     cycleBreakDays: regimen.cycleBreakDays,
+    intervalHour: regimen.intervalHour,
     times: regimen.times,
     userTimeZone,
     now: scheduleTime,

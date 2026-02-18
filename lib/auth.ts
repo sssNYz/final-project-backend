@@ -1,6 +1,7 @@
 import { createClient } from "./supabase/client";
 import { User } from "@supabase/supabase-js";
 import { verifyAccessToken, extractBearerToken } from "@/lib/jwt";
+import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 /**
  * Gets the Supabase user from the Authorization header token
@@ -38,6 +39,11 @@ export async function getSupabaseUser(request: Request): Promise<User | null> {
 /**
  * Middleware helper that requires authentication
  * Returns the user if authenticated, or throws an error response
+ * 
+ * Priority order:
+ * 1. Authorization header (Bearer token) — used by mobile (Flutter) clients
+ * 2. HttpOnly cookie (accessToken) — used by web clients
+ * 3. Supabase token (legacy) — checked via header
  */
 export async function requireAuth(request: Request): Promise<User> {
   const user = await getSupabaseUser(request);
@@ -46,8 +52,11 @@ export async function requireAuth(request: Request): Promise<User> {
     return user;
   }
 
-  // Fallback: Verify V2 (Custom JWT)
-  const token = extractBearerToken(request);
+  // Try V2 JWT from header first, then from cookie
+  const headerToken = extractBearerToken(request);
+  const cookieToken = getAccessTokenFromCookie(request);
+  const token = headerToken || cookieToken;
+
   if (token) {
     try {
       const payload = verifyAccessToken(token);

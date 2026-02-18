@@ -34,6 +34,7 @@ export async function PATCH(request: Request) {
         intervalDays?: number | null;
         cycleOnDays?: number | null;
         cycleBreakDays?: number | null;
+        intervalHour?: number | null;
         times?: Array<{
           time: string;
           dose: number;
@@ -69,6 +70,10 @@ export async function PATCH(request: Request) {
 
       if (body.cycleBreakDays !== undefined) {
         updateData.cycleBreakDays = body.cycleBreakDays;
+      }
+
+      if (body.intervalHour !== undefined) {
+        updateData.intervalHour = body.intervalHour;
       }
 
       if (body.times !== undefined) {

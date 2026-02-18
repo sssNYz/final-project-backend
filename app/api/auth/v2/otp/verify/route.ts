@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { verifyOtp } from "@/server/auth/auth-v2.service";
 import { ServiceError } from "@/server/common/errors";
+import { setAuthCookies } from "@/lib/cookies";
 
 /**
  * POST /api/auth/v2/otp/verify
  * Verify the OTP code and return JWT tokens
  * If user doesn't exist, auto-registers them
+ * Also sets HttpOnly cookies for web clients
  */
 export async function POST(request: Request) {
     try {
@@ -28,7 +30,18 @@ export async function POST(request: Request) {
 
         const result = await verifyOtp(email.toLowerCase().trim(), code);
 
-        return NextResponse.json(result, { status: 200 });
+        // Create response with JSON body
+        const response = NextResponse.json(result, { status: 200 });
+
+        // Set HttpOnly cookies if tokens are present (login-like flow)
+        if (result.accessToken) {
+            setAuthCookies(response, {
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+            });
+        }
+
+        return response;
     } catch (error) {
         if (error instanceof ServiceError) {
             return NextResponse.json(error.body, { status: error.statusCode });

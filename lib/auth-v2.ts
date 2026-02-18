@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAccessToken, extractBearerToken, AccessTokenPayload } from "./jwt";
 import { prisma } from "@/lib/prisma";
+import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 /**
  * V2 Authenticated user context (no Supabase dependency)
@@ -21,6 +22,10 @@ export interface AuthenticatedUserContextV2 {
 /**
  * V2 Auth Wrapper – verifies our own JWT (not Supabase)
  * Drop-in replacement for the existing `withAuth` from apiHelpers.ts
+ * 
+ * Supports both:
+ * - Authorization: Bearer <token> (mobile/Flutter)
+ * - HttpOnly cookie accessToken (web clients)
  *
  * @example
  * export async function GET(request: Request) {
@@ -34,11 +39,14 @@ export async function withAuthV2(
     handler: (context: AuthenticatedUserContextV2) => Promise<NextResponse>
 ): Promise<NextResponse> {
     try {
-        // 1. Extract Bearer token
-        const token = extractBearerToken(request);
+        // 1. Extract Bearer token from header, fallback to cookie
+        const headerToken = extractBearerToken(request);
+        const cookieToken = getAccessTokenFromCookie(request);
+        const token = headerToken || cookieToken;
+
         if (!token) {
             return NextResponse.json(
-                { error: "Unauthorized – missing Bearer token" },
+                { error: "Unauthorized – missing Bearer token or auth cookie" },
                 { status: 401 }
             );
         }
