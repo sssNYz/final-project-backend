@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://medi-buddy.duckdns.org",
+      "url": "https://medi-buddy.xyz",
       "description": "Production Server (HTTPS)"
     }
   ],

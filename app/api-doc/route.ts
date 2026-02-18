@@ -399,6 +399,9 @@ export async function GET() {
             <button class="nav-pill" data-client="admin" onclick="selectClient('admin')">
               <span class="pill-emoji">🖥️</span> Admin
             </button>
+            <button class="nav-pill" data-client="auth" onclick="selectClient('auth')">
+              <span class="pill-emoji">🔐</span> Auth
+            </button>
           </div>
         </div>
 
@@ -429,11 +432,14 @@ export async function GET() {
       const catalog = {
         mobile: [
           { id: 'mobile-v1', label: 'v1', badge: 'STABLE', badgeClass: 'stable', info: '37 endpoints' },
-          { id: 'mobile-v2', label: 'v2', badge: 'NEW',    badgeClass: 'new',    info: '5 endpoints'  },
+          { id: 'mobile-v2', label: 'v2', badge: 'NEW',    badgeClass: 'new',    info: '7 endpoints'   },
         ],
         admin: [
           { id: "admin-v1", label: "v1", badge: "STABLE", badgeClass: "stable", info: "15 endpoints" },
-          { id: "admin-v2", label: "v2", badge: "NEW",    badgeClass: "new",    info: "1 endpoint"   },
+          { id: "admin-v2", label: "v2", badge: "NEW",    badgeClass: "new",    info: "2 endpoints"   },
+        ],
+        auth: [
+          { id: "auth-v2", label: "v2", badge: "SHARED",   badgeClass: "new",    info: "7 endpoints"   },
         ],
       };
 
@@ -558,15 +564,20 @@ export async function GET() {
       // ── Init: restore from URL hash or default ──
       window.onload = () => {
         const hash = window.location.hash.replace('#', '');
-        if (hash && (hash.startsWith('mobile') || hash.startsWith('admin'))) {
-          const client = hash.startsWith('admin') ? 'admin' : 'mobile';
-          selectClient(client);
+        let client = 'mobile';
+        
+        if (hash) {
+          if (hash.startsWith('admin')) client = 'admin';
+          else if (hash.startsWith('auth')) client = 'auth';
+          else if (hash.startsWith('mobile')) client = 'mobile';
+        }
+        
+        selectClient(client);
+        
+        if (hash) {
           const versions = catalog[client];
           const target = versions.find(v => v.id === hash);
           if (target) selectVersion(target);
-        } else {
-          // Default: show mobile v1
-          selectClient('mobile');
         }
       };
     </script>

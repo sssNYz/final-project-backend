@@ -79,6 +79,12 @@ const groups = [
         description: "Mobile client endpoints (v2). Newer versions of existing v1 endpoints with enhanced features.",
         pathPrefix: "/api/mobile/v2/",
     },
+    {
+        id: "auth-v2",
+        title: "🔐 Auth API v2",
+        description: "Authentication endpoints (Shared by Mobile & Admin).",
+        pathPrefix: "/api/auth/v2/",
+    },
 ];
 
 // ── split ────────────────────────────────────────────────────────────
@@ -89,9 +95,10 @@ for (const g of groups) {
     // 1. Filter paths
     const paths = {};
     const usedTagNames = new Set();
+    const prefixes = Array.isArray(g.pathPrefix) ? g.pathPrefix : [g.pathPrefix];
 
     for (const [pathKey, pathItem] of Object.entries(spec.paths)) {
-        if (pathKey.startsWith(g.pathPrefix)) {
+        if (prefixes.some(prefix => pathKey.startsWith(prefix))) {
             paths[pathKey] = pathItem;
             // Collect tags used by operations in this path
             for (const method of Object.values(pathItem)) {
