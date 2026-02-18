@@ -1,4 +1,4 @@
-medi-buddy.duckdns.org {
+www.medi-buddy.xyz, medi-buddy.duckdns.org {
     # Automatic HTTPS with Let's Encrypt
     reverse_proxy localhost:3000
     

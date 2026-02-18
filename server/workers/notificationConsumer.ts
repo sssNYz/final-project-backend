@@ -84,6 +84,7 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
             notification: {
                 title,
                 body,
+                imageUrl: "https://medi-buddy.xyz/medi-buddy-logo.png",
             },
             data: {
                 type: isSnooze ? "SNOOZE_REMINDER" : "MEDICATION_REMINDER",
