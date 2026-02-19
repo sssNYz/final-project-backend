@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyAccessToken, extractBearerToken } from "@/lib/jwt";
+import { getAccessTokenFromCookie } from "@/lib/cookies";
 import { comparePassword } from "@/lib/password";
 import { Role } from "@prisma/client";
 
@@ -11,7 +12,13 @@ import { Role } from "@prisma/client";
 export async function POST(request: Request) {
     try {
         // 1. Verify Token
-        const token = extractBearerToken(request);
+        let token = extractBearerToken(request);
+
+        // If no bearer token, try to get from cookie
+        if (!token) {
+            token = getAccessTokenFromCookie(request);
+        }
+
         if (!token) {
             return NextResponse.json(
                 { error: "Unauthorized", message: "No token provided" },
@@ -65,8 +72,8 @@ export async function POST(request: Request) {
 
         if (!isValid) {
             return NextResponse.json(
-                { error: "Unauthorized", message: "Invalid password" },
-                { status: 401 }
+                { error: "Bad Request", message: "Invalid password" },
+                { status: 400 }
             );
         }
 

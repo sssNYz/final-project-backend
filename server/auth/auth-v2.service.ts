@@ -59,6 +59,57 @@ export async function registerUser(input: RegisterInput) {
     return { message: "Registration successful. Please verify your email with the OTP sent." };
 }
 
+// ============ Admin Creation ============
+
+// ============ Admin Creation ============
+
+interface CreateAdminInput {
+    email: string;
+    password: string;
+    creatorRole: string;
+}
+
+export async function createAdminUser(input: CreateAdminInput) {
+    const { email, password, creatorRole } = input;
+
+    // Both SuperAdmin and Admin can create new admins
+    if (creatorRole !== "SuperAdmin" && creatorRole !== "Admin") {
+        throw new ServiceError(403, { error: "FORBIDDEN", message: "Only Admins can create new admins." });
+    }
+
+    // Check if user exists
+    const existing = await prisma.userAccount.findUnique({
+        where: { email },
+    });
+
+    if (existing) {
+        throw new ServiceError(409, { error: "EMAIL_EXISTS", message: "This email is already registered." });
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
+    // Create Admin user (Unverified)
+    await prisma.userAccount.create({
+        data: {
+            email,
+            password: hashedPassword,
+            provider: "email",
+            role: "Admin", // Explicitly set role to Admin
+            status: true,
+            // emailVerifiedAt: null, // Default behavior
+            tutorialDone: true,
+        },
+    });
+
+    // Trigger OTP for the new admin to verify
+    await requestOtp(email);
+
+    return {
+        message: "Admin user created successfully. An OTP has been sent to their email for verification.",
+    };
+}
+
 // ============ Login ============
 
 interface LoginInput {

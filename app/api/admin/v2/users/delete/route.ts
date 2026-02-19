@@ -67,6 +67,11 @@ export async function DELETE(request: NextRequest) {
                     where: { userId: { in: userIds } },
                 });
 
+                // 2.1 Delete RefreshTokens (Missing in original code)
+                await tx.refreshToken.deleteMany({
+                    where: { userId: { in: userIds } },
+                });
+
                 // 3. Delete UserRelationships (Owner or Viewer)
                 await tx.userRelationship.deleteMany({
                     where: {
