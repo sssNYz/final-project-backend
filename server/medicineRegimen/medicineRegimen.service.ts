@@ -159,9 +159,7 @@ function validateStartEndDate(scheduleType: ScheduleType, startDate: Date, endDa
   if (endDate && endDate.getTime() < startDate.getTime()) {
     throw new ServiceError(400, { error: "endDate must be on or after startDate" });
   }
-  if (scheduleType === "DAILY" && !endDate) {
-    throw new ServiceError(400, { error: "endDate is required when scheduleType is DAILY" });
-  }
+
 }
 
 function validateTimes(times: Array<{

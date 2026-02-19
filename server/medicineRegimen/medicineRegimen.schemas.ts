@@ -68,7 +68,7 @@ const MedicineRegimenCreateDailySchema = z
   .object({
     ...commonCreateFields,
     scheduleType: z.literal("DAILY"),
-    endDate: z.coerce.date(),
+    endDate: z.coerce.date().nullable().optional(),
   })
   .strict();
 

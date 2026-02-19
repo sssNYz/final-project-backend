@@ -68,13 +68,18 @@ export function getRefreshTokenExpiry(): Date {
 
 // ============ Helper ============
 
+import { getAccessTokenFromCookie } from "@/lib/cookies";
+
 /**
  * Extract Bearer token from Authorization header
+ * Fallback: Extract from HttpOnly cookie (if header is missing)
  */
 export function extractBearerToken(request: Request): string | null {
     const authHeader = request.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return null;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        return authHeader.replace("Bearer ", "");
     }
-    return authHeader.replace("Bearer ", "");
+
+    // Fallback to cookie
+    return getAccessTokenFromCookie(request);
 }
