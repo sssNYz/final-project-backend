@@ -19,6 +19,10 @@
     {
       "name": "Admin - Auth",
       "description": "Admin authentication and verification"
+    },
+    {
+      "name": "Admin - Medicine",
+      "description": "Admin medicine management (v2)"
     }
   ],
   "components": {
@@ -120,6 +124,116 @@
           },
           "403": {
             "description": "Forbidden (e.g., trying to delete SuperAdmin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/v2/medicine/delete": {
+      "delete": {
+        "tags": [
+          "Admin - Medicine"
+        ],
+        "summary": "Hard delete medicine",
+        "description": "Permanently delete a medicine if it is not used in any medicine lists. Returns 409 if logic prevents deletion (e.g. used by users).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediId": {
+                    "type": "integer",
+                    "description": "ID of the medicine to delete"
+                  }
+                },
+                "required": [
+                  "mediId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Medicine deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Medicine not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Medicine is in use",
             "content": {
               "application/json": {
                 "schema": {

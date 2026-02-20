@@ -11,6 +11,8 @@ import {
   updateMedicine,
   setMedicineStatus,
   countMedicines,
+  getMedicineUsageCount,
+  deleteMedicine,
 } from "@/server/medicine/medicine.repository";
 import { findUserBySupabaseOrEmail } from "@/server/users/users.repository";
 
@@ -411,5 +413,40 @@ export async function getMedicineDetailForUser({
       mediStore: medicine.mediStore,
       mediPicture: medicine.mediPicture,
     },
+  };
+}
+
+// ---------- HARD DELETE ----------
+
+export async function hardDeleteMedicineForAdmin({
+  supabaseUser,
+  mediId,
+}: {
+  supabaseUser: User;
+  mediId: number;
+}) {
+  const admin = await getCurrentAdminOrThrow(supabaseUser);
+
+  if (!Number.isInteger(mediId) || mediId <= 0) {
+    throw new ServiceError(400, { error: "mediId must be a positive integer" });
+  }
+
+  const existing = await findMedicineById(mediId);
+  if (!existing) {
+    throw new ServiceError(404, { error: "Medicine not found" });
+  }
+
+  const usageCount = await getMedicineUsageCount(mediId);
+  if (usageCount > 0) {
+    throw new ServiceError(409, {
+      error: "Cannot delete medicine",
+      message: "This medicine is currently used by users in their medicine lists.",
+    });
+  }
+
+  await deleteMedicine(mediId);
+
+  return {
+    message: "Medicine permanently deleted",
   };
 }
