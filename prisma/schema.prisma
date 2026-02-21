@@ -26,13 +26,14 @@ model UserAccount {
   timeZone        String?   @map("TIME_ZONE")
 
   // Relations
-  profiles            UserProfile[]      @relation("UserToProfile")
-  requests            UserRequest[]      @relation("UserRequests")
-  handledRequests     UserRequest[]      @relation("AdminRequests")
-  ownedRelationships  UserRelationship[] @relation("OwnerUser")
-  viewedRelationships UserRelationship[] @relation("ViewerUser")
+  profiles            UserProfile[]        @relation("UserToProfile")
+  requests            UserRequest[]        @relation("UserRequests")
+  handledRequests     UserRequest[]        @relation("AdminRequests")
+  ownedRelationships  UserRelationship[]   @relation("OwnerUser")
+  viewedRelationships UserRelationship[]   @relation("ViewerUser")
   deviceTokens        DeviceToken[]
   refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("USER_ACCOUNT")
 }
@@ -80,6 +81,20 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("VERIFICATION_TOKEN")
+}
+
+/// PASSWORD_RESET_TOKEN – Magic links / deep links for password reset
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement()) @map("PRT_ID")
+  token     String   @unique @map("TOKEN") @db.VarChar(255)
+  userId    Int      @map("USER_ID")
+  expiresAt DateTime @map("EXPIRES_AT")
+  createdAt DateTime @default(now()) @map("CREATED_AT")
+
+  // Relations
+  user UserAccount @relation(fields: [userId], references: [userId])
+
+  @@map("PASSWORD_RESET_TOKEN")
 }
 
 /// USER_PROFILE

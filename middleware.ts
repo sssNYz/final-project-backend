@@ -121,6 +121,7 @@ export function middleware(request: NextRequest) {
       "http://localhost:8081",
       "https://www.medi-buddy.xyz",
       "https://medi-buddy.xyz",
+      "https://admin.medi-buddy.xyz",
     ];
 
     // Handle preflight requests (OPTIONS)

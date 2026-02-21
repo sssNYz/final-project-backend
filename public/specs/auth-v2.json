@@ -228,6 +228,39 @@
           "email",
           "password"
         ]
+      },
+      "AuthV2ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "redirectTo": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "email",
+          "redirectTo"
+        ]
+      },
+      "AuthV2ForgotPasswordReset": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ]
       }
     }
   },
@@ -523,6 +556,132 @@
           },
           "400": {
             "description": "Invalid or expired OTP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/v2/forgot-password/request": {
+      "post": {
+        "tags": [
+          "Auth (V2)"
+        ],
+        "summary": "Request a Password Reset",
+        "description": "Generates a secure password reset token and sends a Magic Link to the provided email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthV2ForgotPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request processed successfully (regardless of whether the email exists)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email or missing redirect URL structure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/v2/forgot-password/verify-redirect": {
+      "get": {
+        "tags": [
+          "Auth (V2)"
+        ],
+        "summary": "Verify Reset Token & Redirect",
+        "description": "Validates the reset token and safely redirects the user to the target App or Web application, passing the token.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The secure token sent in the email."
+          },
+          {
+            "name": "redirect_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The deep link or web URI to redirect the user to."
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirects to the `redirect_to` target URI. Passing either `?token=...` or `?error=...`."
+          }
+        }
+      }
+    },
+    "/api/auth/v2/forgot-password/reset": {
+      "post": {
+        "tags": [
+          "Auth (V2)"
+        ],
+        "summary": "Reset Password",
+        "description": "Consumes the password reset token, updates the user's password, and forces them to sign out of all active devices.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthV2ForgotPasswordReset"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token, expired token, or invalid new password format.",
             "content": {
               "application/json": {
                 "schema": {

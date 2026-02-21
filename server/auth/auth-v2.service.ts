@@ -466,3 +466,119 @@ export async function verifyOtp(email: string, code: string) {
         },
     };
 }
+
+// ============ Password Reset (Magic Link) ============
+
+import { sendPasswordResetEmail } from "@/lib/email";
+import crypto from "crypto";
+
+const RESET_TOKEN_EXPIRY_MINUTES = 15;
+
+/**
+ * 1) Request Password Reset
+ * Generates a secure token, saves it, and sends the email containing the magic link.
+ */
+export async function requestPasswordReset(email: string, redirectTo: string) {
+    // 1. Check if user exists
+    const user = await prisma.userAccount.findUnique({
+        where: { email },
+    });
+
+    if (!user) {
+        // Silently succeed to prevent email enumeration attacks
+        return { message: "If that email is registered, you will receive a reset link shortly." };
+    }
+
+    // 2. Clear old reset tokens for this user
+    await prisma.passwordResetToken.deleteMany({
+        where: { userId: user.userId },
+    });
+
+    // 3. Generate a secure random token (e.g. 64 chars hex)
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
+
+    // 4. Save to database
+    await prisma.passwordResetToken.create({
+        data: {
+            token,
+            userId: user.userId,
+            expiresAt,
+        },
+    });
+
+    // 5. Construct the magic link (pointing to our backend verify-redirect endpoint)
+    const baseUrl = process.env.API_BASE_URL || "https://api.medi-buddy.xyz";
+    const escapeRedirect = encodeURIComponent(redirectTo);
+
+    // It will look like: https://api.domain.com/api/auth/v2/forgot-password/verify-redirect?token=abc...&redirect_to=com.example.app...
+    const magicLink = `${baseUrl}/api/auth/v2/forgot-password/verify-redirect?token=${token}&redirect_to=${escapeRedirect}`;
+
+    // 6. Send the email
+    await sendPasswordResetEmail(email, magicLink);
+
+    return { message: "If that email is registered, you will receive a reset link shortly." };
+}
+
+/**
+ * 2) Verify Password Reset Token (for Redirect)
+ * Validates the token's existence and expiration.
+ */
+export async function verifyPasswordResetToken(token: string) {
+    const record = await prisma.passwordResetToken.findUnique({
+        where: { token },
+        include: { user: true },
+    });
+
+    if (!record) {
+        throw new ServiceError(400, {
+            error: "INVALID_TOKEN",
+            message: "This password reset link is invalid.",
+        });
+    }
+
+    if (record.expiresAt < new Date()) {
+        // Clean up expired token
+        await prisma.passwordResetToken.delete({ where: { id: record.id } });
+        throw new ServiceError(400, {
+            error: "TOKEN_EXPIRED",
+            message: "This password reset link has expired. Please request a new one.",
+        });
+    }
+
+    return record; // Token is valid
+}
+
+/**
+ * 3) Reset Password
+ * Validates the token, hashes the new password, updates the user, and revokes all active sessions.
+ */
+export async function resetPassword(token: string, newPassword: string) {
+    // 1. Verify token
+    const record = await verifyPasswordResetToken(token);
+
+    // 2. Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // 3. Update the user's password
+    await prisma.userAccount.update({
+        where: { userId: record.userId },
+        data: { password: hashedPassword },
+    });
+
+    // 4. Delete the used reset token
+    await prisma.passwordResetToken.delete({ where: { id: record.id } });
+
+    // 5. Security: Revoke all existing RefreshTokens and DeviceTokens for this user
+    await prisma.refreshToken.updateMany({
+        where: { userId: record.userId, revoked: false },
+        data: { revoked: true },
+    });
+
+    // Also delete device tokens so mobile users are forcefully logged out
+    await prisma.deviceToken.deleteMany({
+        where: { userId: record.userId },
+    });
+
+    return { message: "Password has been successfully reset. Please log in with your new password." };
+}

@@ -7,3 +7,7 @@ medi-buddy.xyz, www.medi-buddy.xyz, medi-buddy.duckdns.org {
         reverse_proxy localhost:8080
     }
 }
+
+admin.medi-buddy.xyz {
+    reverse_proxy localhost:3001
+}
