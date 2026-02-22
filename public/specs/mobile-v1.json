@@ -1924,6 +1924,68 @@
         }
       }
     },
+    "/api/mobile/v1/users/tutorial-status": {
+      "patch": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Update tutorial status",
+        "description": "Sets the tutorialDone status for the user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tutorialDone": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "tutorialDone"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/PublicUserAccount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mobile/v1/profile/create": {
       "post": {
         "tags": [
