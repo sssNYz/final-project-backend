@@ -508,7 +508,7 @@ export async function requestPasswordReset(email: string, redirectTo: string) {
     });
 
     // 5. Construct the magic link (pointing to our backend verify-redirect endpoint)
-    const baseUrl = process.env.API_BASE_URL || "https://api.medi-buddy.xyz";
+    const baseUrl = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.medi-buddy.xyz";
     const escapeRedirect = encodeURIComponent(redirectTo);
 
     // It will look like: https://api.domain.com/api/auth/v2/forgot-password/verify-redirect?token=abc...&redirect_to=com.example.app...
