@@ -360,7 +360,7 @@ export async function listMedicinesForUser({
     take,
   });
 
-  // Return only fields for user (no deletedAt)
+  // Return only fields for user
   const userItems = items.map((item) => ({
     mediId: item.mediId,
     mediPicture: item.mediPicture,

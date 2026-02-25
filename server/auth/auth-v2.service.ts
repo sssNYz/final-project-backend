@@ -138,13 +138,18 @@ export async function googleLoginUser(idToken: string) {
         // Check if user exists
         let user = await prisma.userAccount.findUnique({
             where: { email },
+            select: {
+                userId: true,
+                email: true,
+                role: true,
+                status: true,
+                tutorialDone: true,
+                provider: true,
+            },
         });
 
         if (user) {
             // Check status
-            if (user.deletedAt) {
-                throw new ServiceError(401, { error: "ACCOUNT_DELETED", message: "This account has been deleted" });
-            }
             if (!user.status) {
                 throw new ServiceError(403, { error: "ACCOUNT_BANNED", message: "Your account has been suspended" });
             }
@@ -154,11 +159,27 @@ export async function googleLoginUser(idToken: string) {
                 user = await prisma.userAccount.update({
                     where: { userId: user.userId },
                     data: { provider: "email,google" },
+                    select: {
+                        userId: true,
+                        email: true,
+                        role: true,
+                        status: true,
+                        tutorialDone: true,
+                        provider: true,
+                    },
                 });
             } else if (user.provider === null) {
                 user = await prisma.userAccount.update({
                     where: { userId: user.userId },
                     data: { provider: "google" },
+                    select: {
+                        userId: true,
+                        email: true,
+                        role: true,
+                        status: true,
+                        tutorialDone: true,
+                        provider: true,
+                    },
                 });
             }
         } else {
@@ -169,6 +190,14 @@ export async function googleLoginUser(idToken: string) {
                     provider: "google",
                     status: true,
                     emailVerifiedAt: new Date(), // Implicitly verified by Google
+                },
+                select: {
+                    userId: true,
+                    email: true,
+                    role: true,
+                    status: true,
+                    tutorialDone: true,
+                    provider: true,
                 },
             });
         }
@@ -236,16 +265,11 @@ export async function loginUser(input: LoginInput) {
             status: true,
             tutorialDone: true,
             emailVerifiedAt: true,
-            deletedAt: true,
         },
     });
 
     if (!user) {
         throw new ServiceError(401, { error: "INVALID_CREDENTIALS", message: "Invalid email or password" });
-    }
-
-    if (user.deletedAt) {
-        throw new ServiceError(401, { error: "ACCOUNT_DELETED", message: "This account has been deleted" });
     }
 
     if (!user.status) {
@@ -322,7 +346,6 @@ export async function refreshAccessToken(refreshTokenValue: string) {
                     email: true,
                     role: true,
                     status: true,
-                    deletedAt: true,
                 },
             },
         },
@@ -340,7 +363,7 @@ export async function refreshAccessToken(refreshTokenValue: string) {
         throw new ServiceError(401, { error: "TOKEN_EXPIRED", message: "This refresh token has expired" });
     }
 
-    if (tokenRecord.user.deletedAt || !tokenRecord.user.status) {
+    if (!tokenRecord.user.status) {
         throw new ServiceError(403, { error: "ACCOUNT_INACTIVE", message: "Account is inactive or deleted" });
     }
 
@@ -485,7 +508,6 @@ export async function verifyOtp(email: string, code: string) {
             status: true,
             tutorialDone: true,
             emailVerifiedAt: true,
-            deletedAt: true,
         },
     });
 
@@ -505,7 +527,6 @@ export async function verifyOtp(email: string, code: string) {
                 status: true,
                 tutorialDone: true,
                 emailVerifiedAt: true,
-                deletedAt: true,
             },
         });
         isNewUser = true;
@@ -520,13 +541,6 @@ export async function verifyOtp(email: string, code: string) {
     }
 
     // Check account status
-    if (user.deletedAt) {
-        throw new ServiceError(401, {
-            error: "ACCOUNT_DELETED",
-            message: "This account has been deleted",
-        });
-    }
-
     if (!user.status) {
         throw new ServiceError(403, {
             error: "ACCOUNT_BANNED",
@@ -614,13 +628,6 @@ export async function verifyOtpWithPassword(email: string, code: string, newPass
     });
 
     // Check account status
-    if (updatedUser.deletedAt) {
-        throw new ServiceError(401, {
-            error: "ACCOUNT_DELETED",
-            message: "This account has been deleted",
-        });
-    }
-
     if (!updatedUser.status) {
         throw new ServiceError(403, {
             error: "ACCOUNT_BANNED",

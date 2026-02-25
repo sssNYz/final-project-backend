@@ -17,7 +17,6 @@ model UserAccount {
   provider        String?   @map("PROVIDER") // "email", "google", or "email,google" (legacy "both" may exist in old rows)
   lastLogin       DateTime? @map("LAST_LOGIN")
   createdAt       DateTime  @default(now()) @map("CREATE_AT")
-  deletedAt       DateTime? @map("DELETED_AT")
   updatedAt       DateTime  @updatedAt @map("UPDATE_AT")
   tutorialDone    Boolean   @default(false) @map("TUTORIAL_DONE")
   role            Role      @default(User) @map("ROLE")
