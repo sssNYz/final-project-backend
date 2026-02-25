@@ -28,6 +28,10 @@ export async function POST(request: NextRequest) {
         // Process request
         const result = await requestPasswordReset(email, redirectTo);
 
+        if ("error" in result) {
+            return NextResponse.json(result, { status: 404 });
+        }
+
         return NextResponse.json(result, { status: 200 });
     } catch (error: any) {
         console.error("[AuthV2] Password Reset Request Error:", error);

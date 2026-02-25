@@ -261,6 +261,40 @@
           "token",
           "newPassword"
         ]
+      },
+      "AuthV2GoogleLoginRequest": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "idToken"
+        ]
+      },
+      "AuthV2MergeRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "otp": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 6
+          }
+        },
+        "required": [
+          "email",
+          "otp",
+          "newPassword"
+        ]
       }
     }
   },
@@ -321,6 +355,47 @@
         }
       }
     },
+    "/api/auth/v2/register/merge": {
+      "post": {
+        "tags": [
+          "Auth (V2)"
+        ],
+        "summary": "Merge a Google account with an Email/Password provider",
+        "description": "Verifies the provided OTP, and sets a password to allow standard login for accounts originally created with Google Login.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthV2MergeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password set and account merged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthV2TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or expired OTP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/v2/login": {
       "post": {
         "tags": [
@@ -351,6 +426,47 @@
           },
           "401": {
             "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/v2/google-login": {
+      "post": {
+        "tags": [
+          "Auth (V2)"
+        ],
+        "summary": "Login or Register with Google",
+        "description": "Verifies an id_token from the Google Auth service. Will sign in existing users and auto-create new users.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthV2GoogleLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthV2TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid token",
             "content": {
               "application/json": {
                 "schema": {

@@ -17,11 +17,19 @@ export async function GET(request: NextRequest) {
 
     try {
         // Validate the token (checks existence and expiry)
-        await verifyPasswordResetToken(token);
+        const record = await verifyPasswordResetToken(token);
 
         // Token is valid! Redirect to the target URL with the token in the query params.
-        // E.g., com.example.medibuddy://login-callback?token=abc...
-        // Or, https://admin.medi-buddy.xyz/forgot-password?token=abc...
+
+        // --- Security Check: Destination vs Role (Double verify before redirect) ---
+        const isAdminPath = redirectTo.includes("admin.medi-buddy.xyz") || redirectTo.includes(":3001");
+        if (isAdminPath && record.user.role === "User") {
+            // A regular user shouldn't be redirected to the admin panel
+            const redirectUrl = new URL(redirectTo);
+            redirectUrl.searchParams.set("error", "FORBIDDEN");
+            return NextResponse.redirect(redirectUrl.toString());
+        }
+        // --------------------------------------------------------------------------
 
         // Handle existing query params on the redirect URL
         const redirectUrl = new URL(redirectTo);

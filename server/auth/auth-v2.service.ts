@@ -7,6 +7,9 @@ import {
 } from "@/lib/jwt";
 import { sendOtpEmail } from "@/lib/email";
 import { ServiceError } from "@/server/common/errors";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ============ Register ============
 
@@ -24,11 +27,17 @@ export async function registerUser(input: RegisterInput) {
     });
 
     if (existing) {
-        // If already verified, error
-        if (existing.emailVerifiedAt) {
-            throw new ServiceError(409, { error: "EMAIL_EXISTS", message: "This email is already registered and verified." });
+        // If they already have "email" as a provider
+        if (existing.provider?.includes("email")) {
+            if (existing.emailVerifiedAt) {
+                throw new ServiceError(409, { error: "EMAIL_EXISTS", message: "This email is already registered and verified." });
+            }
+        } else if (existing.provider === "google") {
+            // If they only have google, we can initiate the merge by sending OTP
+            // They will verify OTP and set password later
+            await requestOtp(email);
+            throw new ServiceError(409, { error: "EMAIL_EXISTS", message: "This email is associated with a Google account. Please verify your email with the OTP sent to set a password.", requiresMerge: true } as any);
         }
-        // If unverified, we allows overwriting/resending (implicitly handle by requestOtp later)
     }
 
     // Hash password
@@ -108,6 +117,101 @@ export async function createAdminUser(input: CreateAdminInput) {
     return {
         message: "Admin user created successfully. An OTP has been sent to their email for verification.",
     };
+}
+
+// ============ Google Login ============
+
+export async function googleLoginUser(idToken: string) {
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+            throw new ServiceError(401, { error: "INVALID_TOKEN", message: "Invalid Google token payload" });
+        }
+
+        const email = payload.email;
+
+        // Check if user exists
+        let user = await prisma.userAccount.findUnique({
+            where: { email },
+        });
+
+        if (user) {
+            // Check status
+            if (user.deletedAt) {
+                throw new ServiceError(401, { error: "ACCOUNT_DELETED", message: "This account has been deleted" });
+            }
+            if (!user.status) {
+                throw new ServiceError(403, { error: "ACCOUNT_BANNED", message: "Your account has been suspended" });
+            }
+
+            // Merge provider if needed
+            if (user.provider === "email") {
+                user = await prisma.userAccount.update({
+                    where: { userId: user.userId },
+                    data: { provider: "email,google" },
+                });
+            } else if (user.provider === null) {
+                user = await prisma.userAccount.update({
+                    where: { userId: user.userId },
+                    data: { provider: "google" },
+                });
+            }
+        } else {
+            // Create new Google user
+            user = await prisma.userAccount.create({
+                data: {
+                    email,
+                    provider: "google",
+                    status: true,
+                    emailVerifiedAt: new Date(), // Implicitly verified by Google
+                },
+            });
+        }
+
+        // Generate tokens
+        const accessToken = signAccessToken({
+            userId: user.userId,
+            email: user.email,
+            role: user.role,
+        });
+
+        const refreshToken = generateRefreshToken();
+        const refreshTokenExpiry = getRefreshTokenExpiry();
+
+        await prisma.refreshToken.create({
+            data: {
+                token: refreshToken,
+                userId: user.userId,
+                expiresAt: refreshTokenExpiry,
+            },
+        });
+
+        // Update last login
+        await prisma.userAccount.update({
+            where: { userId: user.userId },
+            data: { lastLogin: new Date() },
+        });
+
+        return {
+            accessToken,
+            refreshToken,
+            user: {
+                userId: user.userId,
+                email: user.email,
+                role: user.role,
+                tutorialDone: user.tutorialDone,
+            },
+        };
+    } catch (error) {
+        console.error("Google verify token error:", error);
+        if (error instanceof ServiceError) throw error;
+        throw new ServiceError(401, { error: "INVALID_TOKEN", message: "Failed to verify Google token" });
+    }
 }
 
 // ============ Login ============
@@ -467,6 +571,100 @@ export async function verifyOtp(email: string, code: string) {
     };
 }
 
+// ============ OTP Verify with Password (Merge) ============
+
+export async function verifyOtpWithPassword(email: string, code: string, newPassword: string) {
+    // Find matching token
+    const tokenRecord = await prisma.verificationToken.findUnique({
+        where: {
+            identifier_token: { identifier: email, token: code },
+        },
+    });
+
+    if (!tokenRecord) {
+        throw new ServiceError(400, {
+            error: "INVALID_OTP",
+            message: "Invalid verification code",
+        });
+    }
+
+    if (tokenRecord.expires < new Date()) {
+        await prisma.verificationToken.delete({ where: { id: tokenRecord.id } });
+        throw new ServiceError(400, {
+            error: "OTP_EXPIRED",
+            message: "Verification code has expired",
+        });
+    }
+
+    await prisma.verificationToken.deleteMany({
+        where: { identifier: email },
+    });
+
+    // Hash password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update user
+    const updatedUser = await prisma.userAccount.update({
+        where: { email },
+        data: {
+            password: hashedPassword,
+            provider: "email,google",
+            emailVerifiedAt: new Date()
+        }
+    });
+
+    // Check account status
+    if (updatedUser.deletedAt) {
+        throw new ServiceError(401, {
+            error: "ACCOUNT_DELETED",
+            message: "This account has been deleted",
+        });
+    }
+
+    if (!updatedUser.status) {
+        throw new ServiceError(403, {
+            error: "ACCOUNT_BANNED",
+            message: "Your account has been suspended",
+        });
+    }
+
+    // Generate tokens
+    const accessToken = signAccessToken({
+        userId: updatedUser.userId,
+        email: updatedUser.email,
+        role: updatedUser.role,
+    });
+
+    const refreshToken = generateRefreshToken();
+    const refreshTokenExpiry = getRefreshTokenExpiry();
+
+    await prisma.refreshToken.create({
+        data: {
+            token: refreshToken,
+            userId: updatedUser.userId,
+            expiresAt: refreshTokenExpiry,
+        },
+    });
+
+    // Update last login
+    await prisma.userAccount.update({
+        where: { userId: updatedUser.userId },
+        data: { lastLogin: new Date() },
+    });
+
+    return {
+        message: "Password set successfully. Account merged.",
+        accessToken,
+        refreshToken,
+        user: {
+            userId: updatedUser.userId,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            tutorialDone: updatedUser.tutorialDone,
+        },
+    };
+}
+
 // ============ Password Reset (Magic Link) ============
 
 import { sendPasswordResetEmail } from "@/lib/email";
@@ -485,9 +683,21 @@ export async function requestPasswordReset(email: string, redirectTo: string) {
     });
 
     if (!user) {
-        // Silently succeed to prevent email enumeration attacks
-        return { message: "If that email is registered, you will receive a reset link shortly." };
+        // Explicitly let the client know if the email was not found.
+        return { error: "Email not found in our system." };
     }
+
+    // --- Security Check: Requesting Role vs Destination ---
+    const isAdminPath = redirectTo.includes("admin.medi-buddy.xyz") || redirectTo.includes(":3001");
+
+    // Both SuperAdmin and Admin are allowed to reset passwords on the Admin Panel
+    if (isAdminPath && user.role === "User") {
+        throw new ServiceError(403, {
+            error: "FORBIDDEN",
+            message: "This account does not have administrator privileges."
+        });
+    }
+    // ------------------------------------------------------
 
     // 2. Clear old reset tokens for this user
     await prisma.passwordResetToken.deleteMany({
@@ -517,7 +727,7 @@ export async function requestPasswordReset(email: string, redirectTo: string) {
     // 6. Send the email
     await sendPasswordResetEmail(email, magicLink);
 
-    return { message: "If that email is registered, you will receive a reset link shortly." };
+    return { message: "A password reset link has been sent to your email." };
 }
 
 /**
