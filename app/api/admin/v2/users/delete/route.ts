@@ -72,6 +72,11 @@ export async function DELETE(request: NextRequest) {
                     where: { userId: { in: userIds } },
                 });
 
+                // 2.2 Delete PasswordResetTokens
+                await tx.passwordResetToken.deleteMany({
+                    where: { userId: { in: userIds } },
+                });
+
                 // 3. Delete UserRelationships (Owner or Viewer)
                 await tx.userRelationship.deleteMany({
                     where: {

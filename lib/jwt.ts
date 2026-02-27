@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 // ============ Configuration ============
 const JWT_SECRET = process.env.JWT_SECRET;
-const ACCESS_TOKEN_EXPIRY = "1m"; // 15 minutes
+const ACCESS_TOKEN_EXPIRY = "15m"; // 15 minutes
 const REFRESH_TOKEN_EXPIRY_DAYS = 7; // 7 days
 
 if (!JWT_SECRET) {
