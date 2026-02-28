@@ -40,6 +40,7 @@ export async function sendFcmMulticast(
   console.log("---- [FCM Debug: SENDING] ----");
   console.log("Notification:", JSON.stringify(message.notification, null, 2));
   console.log("Data:", JSON.stringify(message.data, null, 2));
+  console.log("Full Message:", JSON.stringify(message, null, 2));
   console.log("Token Count:", message.tokens.length);
   console.log("------------------------------");
 

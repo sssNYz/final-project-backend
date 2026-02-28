@@ -97,6 +97,20 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
                 isSnoozeReminder: isSnooze ? "true" : "false",
                 snoozedCount: String(log.snoozedCount ?? 0),
             },
+            android: {
+                priority: "high" as const,
+                notification: {
+                    sound: "default",
+                },
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        contentAvailable: true,
+                        sound: "default",
+                    },
+                },
+            },
         });
 
         // 4. Handle Cleanup (Revoke invalid tokens)
