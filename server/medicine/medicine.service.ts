@@ -102,13 +102,6 @@ export async function createMedicineForAdmin({
   adminId: number;
   input: CreateMedicineInput;
 }) {
-  if (!input.mediThName || !input.mediEnName) {
-    throw new ServiceError(400, {
-      error: "ชื่อยาต้องไม่ว่างเปล่า",
-      fields: ["mediThName", "mediEnName"],
-    });
-  }
-
   const data: Prisma.MedicineDatabaseCreateInput = {
     mediThName: input.mediThName,
     mediEnName: input.mediEnName,

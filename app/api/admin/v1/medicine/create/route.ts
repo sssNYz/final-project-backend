@@ -47,11 +47,20 @@ async function saveMedicinePicture(file: File | null): Promise<string | null> {
 
 export async function POST(request: NextRequest) {
   return withRole(request, "Admin", async ({ prismaUser }) => {
+    let mediPicturePath: string | null = null;
     try {
       const formData = await request.formData();
 
       const mediThName = String(formData.get("mediThName") ?? "");
       const mediEnName = String(formData.get("mediEnName") ?? "");
+
+      // Pre-validation: Fail-fast before processing files
+      if (!mediThName || !mediEnName) {
+        throw new ServiceError(400, {
+          error: "Medicine name must not be empty",
+          fields: ["mediThName", "mediEnName"],
+        });
+      }
       const mediTradeName = formData.get("mediTradeName") as string | null;
       const mediTypeValue = String(formData.get("mediType") ?? "ORAL");
       const mediType = mediTypeValue as MedicineType;
@@ -64,7 +73,7 @@ export async function POST(request: NextRequest) {
       const mediStore = formData.get("mediStore") as string | null;
 
       const pictureFile = formData.get("picture") as File | null;
-      const mediPicturePath = await saveMedicinePicture(pictureFile);
+      mediPicturePath = await saveMedicinePicture(pictureFile);
 
       const input: CreateMedicineInput = {
         mediThName,
@@ -88,6 +97,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result, { status: 201 });
     } catch (error: unknown) {
       console.error("Error in create medicine POST:", error);
+
+      // EMERGENCY CLEANUP: If we saved a picture but database failed, delete it
+      if (mediPicturePath) {
+        const fullPath = path.join(process.cwd(), "public", mediPicturePath);
+        await fs.promises.unlink(fullPath).catch(() => { });
+      }
       if (error instanceof ServiceError) {
         return NextResponse.json(error.body, { status: error.statusCode });
       }
