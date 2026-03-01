@@ -76,14 +76,15 @@ export async function handleMedicationResponse(params: {
 
     // Handle SNOOZE
     if (params.responseStatus === "SNOOZE") {
-        // Check if max snoozes reached
-        if (currentSnoozedCount >= MAX_SNOOZE_COUNT) {
+        // Check if we are about to hit the 3rd snooze (0-indexed so count == 2)
+        if (currentSnoozedCount >= 2) {
             // Auto-skip since we've reached max snoozes
             const updatedLog = await repo.updateLogResponse(params.logId, {
                 responseStatus: "SKIP",
                 responseAt: now,
+                snoozedCount: currentSnoozedCount + 1,
                 nextSnoozeAt: null,
-                note: params.note ?? "Auto-skipped: maximum snooze limit reached",
+                note: params.note ?? "ข้ามอัตโนมัติ: ถึงขีดจำกัดการเลื่อนแจ้งเตือนสูงสุดแล้ว",
             });
 
             return {
@@ -123,5 +124,31 @@ export async function handleMedicationResponse(params: {
     return {
         log: updatedLog,
         message: `Response recorded: ${params.responseStatus}`,
+    };
+}
+
+// ---------- Note ----------
+
+export async function updateMedicationLogNote(params: {
+    userId: number;
+    logId: number;
+    note: string;
+}) {
+    const log = await repo.findLogById(params.logId);
+    if (!log) {
+        throw new ServiceError(404, { error: "Medication log not found" });
+    }
+
+    // Verify profile belongs to user
+    const profile = await repo.findProfileByIdAndUserId(log.profileId, params.userId);
+    if (!profile) {
+        throw new ServiceError(403, { error: "Access denied" });
+    }
+
+    const updatedLog = await repo.updateLogNote(params.logId, params.note);
+
+    return {
+        log: updatedLog,
+        message: "Note updated successfully",
     };
 }
