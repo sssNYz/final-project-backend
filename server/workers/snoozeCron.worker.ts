@@ -35,11 +35,12 @@ async function processSnoozeLog(log: Awaited<ReturnType<typeof repo.findLogsForS
         pushSentAt: new Date(),
     });
 
-    // Enqueue the job for reliable sending
-    await notificationQueue.add("send-notification", {
+    // NOTE: We no longer queue individually.
+    // We just return the logId and userId for grouping in the main tick.
+    return {
         logId: log.logId,
-        isSnooze: true
-    });
+        userId: log.profile.userId
+    };
 }
 
 async function tick() {
@@ -53,8 +54,31 @@ async function tick() {
         dueSnoozes.map((log) => processSnoozeLog(log))
     );
 
-    const successCount = results.filter(r => r.status === "fulfilled").length;
-    console.log(`[snooze-cron] Enqueued ${successCount} snoozes.`);
+    const validLogs = results
+        .filter(r => r.status === "fulfilled" && r.value)
+        .map(r => (r as PromiseFulfilledResult<{ logId: number; userId: number }>).value);
+
+    if (validLogs.length > 0) {
+        // Group by userId
+        const groups: Record<number, number[]> = {};
+        for (const { logId, userId } of validLogs) {
+            if (!groups[userId]) groups[userId] = [];
+            groups[userId].push(logId);
+        }
+
+        // Add to Queue
+        let enqueued = 0;
+        for (const [userId, logIds] of Object.entries(groups)) {
+            await notificationQueue.add("send-notification-group", {
+                logIds,
+                isSnooze: true,
+            });
+            enqueued++;
+        }
+        console.log(`[snooze-cron] Enqueued ${enqueued} groups for ${validLogs.length} snoozes.`);
+    } else {
+        console.log(`[snooze-cron] Processed 0 valid snoozes.`);
+    }
 }
 
 let running = false;

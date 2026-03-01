@@ -125,12 +125,10 @@ async function processRegimen(regimen: {
     data: { nextOccurrenceAt: next },
   });
 
-  if (log.pushSentAt) return null; // Already sent, don't queue
-
-  // NEW: Add to Queue
-  await notificationQueue.add("send-notification", {
-    logId: log.logId
-  });
+  // NEW: Do NOT Add to Queue Individually!
+  // await notificationQueue.add("send-notification", {
+  //   logId: log.logId
+  // });
 
   return log.logId;
 }
@@ -173,10 +171,38 @@ async function tick() {
   // Process in parallel
   const results = await Promise.allSettled(dueRegimens.map(regimen => processRegimen(regimen)));
 
-  const successCount = results.filter(r => r.status === "fulfilled" && r.value !== null).length;
+  const successLogs = results.filter(r => r.status === "fulfilled" && r.value !== null).map(r => (r as PromiseFulfilledResult<number>).value);
   const failCount = results.filter(r => r.status === "rejected").length;
 
-  console.log(`[medication-cron] Enqueued ${successCount} jobs. Failed: ${failCount}`);
+  if (successLogs.length > 0) {
+    // 1. Group the success logs by UserId
+    const logRecords = await prisma.medicationLog.findMany({
+      where: { logId: { in: successLogs } },
+      select: { logId: true, medicineList: { select: { profile: { select: { userId: true } } } } }
+    });
+
+    const groups: Record<number, number[]> = {};
+    for (const log of logRecords) {
+      const userId = log.medicineList?.profile?.userId;
+      if (userId) {
+        if (!groups[userId]) groups[userId] = [];
+        groups[userId].push(log.logId);
+      }
+    }
+
+    // 2. Enqueue packed push notifications per user
+    let enqueued = 0;
+    for (const [userId, logIds] of Object.entries(groups)) {
+      await notificationQueue.add("send-notification-group", {
+        logIds,
+        isSnooze: false
+      });
+      enqueued++;
+    }
+    console.log(`[medication-cron] Enqueued ${enqueued} groups for ${successLogs.length} logs. Failed: ${failCount}`);
+  } else {
+    console.log(`[medication-cron] Enqueued 0 groups for 0 logs. Failed: ${failCount}`);
+  }
 }
 
 let running = false;

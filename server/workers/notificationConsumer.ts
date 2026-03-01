@@ -3,47 +3,58 @@ import { sendFcmMulticast } from "../push/fcm";
 import { Job } from "bullmq";
 
 interface NotificationJobData {
-    logId: number;
+    logIds?: number[];
+    logId?: number; // Support old jobs still in queue
     isSnooze?: boolean;
 }
 
 export async function processNotificationJob(job: Job<NotificationJobData>) {
-    const { logId, isSnooze } = job.data;
-    console.log(`[NotificationWorker] Processing job ${job.id} for log ${logId} (Snooze: ${isSnooze})`);
+    const { isSnooze } = job.data;
+
+    let logIds: number[] = [];
+    if (job.data.logIds && Array.isArray(job.data.logIds)) {
+        logIds = job.data.logIds;
+    } else if (job.data.logId) {
+        logIds = [job.data.logId];
+    }
+
+    if (logIds.length === 0) {
+        console.error(`[NotificationWorker] Job ${job.id} missing logId/logIds`);
+        return;
+    }
+
+    console.log(`[NotificationWorker] Processing job ${job.id} for logs [${logIds.join(",")}] (Snooze: ${isSnooze})`);
 
     // 1. Fetch Data
-    const log = await prisma.medicationLog.findUnique({
-        where: { logId },
+    const logs = await prisma.medicationLog.findMany({
+        where: { logId: { in: logIds } },
         include: {
             medicineList: {
                 include: {
                     profile: {
-                        include: {
-                            user: true
-                        }
+                        include: { user: true }
                     },
-                    medicine: true, // If needed for names
+                    medicine: true,
                 }
             }
         }
     });
 
-    if (!log) {
-        console.error(`[NotificationWorker] Log ${logId} not found`);
-        return; // Stop processing
-    }
-
-    // NOTE: For Snooze, we update pushSentAt BEFORE enqueuing to prevent loops.
-    // So we shouldn't check `if (log.pushSentAt)` strictly if it's a snooze.
-    // actually, for snooze, we want to send ANYWAY.
-    // For regular, we check pushSentAt.
-
-    if (!isSnooze && log.pushSentAt) {
-        console.log(`[NotificationWorker] Log ${logId} already sent at ${log.pushSentAt}`);
+    if (logs.length === 0) {
+        console.error(`[NotificationWorker] Logs not found`);
         return;
     }
 
-    const profile = log.medicineList?.profile;
+    // Filter out logs that were already sent (unless it's a snooze, where we want to send anyway)
+    const validLogs = isSnooze ? logs : logs.filter(l => !l.pushSentAt);
+
+    if (validLogs.length === 0) {
+        console.log(`[NotificationWorker] Logs already sent`);
+        return;
+    }
+
+    const firstLog = validLogs[0];
+    const profile = firstLog.medicineList?.profile;
     if (!profile) return;
     const userId = profile.userId;
 
@@ -60,23 +71,46 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
     }
 
     // 3. Construct Payload
-    // Note: Previous logic aggregated multiple logs. 
-    // With the queue, we process one by one initially.
-    // However, the user might want aggregation back later.
-    // For reliability, let's start with 1-to-1 immediate delivery.
-
-    const medicineName = log.medicineList?.mediNickname
-        || log.medicineList?.medicine?.mediEnName
-        || "Configuration Error";
+    const isGroup = validLogs.length > 1;
 
     let title = "Medication Reminder";
-    let body = `It's time to take ${medicineName} for ${profile.profileName}.`;
+    let body = "";
 
-    if (isSnooze) {
-        const snoozedCount = log.snoozedCount ?? 0;
-        title = `Reminder (${snoozedCount}/3)`; // Hardcoded max for display
-        body = `Time to take ${medicineName}. You snoozed this earlier.`;
+    if (isGroup) {
+        const uniqueNames = Array.from(new Set(validLogs.map(l => l.medicineList?.profile?.profileName)));
+        title = `Medications Due (${validLogs.length})`;
+        body = `You have ${validLogs.length} medications due for ${uniqueNames.join(" & ")}.`;
+    } else {
+        const medicineName = firstLog.medicineList?.mediNickname
+            || firstLog.medicineList?.medicine?.mediEnName
+            || "Configuration Error";
+        body = `It's time to take ${medicineName} for ${profile.profileName}.`;
+
+        if (isSnooze) {
+            const snoozedCount = firstLog.snoozedCount ?? 0;
+            title = `Reminder (${snoozedCount}/3)`;
+            body = `Time to take ${medicineName}. You snoozed this earlier.`;
+        }
     }
+
+    const payloadItems = validLogs.map(log => ({
+        type: isSnooze ? "SNOOZE_REMINDER" : "MEDICATION_REMINDER",
+        logId: String(log.logId),
+        profileId: String(log.profileId),
+        mediListId: String(log.mediListId),
+        scheduleTime: log.scheduleTime.toISOString(),
+        profilePicture: log.medicineList?.profile?.profilePicture || "",
+        timestamp: new Date().toISOString(),
+        isSnoozeReminder: isSnooze ? "true" : "false",
+        snoozedCount: String(log.snoozedCount ?? 0),
+    }));
+
+    const dataPayload = isGroup ? {
+        type: isSnooze ? "SNOOZE_SUMMARY" : "MEDICATION_SUMMARY",
+        count: String(validLogs.length),
+        payload: JSON.stringify(payloadItems), // Pack array here
+        timestamp: new Date().toISOString(),
+    } : payloadItems[0]; // Exactly map the single item if length 1
 
     try {
         const response = await sendFcmMulticast({
@@ -86,17 +120,8 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
                 body,
                 imageUrl: "https://medi-buddy.xyz/medi-buddy-logo.png",
             },
-            data: {
-                type: isSnooze ? "SNOOZE_REMINDER" : "MEDICATION_REMINDER",
-                logId: String(log.logId),
-                profileId: String(profile.profileId),
-                mediListId: String(log.mediListId),
-                scheduleTime: log.scheduleTime.toISOString(),
-                profilePicture: profile.profilePicture || "",
-                timestamp: new Date().toISOString(),
-                isSnoozeReminder: isSnooze ? "true" : "false",
-                snoozedCount: String(log.snoozedCount ?? 0),
-            },
+            data: dataPayload as any,
+            // Retain High Priority Configuration
             android: {
                 priority: "high" as const,
                 notification: {
@@ -113,7 +138,7 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
             },
         });
 
-        // 4. Handle Cleanup (Revoke invalid tokens)
+        // 4. Handle Cleanup
         if (response.failureCount > 0) {
             const revokedCodes = new Set([
                 "messaging/registration-token-not-registered",
@@ -135,15 +160,16 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
 
         // 5. Mark as Sent
         if (response.successCount > 0) {
-            await prisma.medicationLog.update({
-                where: { logId },
+            const sentLogIds = validLogs.map(l => l.logId);
+            await prisma.medicationLog.updateMany({
+                where: { logId: { in: sentLogIds } },
                 data: { pushSentAt: new Date() }
             });
-            console.log(`[NotificationWorker] Success for log ${logId}`);
+            console.log(`[NotificationWorker] Success for logs [${sentLogIds.join(",")}]`);
         }
 
     } catch (error) {
         console.error(`[NotificationWorker] FCM Error`, error);
-        throw error; // Throw so BullMQ retries
+        throw error;
     }
 }
