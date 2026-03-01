@@ -96,14 +96,12 @@ export interface CreateMedicineInput {
 }
 
 export async function createMedicineForAdmin({
-  supabaseUser,
+  adminId,
   input,
 }: {
-  supabaseUser: User;
+  adminId: number;
   input: CreateMedicineInput;
 }) {
-  const admin = await getCurrentAdminOrThrow(supabaseUser);
-
   if (!input.mediThName || !input.mediEnName) {
     throw new ServiceError(400, {
       error: "ชื่อยาต้องไม่ว่างเปล่า",
@@ -123,7 +121,7 @@ export async function createMedicineForAdmin({
     mediWarning: input.mediWarning ?? null,
     mediStore: input.mediStore ?? null,
     mediPicture: input.mediPicturePath ?? null,
-    adminId: admin.userId,
+    adminId,
   };
 
   const created = await createMedicine(data);

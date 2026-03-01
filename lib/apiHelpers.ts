@@ -125,7 +125,7 @@ export function hasRole(userRole: string, requiredRole: "SuperAdmin" | "Admin" |
  *     return NextResponse.json({ success: true });
  *   });
  * }
- */
+*/
 export async function withRole(
   request: Request,
   requiredRole: "SuperAdmin" | "Admin" | "User",
