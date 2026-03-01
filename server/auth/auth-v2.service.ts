@@ -33,10 +33,9 @@ export async function registerUser(input: RegisterInput) {
                 throw new ServiceError(409, { error: "EMAIL_EXISTS", message: "This email is already registered and verified." });
             }
         } else if (existing.provider === "google") {
-            // If they only have google, we can initiate the merge by sending OTP
-            // They will verify OTP and set password later
-            await requestOtp(email);
-            throw new ServiceError(409, { error: "EMAIL_EXISTS", message: "This email is associated with a Google account. Please verify your email with the OTP sent to set a password.", requiresMerge: true } as any);
+            // Tell frontend this account requires merge, and let frontend ask the user
+            // User will explicitly hit /otp/request if they say Yes
+            throw new ServiceError(409, { error: "EMAIL_EXISTS", message: "This email is associated with a Google account. Would you like to set a password to also log in with email?", requiresMerge: true } as any);
         }
     }
 

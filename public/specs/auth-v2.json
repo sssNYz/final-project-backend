@@ -343,7 +343,7 @@
             }
           },
           "409": {
-            "description": "Email already exists and verified",
+            "description": "Email already exists and verified, OR email belongs to a Google account requiring manual merge confirmation.",
             "content": {
               "application/json": {
                 "schema": {

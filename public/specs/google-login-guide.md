@@ -47,11 +47,12 @@ This flow happens when a user *originally* created their account using Google Lo
 ### Flow Overview
 1.  The user enters their Google email and a new password on the mobile "Register" screen.
 2.  The mobile app calls the standard register API (`/api/auth/v2/register`).
-3.  **The Trigger:** The backend detects that this email belongs to a "Google-only" account. It stops the registration, sends a 6-digit OTP to their email, and returns a specific `409` error with `requiresMerge: true`.
-4.  The mobile app sees `requiresMerge: true` and shows an OTP entry screen instead of an error message.
-5.  The user enters the OTP from their email, along with the password they want to set.
-6.  The mobile app calls the new `merge` API.
-7.  The account is successfully merged, and tokens are returned.
+3.  **The Trigger:** The backend detects that this email belongs to a "Google-only" account. It stops the registration and returns a specific `409` error with `requiresMerge: true`.
+4.  The mobile app sees `requiresMerge: true` and shows a popup: *"This email is associated with a Google account. Would you like to set a password to also log in with email?"*.
+5.  If the user chooses "Yes", the mobile app calls `POST /api/auth/v2/otp/request` to trigger the OTP email.
+6.  The user enters the OTP from their email, along with the password they want to set.
+7.  The mobile app calls the new `merge` API.
+8.  The account is successfully merged, and tokens are returned.
 
 ### The APIs & Triggers
 
@@ -62,11 +63,20 @@ This flow happens when a user *originally* created their account using Google Lo
     ```json
     {
       "error": "EMAIL_EXISTS",
-      "message": "This email is associated with a Google account. Please verify your email with the OTP sent to set a password.",
+      "message": "This email is associated with a Google account. Would you like to set a password to also log in with email?",
       "requiresMerge": true
     }
     ```
-    *(Mobile Dev instruction: When you see `requiresMerge: true`, keep the password they typed in memory, and navigate them to the OTP Verification screen).*
+    *(Mobile Dev instruction: When you see `requiresMerge: true`, keep the password they typed in memory, ask the user if they want to merge, and navigate them to the OTP Verification screen).*
+
+**Step 1.5: Triggering the OTP Email**
+*   **Endpoint:** `POST /api/auth/v2/otp/request`
+*   **Request Body (JSON):**
+    ```json
+    {
+      "email": "user@gmail.com"
+    }
+    ```
 
 **Step 2: The Merge (Completing the process)**
 *   **Endpoint:** `POST /api/auth/v2/register/merge`
