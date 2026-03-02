@@ -122,6 +122,7 @@ export async function createRegimenWithTimes(params: {
   intervalDays: number | null;
   cycleOnDays: number | null;
   cycleBreakDays: number | null;
+  intervalHour: number | null;
   nextOccurrenceAt: Date | null;
   times: Array<{
     timeOfDay: string;
@@ -143,6 +144,7 @@ export async function createRegimenWithTimes(params: {
         intervalDays: params.intervalDays,
         cycleOnDays: params.cycleOnDays,
         cycleBreakDays: params.cycleBreakDays,
+        intervalHour: params.intervalHour,
         nextOccurrenceAt: params.nextOccurrenceAt,
       },
     });
@@ -181,6 +183,7 @@ export async function updateRegimenFields(
     intervalDays?: number | null;
     cycleOnDays?: number | null;
     cycleBreakDays?: number | null;
+    intervalHour?: number | null;
     nextOccurrenceAt?: Date | null;
   }
 ) {

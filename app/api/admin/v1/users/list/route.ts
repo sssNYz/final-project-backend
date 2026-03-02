@@ -4,7 +4,7 @@ import { listAdminAccountsForDashboard } from "@/server/users/users.service";
 
 export async function GET(request: Request) {
   return withRole(request, "Admin", async () => {
-    try {
+    try { 
       const accounts = await listAdminAccountsForDashboard();
       return NextResponse.json({ accounts }, { status: 200 });
     } catch (error) {

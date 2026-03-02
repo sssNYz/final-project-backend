@@ -2,6 +2,10 @@ generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "./ERD.svg"
+}
 
 datasource db {
   provider = "mysql"
@@ -10,27 +14,29 @@ datasource db {
 
 /// USER_ACCOUNT
 model UserAccount {
-  userId         Int       @id @default(autoincrement()) @map("USER_ID")
-  email          String    @unique @map("USER_EMAIL")
-  password       String?   @map("USER_PASSWORD")
-  supabaseUserId String?   @unique @map("SUPABASE_USER_ID")
-  provider       String?   @map("PROVIDER") // "email", "google", or "email,google" (legacy "both" may exist in old rows)
-  lastLogin      DateTime? @map("LAST_LOGIN")
-  createdAt      DateTime  @default(now()) @map("CREATE_AT")
-  deletedAt      DateTime? @map("DELETED_AT")
-  updatedAt      DateTime  @updatedAt @map("UPDATE_AT")
-  tutorialDone   Boolean   @default(false) @map("TUTORIAL_DONE")
-  role           Role      @default(User) @map("ROLE")
-  status         Boolean   @default(true) @map("STATUS")
-  timeZone       String?   @map("TIME_ZONE")
+  userId          Int       @id @default(autoincrement()) @map("USER_ID")
+  email           String    @unique @map("USER_EMAIL")
+  password        String?   @map("USER_PASSWORD")
+  supabaseUserId  String?   @unique @map("SUPABASE_USER_ID")
+  provider        String?   @map("PROVIDER") // "email", "google", or "email,google" (legacy "both" may exist in old rows)
+  lastLogin       DateTime? @map("LAST_LOGIN")
+  createdAt       DateTime  @default(now()) @map("CREATE_AT")
+  updatedAt       DateTime  @updatedAt @map("UPDATE_AT")
+  tutorialDone    Boolean   @default(false) @map("TUTORIAL_DONE")
+  role            Role      @default(User) @map("ROLE")
+  status          Boolean   @default(true) @map("STATUS")
+  emailVerifiedAt DateTime? @map("EMAIL_VERIFIED_AT")
+  timeZone        String?   @map("TIME_ZONE")
 
   // Relations
-  profiles            UserProfile[]      @relation("UserToProfile")
-  requests            UserRequest[]      @relation("UserRequests")
-  handledRequests     UserRequest[]      @relation("AdminRequests")
-  ownedRelationships  UserRelationship[] @relation("OwnerUser")
-  viewedRelationships UserRelationship[] @relation("ViewerUser")
+  profiles            UserProfile[]        @relation("UserToProfile")
+  requests            UserRequest[]        @relation("UserRequests")
+  handledRequests     UserRequest[]        @relation("AdminRequests")
+  ownedRelationships  UserRelationship[]   @relation("OwnerUser")
+  viewedRelationships UserRelationship[]   @relation("ViewerUser")
   deviceTokens        DeviceToken[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("USER_ACCOUNT")
 }
@@ -51,6 +57,47 @@ model DeviceToken {
   user UserAccount @relation(fields: [userId], references: [userId])
 
   @@map("DEVICE_TOKEN")
+}
+
+/// REFRESH_TOKEN – server-controlled session tokens
+model RefreshToken {
+  id        Int      @id @default(autoincrement()) @map("REFRESH_TOKEN_ID")
+  token     String   @unique @map("TOKEN") @db.VarChar(512)
+  userId    Int      @map("USER_ID")
+  expiresAt DateTime @map("EXPIRES_AT")
+  revoked   Boolean  @default(false) @map("REVOKED")
+  createdAt DateTime @default(now()) @map("CREATED_AT")
+
+  // Relations
+  user UserAccount @relation(fields: [userId], references: [userId])
+
+  @@map("REFRESH_TOKEN")
+}
+
+/// VERIFICATION_TOKEN – OTP codes for email verification
+model VerificationToken {
+  id         Int      @id @default(autoincrement()) @map("VT_ID")
+  identifier String   @map("IDENTIFIER") @db.VarChar(255) // email address
+  token      String   @map("TOKEN") @db.VarChar(10) // 6-digit code
+  expires    DateTime @map("EXPIRES")
+  createdAt  DateTime @default(now()) @map("CREATED_AT")
+
+  @@unique([identifier, token])
+  @@map("VERIFICATION_TOKEN")
+}
+
+/// PASSWORD_RESET_TOKEN – Magic links / deep links for password reset
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement()) @map("PRT_ID")
+  token     String   @unique @map("TOKEN") @db.VarChar(255)
+  userId    Int      @map("USER_ID")
+  expiresAt DateTime @map("EXPIRES_AT")
+  createdAt DateTime @default(now()) @map("CREATED_AT")
+
+  // Relations
+  user UserAccount @relation(fields: [userId], references: [userId])
+
+  @@map("PASSWORD_RESET_TOKEN")
 }
 
 /// USER_PROFILE
@@ -189,6 +236,7 @@ model UserMedicineRegimen {
   intervalDays     Int?         @map("INTERVAL_DAYS")
   cycleOnDays      Int?         @map("CYCLE_ON_DAYS")
   cycleBreakDays   Int?         @map("CYCLE_BREAK_DAYS")
+  intervalHour     Int?         @map("INTERVAL_HOUR")
   nextOccurrenceAt DateTime?    @map("NEXT_OCCURRENCE_AT")
 
   // Relations

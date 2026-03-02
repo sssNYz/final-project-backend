@@ -76,3 +76,42 @@ export async function updateUserAccount(
     data,
   });
 }
+
+// Password Reset Token Methods
+
+export async function createPasswordResetToken({
+  token,
+  userId,
+  expiresAt,
+}: {
+  token: string;
+  userId: number;
+  expiresAt: Date;
+}) {
+  return prisma.passwordResetToken.create({
+    data: {
+      token,
+      userId,
+      expiresAt,
+    },
+  });
+}
+
+export async function findPasswordResetToken(token: string) {
+  return prisma.passwordResetToken.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+}
+
+export async function deletePasswordResetToken(tokenId: number) {
+  return prisma.passwordResetToken.delete({
+    where: { id: tokenId },
+  });
+}
+
+export async function deleteAllUserPasswordResetTokens(userId: number) {
+  return prisma.passwordResetToken.deleteMany({
+    where: { userId },
+  });
+}

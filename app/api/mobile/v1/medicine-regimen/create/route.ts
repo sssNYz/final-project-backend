@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       const intervalDays = body.scheduleType === "INTERVAL" ? body.intervalDays : null;
       const cycleOnDays = body.scheduleType === "CYCLE" ? body.cycleOnDays : null;
       const cycleBreakDays = body.scheduleType === "CYCLE" ? body.cycleBreakDays : null;
+      const intervalHour = body.intervalHour ?? null;
 
       const result = await createMedicineRegimen({
         userId: prismaUser.userId,
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
         intervalDays,
         cycleOnDays,
         cycleBreakDays,
+        intervalHour,
         times: body.times.map((t) => ({
           time: t.time,
           dose: t.dose,

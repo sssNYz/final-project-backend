@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   return withRole(request, "Admin", async () => {
     try {
-      const items = await getAccountUsageStats({ fromDate, toDate })
+      const { items, globalMinDate, globalMaxDate } = await getAccountUsageStats({ fromDate, toDate })
 
       return NextResponse.json(
         {
@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
             patientCount: item.patientCount,
             medicationLogCount: item.medicationLogCount,
           })),
+          globalMinDate,
+          globalMaxDate,
         },
         { status: 200 },
       )

@@ -119,18 +119,30 @@ export function middleware(request: NextRequest) {
       "http://localhost:5174",
       "http://localhost:8080",
       "http://localhost:8081",
+      "https://www.medi-buddy.xyz",
+      "https://medi-buddy.xyz",
+      "https://admin.medi-buddy.xyz",
     ];
 
     // Handle preflight requests (OPTIONS)
     if (request.method === "OPTIONS") {
+      const headers = new Headers({
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+        "Access-Control-Max-Age": "86400",
+      });
+
+      if (origin && (allowedOrigins.includes(origin) || process.env.NODE_ENV === "development")) {
+        headers.set("Access-Control-Allow-Origin", origin);
+        headers.set("Access-Control-Allow-Credentials", "true");
+      } else {
+        headers.set("Access-Control-Allow-Origin", "*");
+        headers.set("Access-Control-Allow-Credentials", "false");
+      }
+
       return new NextResponse(null, {
         status: 200,
-        headers: {
-          "Access-Control-Allow-Origin": origin || "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          "Access-Control-Max-Age": "86400",
-        },
+        headers,
       });
     }
 
@@ -139,13 +151,14 @@ export function middleware(request: NextRequest) {
 
     if (origin && (allowedOrigins.includes(origin) || process.env.NODE_ENV === "development")) {
       response.headers.set("Access-Control-Allow-Origin", origin);
+      response.headers.set("Access-Control-Allow-Credentials", "true");
     } else {
       response.headers.set("Access-Control-Allow-Origin", "*");
+      response.headers.set("Access-Control-Allow-Credentials", "false");
     }
 
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-    response.headers.set("Access-Control-Allow-Credentials", "true");
 
     // Add rate limit headers to successful responses
     if (!request.nextUrl.pathname.includes("/api/health")) {

@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://medi-buddy.duckdns.org",
+      "url": "https://www.medi-buddy.xyz",
       "description": "Production Server (HTTPS)"
     }
   ],
@@ -1924,6 +1924,68 @@
         }
       }
     },
+    "/api/mobile/v1/users/tutorial-status": {
+      "patch": {
+        "tags": [
+          "Mobile - Users"
+        ],
+        "summary": "Update tutorial status",
+        "description": "Sets the tutorialDone status for the user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tutorialDone": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "tutorialDone"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/PublicUserAccount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mobile/v1/profile/create": {
       "post": {
         "tags": [
@@ -3690,6 +3752,95 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MedicationLogDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Log not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/medication-log/note": {
+      "patch": {
+        "tags": [
+          "Mobile - MedicationLog"
+        ],
+        "summary": "Update medication log note",
+        "description": "Update the note for a specific medication log.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logId": {
+                    "type": "integer"
+                  },
+                  "note": {
+                    "type": "string",
+                    "description": "The new note content"
+                  }
+                },
+                "required": [
+                  "logId",
+                  "note"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Note updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicationLogResponseResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

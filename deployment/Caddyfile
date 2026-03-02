@@ -1,4 +1,4 @@
-medi-buddy.duckdns.org {
+medi-buddy.xyz, www.medi-buddy.xyz, medi-buddy.duckdns.org {
     # Automatic HTTPS with Let's Encrypt
     reverse_proxy localhost:3000
     
@@ -6,4 +6,8 @@ medi-buddy.duckdns.org {
     handle_path /phpmyadmin/* {
         reverse_proxy localhost:8080
     }
+}
+
+admin.medi-buddy.xyz {
+    reverse_proxy localhost:3001
 }

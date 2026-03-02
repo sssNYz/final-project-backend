@@ -159,9 +159,7 @@ function validateStartEndDate(scheduleType: ScheduleType, startDate: Date, endDa
   if (endDate && endDate.getTime() < startDate.getTime()) {
     throw new ServiceError(400, { error: "endDate must be on or after startDate" });
   }
-  if (scheduleType === "DAILY" && !endDate) {
-    throw new ServiceError(400, { error: "endDate is required when scheduleType is DAILY" });
-  }
+
 }
 
 function validateTimes(times: Array<{
@@ -228,6 +226,7 @@ export async function createMedicineRegimen(params: {
   intervalDays?: number | null;
   cycleOnDays?: number | null;
   cycleBreakDays?: number | null;
+  intervalHour?: number | null;
   times: Array<{
     time: string;
     dose: number;
@@ -236,7 +235,7 @@ export async function createMedicineRegimen(params: {
     mealOffsetMin?: number | null;
   }>;
 }) {
-  const { userId, mediListId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays, times } = params;
+  const { userId, mediListId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays, intervalHour, times } = params;
 
   // 1) Check medicine list exists and belongs to user's profile
   const medicineList = await findMedicineListById(mediListId);
@@ -289,6 +288,7 @@ export async function createMedicineRegimen(params: {
     intervalDays: schedule.intervalDays,
     cycleOnDays: schedule.cycleOnDays,
     cycleBreakDays: schedule.cycleBreakDays,
+    intervalHour: intervalHour ?? null,
     times: timesWithTimeOfDay,
     userTimeZone,
   });
@@ -303,6 +303,7 @@ export async function createMedicineRegimen(params: {
     intervalDays: schedule.intervalDays,
     cycleOnDays: schedule.cycleOnDays,
     cycleBreakDays: schedule.cycleBreakDays,
+    intervalHour: intervalHour ?? null,
     nextOccurrenceAt,
     times: timesWithTimeOfDay,
   });
@@ -318,6 +319,7 @@ export async function createMedicineRegimen(params: {
     intervalDays: created.intervalDays,
     cycleOnDays: created.cycleOnDays,
     cycleBreakDays: created.cycleBreakDays,
+    intervalHour: created.intervalHour,
     nextOccurrenceAt: created.nextOccurrenceAt,
     times: created.times.map((t) => ({
       timeId: t.timeId,
@@ -355,6 +357,7 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
       intervalDays: regimen.intervalDays,
       cycleOnDays: regimen.cycleOnDays,
       cycleBreakDays: regimen.cycleBreakDays,
+      intervalHour: regimen.intervalHour,
       medicineList: regimen.medicineList
         ? {
           mediListId: regimen.medicineList.mediListId,
@@ -405,6 +408,7 @@ export async function listMedicineRegimensByListId(params: { userId: number; med
       intervalDays: regimen.intervalDays,
       cycleOnDays: regimen.cycleOnDays,
       cycleBreakDays: regimen.cycleBreakDays,
+      intervalHour: regimen.intervalHour,
       medicineList: regimen.medicineList
         ? {
           mediListId: regimen.medicineList.mediListId,
@@ -457,6 +461,7 @@ export async function getMedicineRegimenById(params: { userId: number; mediRegim
     intervalDays: regimen.intervalDays,
     cycleOnDays: regimen.cycleOnDays,
     cycleBreakDays: regimen.cycleBreakDays,
+    intervalHour: regimen.intervalHour,
     medicineList: regimen.medicineList
       ? {
         mediListId: regimen.medicineList.mediListId,
@@ -488,6 +493,7 @@ export async function updateMedicineRegimen(params: {
   intervalDays?: number | null;
   cycleOnDays?: number | null;
   cycleBreakDays?: number | null;
+  intervalHour?: number | null;
   times?: Array<{
     time: string;
     dose: number;
@@ -496,7 +502,7 @@ export async function updateMedicineRegimen(params: {
     mealOffsetMin?: number | null;
   }>;
 }) {
-  const { userId, mediRegimenId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays, times } = params;
+  const { userId, mediRegimenId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays, intervalHour, times } = params;
 
   // 1) Find regimen
   const existing = await findRegimenById(mediRegimenId);
@@ -525,6 +531,7 @@ export async function updateMedicineRegimen(params: {
     intervalDays !== undefined ||
     cycleOnDays !== undefined ||
     cycleBreakDays !== undefined ||
+    intervalHour !== undefined ||
     times !== undefined;
 
   if (!hasAnyUserUpdate) {
@@ -548,6 +555,7 @@ export async function updateMedicineRegimen(params: {
     intervalDays?: number | null;
     cycleOnDays?: number | null;
     cycleBreakDays?: number | null;
+    intervalHour?: number | null;
     nextOccurrenceAt?: Date | null;
   } = {};
 
@@ -558,6 +566,7 @@ export async function updateMedicineRegimen(params: {
   if (intervalDays !== undefined) updateData.intervalDays = intervalDays;
   if (cycleOnDays !== undefined) updateData.cycleOnDays = cycleOnDays;
   if (cycleBreakDays !== undefined) updateData.cycleBreakDays = cycleBreakDays;
+  if (intervalHour !== undefined) updateData.intervalHour = intervalHour;
 
   // 7) Get user timezone (default to Asia/Bangkok)
   const userAccount = await prisma.userAccount.findUnique({
@@ -573,6 +582,7 @@ export async function updateMedicineRegimen(params: {
   const finalIntervalDays = intervalDays !== undefined ? intervalDays : existing.intervalDays;
   const finalCycleOnDays = cycleOnDays !== undefined ? cycleOnDays : existing.cycleOnDays;
   const finalCycleBreakDays = cycleBreakDays !== undefined ? cycleBreakDays : existing.cycleBreakDays;
+  const finalIntervalHour = intervalHour !== undefined ? intervalHour : existing.intervalHour;
 
   validateStartEndDate(finalScheduleType, finalStartDate, finalEndDate);
   const schedule = normalizeAndValidateScheduleFields(finalScheduleType, {
@@ -614,6 +624,7 @@ export async function updateMedicineRegimen(params: {
     intervalDays: schedule.intervalDays,
     cycleOnDays: schedule.cycleOnDays,
     cycleBreakDays: schedule.cycleBreakDays,
+    intervalHour: finalIntervalHour ?? null,
     times: timesForCalculation,
     userTimeZone,
   });
@@ -641,6 +652,7 @@ export async function updateMedicineRegimen(params: {
     intervalDays: updated.intervalDays,
     cycleOnDays: updated.cycleOnDays,
     cycleBreakDays: updated.cycleBreakDays,
+    intervalHour: updated.intervalHour,
     nextOccurrenceAt: updated.nextOccurrenceAt,
     medicineList: updated.medicineList
       ? {

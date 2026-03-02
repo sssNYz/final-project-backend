@@ -61,13 +61,14 @@ const commonCreateFields = {
   mediListId: z.coerce.number().int().positive(),
   startDate: z.coerce.date(),
   times: z.array(MedicineRegimenTimeInputSchema).min(1),
+  intervalHour: z.coerce.number().int().min(1).max(23).optional(),
 } as const;
 
 const MedicineRegimenCreateDailySchema = z
   .object({
     ...commonCreateFields,
     scheduleType: z.literal("DAILY"),
-    endDate: z.coerce.date(),
+    endDate: z.coerce.date().nullable().optional(),
   })
   .strict();
 
@@ -114,6 +115,13 @@ export const MedicineRegimenCreateBodySchema = z
         message: "endDate must be on or after startDate",
       });
     }
+    if (val.intervalHour && val.times.length !== 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["times"],
+        message: "When intervalHour is set, exactly one time entry (start time template) is required",
+      });
+    }
   });
 
 export const MedicineRegimenUpdateBodySchema = z
@@ -126,6 +134,7 @@ export const MedicineRegimenUpdateBodySchema = z
     intervalDays: z.coerce.number().int().min(1).nullable().optional(),
     cycleOnDays: z.coerce.number().int().min(1).nullable().optional(),
     cycleBreakDays: z.coerce.number().int().min(1).nullable().optional(),
+    intervalHour: z.coerce.number().int().min(1).max(23).nullable().optional(),
     times: z.array(MedicineRegimenTimeInputSchema).min(1).optional(),
   })
   .strict();

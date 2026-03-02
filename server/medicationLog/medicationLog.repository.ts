@@ -7,6 +7,7 @@ import { ResponseStatus } from "@prisma/client";
 export async function findProfileByIdAndUserId(profileId: number, userId: number) {
     return prisma.userProfile.findFirst({
         where: { profileId, userId },
+        include: { user: { select: { timeZone: true } } },
     });
 }
 
@@ -138,6 +139,13 @@ export async function updateLogResponse(
     });
 }
 
+export async function updateLogNote(logId: number, note: string) {
+    return prisma.medicationLog.update({
+        where: { logId },
+        data: { note },
+    });
+}
+
 // ---------- Snooze Worker Queries ----------
 
 export async function findLogsForSnoozeReminder() {
@@ -200,7 +208,7 @@ export async function markLogAsAutoSkipped(logId: number) {
             responseStatus: "SKIP",
             responseAt: new Date(),
             nextSnoozeAt: null,
-            note: "Auto-skipped after 3 snooze reminders",
+            note: "ข้ามอัตโนมัติ: ถึงขีดจำกัดการเลื่อนแจ้งเตือนสูงสุดแล้ว (3 ครั้ง)",
         },
     });
 }

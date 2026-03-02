@@ -7,6 +7,7 @@ export async function GET() {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Medi Buddy — API Documentation</title>
+    <link rel="icon" href="/server-logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/swagger-ui/swagger-ui.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -383,7 +384,7 @@ export async function GET() {
     <nav class="api-nav">
       <div class="api-nav-inner">
         <a class="api-logo" href="/api-doc">
-          <span class="api-logo-icon">💊</span>
+          <img src="/server-logo.svg" alt="Medi Buddy Logo" class="api-logo-icon" style="background: transparent;" />
           Medi Buddy API
         </a>
 
@@ -398,6 +399,9 @@ export async function GET() {
             </button>
             <button class="nav-pill" data-client="admin" onclick="selectClient('admin')">
               <span class="pill-emoji">🖥️</span> Admin
+            </button>
+            <button class="nav-pill" data-client="auth" onclick="selectClient('auth')">
+              <span class="pill-emoji">🔐</span> Auth
             </button>
           </div>
         </div>
@@ -429,10 +433,14 @@ export async function GET() {
       const catalog = {
         mobile: [
           { id: 'mobile-v1', label: 'v1', badge: 'STABLE', badgeClass: 'stable', info: '37 endpoints' },
-          { id: 'mobile-v2', label: 'v2', badge: 'NEW',    badgeClass: 'new',    info: '5 endpoints'  },
+          { id: 'mobile-v2', label: 'v2', badge: 'NEW',    badgeClass: 'new',    info: '7 endpoints'   },
         ],
         admin: [
-          { id: 'admin-v1', label: 'v1', badge: 'STABLE', badgeClass: 'stable', info: '14 endpoints' },
+          { id: "admin-v1", label: "v1", badge: "STABLE", badgeClass: "stable", info: "15 endpoints" },
+          { id: "admin-v2", label: "v2", badge: "NEW",    badgeClass: "new",    info: "2 endpoints"   },
+        ],
+        auth: [
+          { id: "auth-v2", label: "v2", badge: "SHARED",   badgeClass: "new",    info: "7 endpoints"   },
         ],
       };
 
@@ -557,15 +565,20 @@ export async function GET() {
       // ── Init: restore from URL hash or default ──
       window.onload = () => {
         const hash = window.location.hash.replace('#', '');
-        if (hash && (hash.startsWith('mobile') || hash.startsWith('admin'))) {
-          const client = hash.startsWith('admin') ? 'admin' : 'mobile';
-          selectClient(client);
+        let client = 'mobile';
+        
+        if (hash) {
+          if (hash.startsWith('admin')) client = 'admin';
+          else if (hash.startsWith('auth')) client = 'auth';
+          else if (hash.startsWith('mobile')) client = 'mobile';
+        }
+        
+        selectClient(client);
+        
+        if (hash) {
           const versions = catalog[client];
           const target = versions.find(v => v.id === hash);
           if (target) selectVersion(target);
-        } else {
-          // Default: show mobile v1
-          selectClient('mobile');
         }
       };
     </script>

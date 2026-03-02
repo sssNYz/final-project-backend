@@ -1,7 +1,15 @@
 import {
   fetchAccountUsageRows,
+  fetchGlobalLogDateRange,
   type AccountUsageRow,
 } from "@/server/dashboard/dashboard.repository"
+import { getNativeTimezoneOffset } from "@/server/common/timezone"
+
+export interface AccountUsageStatsResult {
+  items: AccountUsageItem[]
+  globalMinDate: Date | null
+  globalMaxDate: Date | null
+}
 
 export interface AccountUsageItem {
   accountId: number
@@ -10,44 +18,59 @@ export interface AccountUsageItem {
   medicationLogCount: number
 }
 
-function parseDateOnly(value?: string | null): Date | undefined {
+function parseDateOnly(value?: string | null): string | undefined {
   if (!value) return undefined
 
   const trimmed = value.trim()
   if (!trimmed) return undefined
 
-  const parsed = new Date(trimmed)
-  if (Number.isNaN(parsed.getTime())) return undefined
-
-  return parsed
-}
-
-function endOfDay(date: Date): Date {
-  const result = new Date(date)
-  result.setHours(23, 59, 59, 999)
-  return result
+  return trimmed
 }
 
 export async function getAccountUsageStats(params: {
   fromDate?: string | null
   toDate?: string | null
-}): Promise<AccountUsageItem[]> {
-  const fromRaw = parseDateOnly(params.fromDate)
+}): Promise<AccountUsageStatsResult> {
+  const adminTimeZone = "Asia/Bangkok"
+
+  const fromRaw = parseDateOnly(params.fromDate) // e.g., "2026-03-01"
   const toRaw = parseDateOnly(params.toDate)
 
-  const from = fromRaw
-  const to = toRaw ? endOfDay(toRaw) : undefined
+  // Convert exact strings to the Start/End UTC limits of a Thai calendar day
+  let fromUtc: Date | undefined = undefined
+  let toUtc: Date | undefined = undefined
 
-  const rows: AccountUsageRow[] = await fetchAccountUsageRows({
-    from: from ?? undefined,
-    to: to ?? undefined,
-  })
+  if (fromRaw) {
+    const localDate = new Date(`${fromRaw}T00:00:00Z`)
+    const offset = getNativeTimezoneOffset(adminTimeZone, localDate);
+    fromUtc = new Date(localDate.getTime() - offset);
+  }
 
-  return rows.map((row) => ({
+  if (toRaw) {
+    const localDate = new Date(`${toRaw}T23:59:59.999Z`)
+    const offset = getNativeTimezoneOffset(adminTimeZone, localDate);
+    toUtc = new Date(localDate.getTime() - offset);
+  }
+
+  const [rows, globalRange] = await Promise.all([
+    fetchAccountUsageRows({
+      from: fromUtc,
+      to: toUtc,
+    }),
+    fetchGlobalLogDateRange(),
+  ])
+
+  const items = rows.map((row) => ({
     accountId: row.userId,
     accountLabel: row.email,
     patientCount: row.profileCount,
     medicationLogCount: row.medicationLogCount,
   }))
+
+  return {
+    items,
+    globalMinDate: globalRange.minDate,
+    globalMaxDate: globalRange.maxDate,
+  }
 }
 

@@ -101,3 +101,15 @@ export async function countMedicines({
 
   return prisma.medicineDatabase.count({ where });
 }
+
+export async function getMedicineUsageCount(mediId: number) {
+  return prisma.medicineList.count({
+    where: { mediId },
+  });
+}
+
+export async function deleteMedicine(mediId: number) {
+  return prisma.medicineDatabase.delete({
+    where: { mediId },
+  });
+}

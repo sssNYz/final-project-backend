@@ -34,10 +34,22 @@ services:
     depends_on:
       - phpmyadmin
 
+  redis:
+    image: redis:alpine
+    container_name: final_project_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
 volumes:
   db-data:
     driver: local
   caddy-data:
     driver: local
   caddy-config:
+    driver: local
+  redis-data:
     driver: local

@@ -101,7 +101,7 @@ export async function listAdminAccountsForDashboard(): Promise<
     userId: user.userId,
     email: user.email,
     role: mapRoleToAccountRole(user.role),
-    active: user.status === true && user.deletedAt == null,
+    active: user.status === true,
     lastLogin: user.lastLogin,
   }));
 }

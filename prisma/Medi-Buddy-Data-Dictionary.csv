@@ -1,0 +1,156 @@
+DEVICE_TOKEN TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+DEVICE_TOKEN_ID,รหัสโทเค็นอุปกรณ์,int,,"Primary Key, Auto Increment"
+TOKEN,โทเค็นสำหรับ Push Notification,varchar(191),,Not Null
+USER_ID,รหัสประจำตัวผู้ใช้งาน,int,,"Not Null, Foreign Key"
+PLATFORM,แพลตฟอร์มของอุปกรณ์ (เช่น iOS หรือ Android),varchar(191),,
+DEVICE_ID,รหัสประจำตัวอุปกรณ์,varchar(191),,
+LAST_SEEN_AT,เวลาล่าสุดที่ใช้งานอุปกรณ์,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+REVOKED_AT,เวลาที่ยกเลิกการใช้งานโทเค็น,datetime(3),,
+CREATED_AT,วันและเวลาที่สร้างโทเค็น,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+UPDATED_AT,วันและเวลาที่แก้ไขข้อมูลล่าสุด,datetime(3),,Not Null
+
+MEDICATION_LOG TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+LOG_ID,รหัสบันทึกการกินยา,int,,"Primary Key, Auto Increment"
+PROFILE_ID,รหัสโปรไฟล์ผู้ใช้งาน,int,,"Not Null, Foreign Key"
+SCHEDULE_TIME,เวลาที่กำหนดให้กินยา,datetime(3),,Not Null
+IS_RECEIVED,สถานะการได้รับแจ้งเตือน,boolean,"{True, False}",Not Null
+RESPONSE_STATUS,สถานะการตอบสนองต่อการกินยา,enum,"{TAKE, SKIP, SNOOZE}",
+RESPONSE_AT,เวลาที่ตอบสนอง,datetime(3),,
+SNOOZED_COUNT,จำนวนครั้งที่เลื่อนการแจ้งเตือน,int,,
+NOTE,บันทึกเพิ่มเติม,varchar(191),,
+PUSH_SENT_AT,เวลาที่ส่ง Push Notification,datetime(3),,
+SUPABASE_SENT_AT,เวลาที่ส่งข้อมูลไป Supabase,datetime(3),,
+MEDI_LIST_ID,รหัสรายการยา,int,,"Not Null, Foreign Key"
+NEXT_SNOOZE_AT,เวลาเลื่อนการแจ้งเตือนครั้งถัดไป,datetime(3),,
+DOSE,ปริมาณยาที่ต้องกิน,int,,
+UNIT,หน่วยของปริมาณยา,varchar(191),,
+MEAL_RELATION,ความสัมพันธ์กับมื้ออาหาร,enum,"{BEFORE_MEAL, AFTER_MEAL, WITH_MEAL, NONE}",
+
+MEDICINE_DATABASE TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+MEDI_ID,รหัสข้อมูลยา,int,,"Primary Key, Auto Increment"
+MEDI_TH_NAME,ชื่อยาภาษาไทย,varchar(500),,Not Null
+MEDI_EN_NAME,ชื่อยาภาษาอังกฤษ,varchar(500),,Not Null
+MEDI_TRADE_NAME,ชื่อทางการค้า,varchar(500),,
+MEDI_TYPE,ประเภทยา,enum,"{ORAL, TOPICAL}",Not Null
+MEDI_USE,สรรพคุณและข้อบ่งใช้,varchar(500),,
+MEDI_GUIDE,คำแนะนำการใช้ยา,varchar(500),,
+MEDI_EFFECTS,ผลข้างเคียง,varchar(500),,
+MEDI_NO_USE,ข้อห้ามใช้,varchar(500),,
+MEDI_WARNING,คำเตือน,varchar(500),,
+MEDI_STORE,การเก็บรักษา,varchar(500),,
+MEDI_PICTURE,รูปภาพยา,varchar(500),,
+CREATED_AT,วันและเวลาที่บันทึกข้อมูล,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+UPDATE_AT,วันและเวลาที่แก้ไขข้อมูลล่าสุด,datetime(3),,Not Null
+ADMIN_ID,รหัสผู้ดูแลระบบที่บันทึก,int,,Foreign Key
+MEDI_STATUS,สถานะการใช้งานข้อมูลยา,boolean,"{True, False}","Not Null, Default: True"
+
+MEDICINE_LIST TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+MEDI_LIST_ID,รหัสรายการยาของผู้ใช้,int,,"Primary Key, Auto Increment"
+PROFILE_ID,รหัสโปรไฟล์ผู้ใช้งาน,int,,"Not Null, Foreign Key"
+MEDI_ID,รหัสข้อมูลยาจากฐานข้อมูล,int,,Foreign Key
+MEDI_NICKNAME,ชื่อเรียกยาที่ผู้ใช้ตั้งเอง,varchar(25),,
+PICTURE_OPTION,ตัวเลือกรูปภาพยา,varchar(191),,
+
+PASSWORD_RESET_TOKEN TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+PRT_ID,รหัสรายการรีเซ็ตรหัสผ่าน,int,,"Primary Key, Auto Increment"
+TOKEN,โทเค็นสำหรับรีเซ็ตรหัสผ่าน,varchar(255),,Not Null
+USER_ID,รหัสประจำตัวผู้ใช้งาน,int,,"Not Null, Foreign Key"
+EXPIRES_AT,เวลาที่โทเค็นหมดอายุ,datetime(3),,Not Null
+CREATED_AT,วันและเวลาที่สร้างโทเค็น,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+
+REFRESH_TOKEN TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+REFRESH_TOKEN_ID,รหัสรายการรีเฟรชโทเค็น,int,,"Primary Key, Auto Increment"
+TOKEN,รีเฟรชโทเค็น,varchar(512),,Not Null
+USER_ID,รหัสประจำตัวผู้ใช้งาน,int,,"Not Null, Foreign Key"
+EXPIRES_AT,เวลาหมดอายุของโทเค็น,datetime(3),,Not Null
+REVOKED,สถานะการเพิกถอนโทเค็น,boolean,"{True, False}","Not Null, Default: False"
+CREATED_AT,วันและเวลาที่สร้างโทเค็น,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+
+USER_ACCOUNT TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+USER_ID,รหัสประจำตัวสมาชิก,int,,"Primary Key, Auto Increment"
+USER_EMAIL,อีเมลสมาชิก,varchar(191),,"Not Null, Unique"
+USER_PASSWORD,รหัสผ่านสมาชิก,varchar(191),,
+LAST_LOGIN,เวลาล็อกอินล่าสุด,datetime(3),,
+CREATE_AT,วันที่สร้างบัญชีสมาชิก,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+UPDATE_AT,วันและเวลาที่ทำการแก้ไขข้อมูลล่าสุด,datetime(3),,Not Null
+TUTORIAL_DONE,สถานะการดู Tutorial,boolean,"{True, False}","Not Null, Default: False"
+ROLE,ระดับสิทธิ์ของผู้ใช้งานระบบ,enum,"{SuperAdmin, Admin, User}","Not Null, Default: User"
+PROVIDER,ผู้ให้บริการเข้าสู่ระบบ (เช่น Google),varchar(191),,
+SUPABASE_USER_ID,รหัสผู้ใช้เชื่อมโยงกับ Supabase,varchar(191),,
+STATUS,สถานะบัญชีผู้ใช้งาน,boolean,"{True, False}","Not Null, Default: True"
+TIME_ZONE,เขตเวลาของผู้ใช้งาน,varchar(191),,
+EMAIL_VERIFIED_AT,เวลาที่ยืนยันอีเมล,datetime(3),,
+
+USER_MEDICINE_REGIMEN TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+MEDI_REGIMEN_ID,รหัสรูปแบบการกินยา,int,,"Primary Key, Auto Increment"
+SCHEDULE_TYPE,ประเภทตารางการกินยา,enum,"{DAILY, WEEKLY, INTERVAL, CYCLE}",Not Null
+START_DATE,วันที่เริ่มต้นกินยา,datetime(3),,Not Null
+END_DATE,วันที่สิ้นสุดการกินยา,datetime(3),,
+DAYS_OF_WEEK,วันที่กินยาในสัปดาห์,varchar(191),,
+INTERVAL_DAYS,จำนวนวันที่เว้นระยะการกินยา,int,,
+CYCLE_ON_DAYS,จำนวนวันที่กินยาในหนึ่งรอบ,int,,
+CYCLE_BREAK_DAYS,จำนวนวันที่หยุดยาในหนึ่งรอบ,int,,
+MEDI_LIST_ID,รหัสรายการยา,int,,Foreign Key
+NEXT_OCCURRENCE_AT,วันและเวลาที่ต้องกินยาครั้งถัดไป,datetime(3),,
+INTERVAL_HOUR,จำนวนชั่วโมงที่เว้นระยะการกินยา,int,,
+
+USER_MEDICINE_REGIMEN_TIME TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+TIME_ID,รหัสเวลากินยา,int,,"Primary Key, Auto Increment"
+MEDI_REGIMEN_ID,รหัสรูปแบบการกินยา,int,,"Not Null, Foreign Key"
+DOSE,ปริมาณยาที่ต้องกิน,int,,Not Null
+UNIT,หน่วยของปริมาณยา,varchar(191),,Not Null
+MEAL_RELATION,ความสัมพันธ์กับมื้ออาหาร,enum,"{BEFORE_MEAL, AFTER_MEAL, WITH_MEAL, NONE}",Not Null
+MEAL_OFFSET_MINUTES,ระยะเวลาก่อนหรือหลังอาหาร (นาที),int,,
+TIME_OF_DAY,ช่วงเวลาในการกินยา,varchar(191),,Not Null
+
+USER_PROFILE TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+PROFILE_ID,รหัสโปรไฟล์,int,,"Primary Key, Auto Increment"
+USER_ID,รหัสบัญชีผู้ใช้งาน,int,,"Not Null, Foreign Key"
+PROFILE_NAME,ชื่อโปรไฟล์,varchar(191),,Not Null
+PROFILE_PICTURE,รูปภาพโปรไฟล์,varchar(191),,
+
+USER_RELATIONSHIP TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+RELATIONSHIP_ID,รหัสความสัมพันธ์ผู้ใช้,int,,"Primary Key, Auto Increment"
+OWNER_USER_ID,รหัสผู้ให้สิทธิ์ดูแล,int,,"Not Null, Foreign Key"
+VIEWER_USER_ID,รหัสผู้รับสิทธิ์ดูแล,int,,"Not Null, Foreign Key"
+IS_RECEIVER_EMAIL,อีเมลผู้รับสิทธิ์ดูแล,varchar(191),,Not Null
+PROFILE_IDS,รหัสโปรไฟล์ที่เลือกให้ดูแล,json,,
+STATUS,สถานะคำขอรับสิทธิ์,enum,"{PENDING, APPROVED, REJECTED, CANCELLED}","Not Null, Default: PENDING"
+CREATED_AT,วันและเวลาที่สร้างคำขอ,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+UPDATED_AT,วันและเวลาที่แก้ไขคำขอล่าสุด,datetime(3),,Not Null
+VIEWER_PICTURE,รูปภาพผู้รับสิทธิ์ดูแล,varchar(191),,
+VIEWER_NICKNAME,ชื่อเรียกผู้รับสิทธิ์ดูแล,varchar(191),,
+OWNER_NICKNAME,ชื่อเรียกผู้ให้สิทธิ์ดูแล,varchar(191),,
+OWNER_PICTURE,รูปภาพผู้ให้สิทธิ์ดูแล,varchar(191),,
+
+USER_REQUEST TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+REQUEST_ID,รหัสคำร้องขอ,int,,"Primary Key, Auto Increment"
+USER_ID,รหัสบัญชีผู้ใช้งาน,int,,"Not Null, Foreign Key"
+REQUEST_TYPE,ประเภทคำร้องขอ,enum,"{PROBLEM, ADD_MEDICINE, NOTIFICATION, FUNCTION, OTHER}",Not Null
+REQUEST_TITLE,หัวข้อคำร้องขอ,varchar(191),,Not Null
+REQUEST_DETAILS,รายละเอียดคำร้องขอ,varchar(191),,Not Null
+STATUS,สถานะคำร้องขอ,enum,"{PENDING, REJECTED, DONE}","Not Null, Default: PENDING"
+ADMIN_ID,รหัสแอดมินที่จัดการคำร้องขอ,int,,Foreign Key
+CREATED_AT,วันและเวลาที่ส่งคำร้องขอ,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
+UPDATED_AT,วันและเวลาที่แก้ไขข้อมูลล่าสุด,datetime(3),,Not Null
+PICTURE,รูปภาพแนบคำร้องขอ,varchar(191),,
+
+VERIFICATION_TOKEN TABLE,,,,
+Attribute Name,Description,Data Types,Domain,Detail
+VT_ID,รหัสการยืนยันตัวตน,int,,"Primary Key, Auto Increment"
+IDENTIFIER,ข้อมูลอ้างอิงสำหรับการยืนยัน,varchar(255),,Not Null
+TOKEN,รหัสโทเค็นสำหรับยืนยัน,varchar(10),,Not Null
+EXPIRES,เวลาที่หมดอายุ,datetime(3),,Not Null
+CREATED_AT,วันและเวลาที่สร้างโทเค็น,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"

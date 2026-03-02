@@ -1,0 +1,253 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+
+Enum "MEDICATION_LOG_RESPONSE_STATUS_enum" {
+  "TAKE"
+  "SKIP"
+  "SNOOZE"
+}
+
+Enum "MEDICATION_LOG_MEAL_RELATION_enum" {
+  "BEFORE_MEAL"
+  "AFTER_MEAL"
+  "WITH_MEAL"
+  "NONE"
+}
+
+Enum "MEDICINE_DATABASE_MEDI_TYPE_enum" {
+  "ORAL"
+  "TOPICAL"
+}
+
+Enum "USER_ACCOUNT_ROLE_enum" {
+  "SuperAdmin"
+  "Admin"
+  "User"
+}
+
+Enum "USER_MEDICINE_REGIMEN_SCHEDULE_TYPE_enum" {
+  "DAILY"
+  "WEEKLY"
+  "INTERVAL"
+  "CYCLE"
+}
+
+Enum "USER_MEDICINE_REGIMEN_TIME_MEAL_RELATION_enum" {
+  "BEFORE_MEAL"
+  "AFTER_MEAL"
+  "WITH_MEAL"
+  "NONE"
+}
+
+Enum "USER_RELATIONSHIP_STATUS_enum" {
+  "PENDING"
+  "APPROVED"
+  "REJECTED"
+  "CANCELLED"
+}
+
+Enum "USER_REQUEST_REQUEST_TYPE_enum" {
+  "PROBLEM"
+  "ADD_MEDICINE"
+  "NOTIFICATION"
+  "FUNCTION"
+  "OTHER"
+}
+
+Enum "USER_REQUEST_STATUS_enum" {
+  "PENDING"
+  "REJECTED"
+  "DONE"
+}
+
+Table "DEVICE_TOKEN" {
+  "DEVICE_TOKEN_ID" int [pk, not null]
+  "TOKEN" varchar(191) [not null]
+  "USER_ID" int [not null]
+  "PLATFORM" varchar(191)
+  "DEVICE_ID" varchar(191)
+  "LAST_SEEN_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+  "REVOKED_AT" datetime(3)
+  "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+  "UPDATED_AT" datetime(3) [not null]
+}
+
+Table "MEDICATION_LOG" {
+  "LOG_ID" int [pk, not null]
+  "PROFILE_ID" int [not null]
+  "SCHEDULE_TIME" datetime(3) [not null]
+  "IS_RECEIVED" tinyint(1) [not null]
+  "RESPONSE_STATUS" MEDICATION_LOG_RESPONSE_STATUS_enum
+  "RESPONSE_AT" datetime(3)
+  "SNOOZED_COUNT" int
+  "NOTE" varchar(191)
+  "PUSH_SENT_AT" datetime(3)
+  "SUPABASE_SENT_AT" datetime(3)
+  "MEDI_LIST_ID" int [not null]
+  "NEXT_SNOOZE_AT" datetime(3)
+  "DOSE" int
+  "UNIT" varchar(191)
+  "MEAL_RELATION" MEDICATION_LOG_MEAL_RELATION_enum
+}
+
+Table "MEDICINE_DATABASE" {
+  "MEDI_ID" int [pk, not null]
+  "MEDI_TH_NAME" varchar(500) [not null]
+  "MEDI_EN_NAME" varchar(500) [not null]
+  "MEDI_TRADE_NAME" varchar(500)
+  "MEDI_TYPE" MEDICINE_DATABASE_MEDI_TYPE_enum [not null]
+  "MEDI_USE" varchar(500)
+  "MEDI_GUIDE" varchar(500)
+  "MEDI_EFFECTS" varchar(500)
+  "MEDI_NO_USE" varchar(500)
+  "MEDI_WARNING" varchar(500)
+  "MEDI_STORE" varchar(500)
+  "MEDI_PICTURE" varchar(500)
+  "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+  "UPDATE_AT" datetime(3) [not null]
+  "ADMIN_ID" int
+  "MEDI_STATUS" tinyint(1) [not null, default: '1']
+}
+
+Table "MEDICINE_LIST" {
+  "MEDI_LIST_ID" int [pk, not null]
+  "PROFILE_ID" int [not null]
+  "MEDI_ID" int
+  "MEDI_NICKNAME" varchar(25)
+  "PICTURE_OPTION" varchar(191)
+}
+
+Table "PASSWORD_RESET_TOKEN" {
+  "PRT_ID" int [pk, not null]
+  "TOKEN" varchar(255) [not null]
+  "USER_ID" int [not null]
+  "EXPIRES_AT" datetime(3) [not null]
+  "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+}
+
+Table "REFRESH_TOKEN" {
+  "REFRESH_TOKEN_ID" int [pk, not null]
+  "TOKEN" varchar(512) [not null]
+  "USER_ID" int [not null]
+  "EXPIRES_AT" datetime(3) [not null]
+  "REVOKED" tinyint(1) [not null, default: '0']
+  "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+}
+
+Table "USER_ACCOUNT" {
+  "USER_ID" int [pk, not null]
+  "USER_EMAIL" varchar(191) [not null]
+  "USER_PASSWORD" varchar(191)
+  "LAST_LOGIN" datetime(3)
+  "CREATE_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+  "UPDATE_AT" datetime(3) [not null]
+  "TUTORIAL_DONE" tinyint(1) [not null, default: '0']
+  "ROLE" USER_ACCOUNT_ROLE_enum [not null, default: 'User']
+  "PROVIDER" varchar(191)
+  "SUPABASE_USER_ID" varchar(191)
+  "STATUS" tinyint(1) [not null, default: '1']
+  "TIME_ZONE" varchar(191)
+  "EMAIL_VERIFIED_AT" datetime(3)
+}
+
+Table "USER_MEDICINE_REGIMEN" {
+  "MEDI_REGIMEN_ID" int [pk, not null]
+  "SCHEDULE_TYPE" USER_MEDICINE_REGIMEN_SCHEDULE_TYPE_enum [not null]
+  "START_DATE" datetime(3) [not null]
+  "END_DATE" datetime(3)
+  "DAYS_OF_WEEK" varchar(191)
+  "INTERVAL_DAYS" int
+  "CYCLE_ON_DAYS" int
+  "CYCLE_BREAK_DAYS" int
+  "MEDI_LIST_ID" int
+  "NEXT_OCCURRENCE_AT" datetime(3)
+  "INTERVAL_HOUR" int
+}
+
+Table "USER_MEDICINE_REGIMEN_TIME" {
+  "TIME_ID" int [pk, not null]
+  "MEDI_REGIMEN_ID" int [not null]
+  "DOSE" int [not null]
+  "UNIT" varchar(191) [not null]
+  "MEAL_RELATION" USER_MEDICINE_REGIMEN_TIME_MEAL_RELATION_enum [not null]
+  "MEAL_OFFSET_MINUTES" int
+  "TIME_OF_DAY" varchar(191) [not null]
+}
+
+Table "USER_PROFILE" {
+  "PROFILE_ID" int [pk, not null]
+  "USER_ID" int [not null]
+  "PROFILE_NAME" varchar(191) [not null]
+  "PROFILE_PICTURE" varchar(191)
+}
+
+Table "USER_RELATIONSHIP" {
+  "RELATIONSHIP_ID" int [pk, not null]
+  "OWNER_USER_ID" int [not null]
+  "VIEWER_USER_ID" int [not null]
+  "IS_RECEIVER_EMAIL" varchar(191) [not null]
+  "PROFILE_IDS" json
+  "STATUS" USER_RELATIONSHIP_STATUS_enum [not null, default: 'PENDING']
+  "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+  "UPDATED_AT" datetime(3) [not null]
+  "VIEWER_PICTURE" varchar(191)
+  "VIEWER_NICKNAME" varchar(191)
+  "OWNER_NICKNAME" varchar(191)
+  "OWNER_PICTURE" varchar(191)
+}
+
+Table "USER_REQUEST" {
+  "REQUEST_ID" int [pk, not null]
+  "USER_ID" int [not null]
+  "REQUEST_TYPE" USER_REQUEST_REQUEST_TYPE_enum [not null]
+  "REQUEST_TITLE" varchar(191) [not null]
+  "REQUEST_DETAILS" varchar(191) [not null]
+  "STATUS" USER_REQUEST_STATUS_enum [not null, default: 'PENDING']
+  "ADMIN_ID" int
+  "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+  "UPDATED_AT" datetime(3) [not null]
+  "PICTURE" varchar(191)
+}
+
+Table "VERIFICATION_TOKEN" {
+  "VT_ID" int [pk, not null]
+  "IDENTIFIER" varchar(255) [not null]
+  "TOKEN" varchar(10) [not null]
+  "EXPIRES" datetime(3) [not null]
+  "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
+}
+
+
+Ref "DEVICE_TOKEN_USER_ID_fkey":"USER_ACCOUNT"."USER_ID" < "DEVICE_TOKEN"."USER_ID" [update: cascade, delete: restrict]
+
+Ref "MEDICATION_LOG_MEDI_LIST_ID_fkey":"MEDICINE_LIST"."MEDI_LIST_ID" < "MEDICATION_LOG"."MEDI_LIST_ID" [update: cascade, delete: restrict]
+
+Ref "MEDICATION_LOG_PROFILE_ID_fkey":"USER_PROFILE"."PROFILE_ID" < "MEDICATION_LOG"."PROFILE_ID" [update: cascade, delete: restrict]
+
+Ref "MEDICINE_LIST_MEDI_ID_fkey":"MEDICINE_DATABASE"."MEDI_ID" < "MEDICINE_LIST"."MEDI_ID" [update: cascade, delete: set null]
+
+Ref "MEDICINE_LIST_PROFILE_ID_fkey":"USER_PROFILE"."PROFILE_ID" < "MEDICINE_LIST"."PROFILE_ID" [update: cascade, delete: restrict]
+
+Ref "PASSWORD_RESET_TOKEN_USER_ID_fkey":"USER_ACCOUNT"."USER_ID" < "PASSWORD_RESET_TOKEN"."USER_ID" [update: cascade, delete: restrict]
+
+Ref "REFRESH_TOKEN_USER_ID_fkey":"USER_ACCOUNT"."USER_ID" < "REFRESH_TOKEN"."USER_ID" [update: cascade, delete: restrict]
+
+Ref "USER_MEDICINE_REGIMEN_MEDI_LIST_ID_fkey":"MEDICINE_LIST"."MEDI_LIST_ID" < "USER_MEDICINE_REGIMEN"."MEDI_LIST_ID" [update: cascade, delete: set null]
+
+Ref "USER_MEDICINE_REGIMEN_TIME_MEDI_REGIMEN_ID_fkey":"USER_MEDICINE_REGIMEN"."MEDI_REGIMEN_ID" < "USER_MEDICINE_REGIMEN_TIME"."MEDI_REGIMEN_ID" [update: cascade, delete: restrict]
+
+Ref "USER_PROFILE_USER_ID_fkey":"USER_ACCOUNT"."USER_ID" < "USER_PROFILE"."USER_ID" [update: cascade, delete: restrict]
+
+Ref "USER_RELATIONSHIP_OWNER_USER_ID_fkey":"USER_ACCOUNT"."USER_ID" < "USER_RELATIONSHIP"."OWNER_USER_ID" [update: cascade, delete: restrict]
+
+Ref "USER_RELATIONSHIP_VIEWER_USER_ID_fkey":"USER_ACCOUNT"."USER_ID" < "USER_RELATIONSHIP"."VIEWER_USER_ID" [update: cascade, delete: restrict]
+
+Ref "USER_REQUEST_ADMIN_ID_fkey":"USER_ACCOUNT"."USER_ID" < "USER_REQUEST"."ADMIN_ID" [update: cascade, delete: set null]
+
+Ref "USER_REQUEST_USER_ID_fkey":"USER_ACCOUNT"."USER_ID" < "USER_REQUEST"."USER_ID" [update: cascade, delete: restrict]
+
+
+Ref: "MEDICINE_LIST"."MEDI_LIST_ID" < "MEDICINE_LIST"."PROFILE_ID"
+
+Ref: "MEDICATION_LOG"."LOG_ID" < "MEDICATION_LOG"."PROFILE_ID"

@@ -1,9 +1,11 @@
 import "dotenv/config";
 import type { MealRelation, ScheduleType } from "@prisma/client";
 import { prisma } from "../db/client";
-import { sendFcmMulticast } from "../push/fcm";
+// Removed direct FCM import
 import { calculateNextOccurrence } from "../medicineRegimen/nextOccurrence";
 import { formatInTimeZone } from "date-fns-tz";
+import { notificationQueue } from "../queue/client";
+import cron from "node-cron";
 
 const DEFAULT_INTERVAL_MS = 60 * 1000;
 const DEFAULT_LOOKAHEAD_MS = 60 * 1000;
@@ -40,6 +42,7 @@ async function processRegimen(regimen: {
   intervalDays: number | null;
   cycleOnDays: number | null;
   cycleBreakDays: number | null;
+  intervalHour: number | null;
   times: { timeOfDay: string; dose: number; unit: string; mealRelation: MealRelation }[];
   medicineList: null | {
     mediListId: number;
@@ -57,15 +60,29 @@ async function processRegimen(regimen: {
   const userId = medicineList.profile.userId;
   const userTimeZone = medicineList.profile.user.timeZone ?? "Asia/Bangkok";
   const mediListId = medicineList.mediListId;
-  const profilePicture = medicineList.profile.profilePicture ?? "";
-  const profileName = medicineList.profile.profileName;
 
   // Find the dose and unit for this schedule time
-  const timeString = formatInTimeZone(scheduleTime, userTimeZone, "HH:mm");
-  const matchingTime = regimen.times.find((t) => t.timeOfDay === timeString);
-  const dose = matchingTime?.dose ?? null;
-  const unit = matchingTime?.unit ?? null;
-  const mealRelation = matchingTime?.mealRelation ?? null;
+  let dose: number | null = null;
+  let unit: string | null = null;
+  let mealRelation: MealRelation | null = null;
+
+  if (regimen.intervalHour && regimen.intervalHour >= 1) {
+    // intervalHour mode: use the first time entry as the dose template
+    // (the actual scheduled time is dynamically generated and won't match any stored timeOfDay)
+    const template = regimen.times[0];
+    if (template) {
+      dose = template.dose;
+      unit = template.unit;
+      mealRelation = template.mealRelation;
+    }
+  } else {
+    // Standard mode: match exact timeOfDay string
+    const timeString = formatInTimeZone(scheduleTime, userTimeZone, "HH:mm");
+    const matchingTime = regimen.times.find((t) => t.timeOfDay === timeString);
+    dose = matchingTime?.dose ?? null;
+    unit = matchingTime?.unit ?? null;
+    mealRelation = matchingTime?.mealRelation ?? null;
+  }
 
   const log = await prisma.medicationLog.upsert({
     where: {
@@ -87,6 +104,7 @@ async function processRegimen(regimen: {
     update: {},
   });
 
+  // Calculate Next Occurrence
   const next = calculateNextOccurrence({
     scheduleType: regimen.scheduleType,
     startDate: regimen.startDate,
@@ -95,34 +113,30 @@ async function processRegimen(regimen: {
     intervalDays: regimen.intervalDays,
     cycleOnDays: regimen.cycleOnDays,
     cycleBreakDays: regimen.cycleBreakDays,
+    intervalHour: regimen.intervalHour,
     times: regimen.times,
     userTimeZone,
     now: scheduleTime,
   });
 
+  // Update Regimen to point to next time
   await prisma.userMedicineRegimen.updateMany({
     where: { mediRegimenId: regimen.mediRegimenId, nextOccurrenceAt: scheduleTime },
     data: { nextOccurrenceAt: next },
   });
 
-  if (log.pushSentAt) return null; // Already sent
+  // NEW: Do NOT Add to Queue Individually!
+  // await notificationQueue.add("send-notification", {
+  //   logId: log.logId
+  // });
 
-  return {
-    logId: log.logId,
-    profileId,
-    profileName,
-    userId,
-    mediListId,
-    mediRegimenId: regimen.mediRegimenId,
-    scheduleTime,
-    profilePicture,
-    snoozedCount: log.snoozedCount ?? 0,
-  };
+  return log.logId;
 }
 
 async function tick() {
   const now = new Date();
-  const windowEnd = new Date(now.getTime() + LOOKAHEAD_MS);
+  // We use LOOKAHEAD slightly to catch things just about to happen or slightly passed
+  // But wait, the previous logic was: find things where nextOccurrenceAt <= now
 
   const dueRegimens = await prisma.userMedicineRegimen.findMany({
     where: {
@@ -152,135 +166,42 @@ async function tick() {
 
   if (dueRegimens.length === 0) return;
 
-  console.log(`[medication-cron] processing ${dueRegimens.length} regimens`);
+  console.log(`[medication-cron] Processing ${dueRegimens.length} regimens -> Queue`);
 
-  // Process in parallel so one wait doesn't block others
+  // Process in parallel
   const results = await Promise.allSettled(dueRegimens.map(regimen => processRegimen(regimen)));
 
-  const createdLogs: NonNullable<Awaited<ReturnType<typeof processRegimen>>>[] = [];
+  const successLogs = results.filter(r => r.status === "fulfilled" && r.value !== null).map(r => (r as PromiseFulfilledResult<number>).value);
+  const failCount = results.filter(r => r.status === "rejected").length;
 
-  results.forEach((result, idx) => {
-    if (result.status === "rejected") {
-      console.error("[medication-cron] failed to process regimen", dueRegimens[idx].mediRegimenId, result.reason);
-    } else if (result.value) {
-      createdLogs.push(result.value);
-    }
-  });
-
-  // Group by User ID
-  const logsByUser: Record<number, typeof createdLogs> = {};
-  for (const log of createdLogs) {
-    if (!logsByUser[log.userId]) logsByUser[log.userId] = [];
-    logsByUser[log.userId].push(log);
-  }
-
-  // Send Notifications per User
-  for (const userIdStr in logsByUser) {
-    const userId = Number(userIdStr);
-    const userLogs = logsByUser[userId];
-
-    if (userLogs.length === 0) continue;
-
-    // Fetch tokens once per user
-    const deviceTokens = await prisma.deviceToken.findMany({
-      where: { userId, revokedAt: null },
-      select: { deviceTokenId: true, token: true },
+  if (successLogs.length > 0) {
+    // 1. Group the success logs by UserId
+    const logRecords = await prisma.medicationLog.findMany({
+      where: { logId: { in: successLogs } },
+      select: { logId: true, medicineList: { select: { profile: { select: { userId: true } } } } }
     });
 
-    const tokens = deviceTokens.map((row) => row.token).filter(Boolean);
-    if (tokens.length === 0) continue;
-
-    // Check if we have multiple profiles involved
-    const distinctProfileNames = [...new Set(userLogs.map(l => l.profileName))];
-    const medicationCount = userLogs.length;
-
-    let title = "Medication Reminder";
-    let body = "It's time to take your medicine.";
-    let profilePicture = userLogs[0].profilePicture; // Default to first
-
-    if (medicationCount > 1) {
-      const names = distinctProfileNames.join(" & ");
-      title = `Medications Due (${medicationCount})`;
-      body = `You have ${medicationCount} medications due for ${names}.`;
-      // For multiple, we might want to clear profilePicture or use a generic one?
-      // Keeping first one or empty if mixed might be better.
-      if (distinctProfileNames.length > 1) {
-        profilePicture = ""; // Mixed profiles, no single picture
+    const groups: Record<number, number[]> = {};
+    for (const log of logRecords) {
+      const userId = log.medicineList?.profile?.userId;
+      if (userId) {
+        if (!groups[userId]) groups[userId] = [];
+        groups[userId].push(log.logId);
       }
     }
 
-    try {
-      const response = await sendFcmMulticast({
-        tokens,
-        notification: {
-          title,
-          body,
-        },
-        data: {
-          type: medicationCount > 1 ? "MEDICATION_SUMMARY" : "MEDICATION_REMINDER",
-          count: String(medicationCount),
-          // We can't send ALL IDs in detail if too many, but for a few we can.
-          // Let's send a summary payload.
-          timestamp: new Date().toISOString(),
-          profilePicture,
-          // Legacy fields for single notification backward compatibility if count == 1
-          ...(medicationCount === 1 ? {
-            logId: String(userLogs[0].logId),
-            profileId: String(userLogs[0].profileId),
-            mediListId: String(userLogs[0].mediListId),
-            mediRegimenId: String(userLogs[0].mediRegimenId),
-            scheduleTime: userLogs[0].scheduleTime.toISOString(),
-            snoozedCount: String(userLogs[0].snoozedCount),
-            isSnoozeReminder: "false",
-          } : {
-            // New field for summary: full details as JSON string
-            payload: JSON.stringify(userLogs.map(l => ({
-              logId: l.logId,
-              profileId: l.profileId,
-              mediListId: l.mediListId,
-              mediRegimenId: l.mediRegimenId,
-              scheduleTime: l.scheduleTime.toISOString(),
-              snoozedCount: l.snoozedCount,
-              profileName: l.profileName,
-              // You might want to add dose/unit/medName if available in userLogs or fetch them
-              // userLogs currently has limited info, but let's send what we have.
-            })))
-          })
-        },
+    // 2. Enqueue packed push notifications per user
+    let enqueued = 0;
+    for (const [userId, logIds] of Object.entries(groups)) {
+      await notificationQueue.add("send-notification-group", {
+        logIds,
+        isSnooze: false
       });
-
-      // Handle token revocation (same as before)
-      const revokedCodes = new Set([
-        "messaging/registration-token-not-registered",
-        "messaging/invalid-registration-token",
-      ]);
-
-      const revokeIds: number[] = [];
-      response.responses.forEach((result, idx) => {
-        if (!result.success && result.error?.code && revokedCodes.has(result.error.code)) {
-          revokeIds.push(deviceTokens[idx].deviceTokenId);
-        }
-      });
-
-      if (revokeIds.length > 0) {
-        await prisma.deviceToken.updateMany({
-          where: { deviceTokenId: { in: revokeIds } },
-          data: { revokedAt: new Date() },
-        });
-      }
-
-      // Mark push as sent for ALL logs involved
-      if (response.successCount > 0) {
-        const logIds = userLogs.map(l => l.logId);
-        await prisma.medicationLog.updateMany({
-          where: { logId: { in: logIds }, pushSentAt: null },
-          data: { pushSentAt: new Date() }
-        });
-      }
-
-    } catch (error) {
-      console.error(`[medication-cron] Failed to send aggregated push for user ${userId}`, error);
+      enqueued++;
     }
+    console.log(`[medication-cron] Enqueued ${enqueued} groups for ${successLogs.length} logs. Failed: ${failCount}`);
+  } else {
+    console.log(`[medication-cron] Enqueued 0 groups for 0 logs. Failed: ${failCount}`);
   }
 }
 
@@ -296,16 +217,13 @@ async function safeTick() {
 }
 
 console.log(
-  `[medication-cron] started intervalMs=${INTERVAL_MS} lookaheadMs=${LOOKAHEAD_MS}`,
+  `[medication-cron] started intervalMs=${INTERVAL_MS} lookaheadMs=${LOOKAHEAD_MS} (using node-cron for :00 alignment)`,
 );
 
-await safeTick();
-const interval = setInterval(safeTick, INTERVAL_MS);
-interval.unref();
+cron.schedule("* * * * *", safeTick);
 
 async function shutdown(signal: string) {
   console.log(`[medication-cron] shutting down (${signal})`);
-  clearInterval(interval);
   await prisma.$disconnect();
   process.exit(0);
 }

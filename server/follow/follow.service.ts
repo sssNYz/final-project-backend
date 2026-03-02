@@ -1,6 +1,6 @@
-// server/follow/follow.service.ts
 import { ServiceError } from "@/server/common/errors";
 import * as repo from "./follow.repository";
+import { getNativeTimezoneOffset } from "@/server/common/timezone";
 
 // ---------- Helpers ----------
 
@@ -411,9 +411,27 @@ export async function getFollowingLogs(params: {
     }
 
     // 3. Get logs
+    const rawTz = relationship.viewerUser.timeZone;
+    const userTimeZone = (rawTz && rawTz.trim() !== "") ? rawTz.replace(/['"]+/g, '').trim() : "Asia/Bangkok";
+
+    let startUtc: Date | undefined = undefined;
+    let endUtc: Date | undefined = undefined;
+
+    if (params.startDate) {
+        const localDate = new Date(`${params.startDate}T00:00:00Z`);
+        const offset = getNativeTimezoneOffset(userTimeZone, localDate);
+        startUtc = new Date(localDate.getTime() - offset);
+    }
+
+    if (params.endDate) {
+        const localDate = new Date(`${params.endDate}T23:59:59.999Z`);
+        const offset = getNativeTimezoneOffset(userTimeZone, localDate);
+        endUtc = new Date(localDate.getTime() - offset);
+    }
+
     const logs = await repo.findMedicationLogsByProfileId(profileId, {
-        startDate: params.startDate ? new Date(params.startDate) : undefined,
-        endDate: params.endDate ? new Date(params.endDate) : undefined,
+        startDate: startUtc,
+        endDate: endUtc,
         limit: params.limit,
         offset: params.offset,
     });
@@ -611,9 +629,27 @@ export async function getFollowingLogsV2(params: {
     }
 
     // 3. Get logs
+    const rawTz = relationship.viewerUser.timeZone;
+    const userTimeZone = (rawTz && rawTz.trim() !== "") ? rawTz.replace(/['"]+/g, '').trim() : "Asia/Bangkok";
+
+    let startUtc: Date | undefined = undefined;
+    let endUtc: Date | undefined = undefined;
+
+    if (params.startDate) {
+        const localDate = new Date(`${params.startDate}T00:00:00Z`);
+        const offset = getNativeTimezoneOffset(userTimeZone, localDate);
+        startUtc = new Date(localDate.getTime() - offset);
+    }
+
+    if (params.endDate) {
+        const localDate = new Date(`${params.endDate}T23:59:59.999Z`);
+        const offset = getNativeTimezoneOffset(userTimeZone, localDate);
+        endUtc = new Date(localDate.getTime() - offset);
+    }
+
     const logs = await repo.findMedicationLogsByProfileId(profileId, {
-        startDate: params.startDate ? new Date(params.startDate) : undefined,
-        endDate: params.endDate ? new Date(params.endDate) : undefined,
+        startDate: startUtc,
+        endDate: endUtc,
         limit: params.limit,
         offset: params.offset,
     });

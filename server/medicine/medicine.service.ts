@@ -11,6 +11,8 @@ import {
   updateMedicine,
   setMedicineStatus,
   countMedicines,
+  getMedicineUsageCount,
+  deleteMedicine,
 } from "@/server/medicine/medicine.repository";
 import { findUserBySupabaseOrEmail } from "@/server/users/users.repository";
 
@@ -94,21 +96,12 @@ export interface CreateMedicineInput {
 }
 
 export async function createMedicineForAdmin({
-  supabaseUser,
+  adminId,
   input,
 }: {
-  supabaseUser: User;
+  adminId: number;
   input: CreateMedicineInput;
 }) {
-  const admin = await getCurrentAdminOrThrow(supabaseUser);
-
-  if (!input.mediThName || !input.mediEnName) {
-    throw new ServiceError(400, {
-      error: "ชื่อยาต้องไม่ว่างเปล่า",
-      fields: ["mediThName", "mediEnName"],
-    });
-  }
-
   const data: Prisma.MedicineDatabaseCreateInput = {
     mediThName: input.mediThName,
     mediEnName: input.mediEnName,
@@ -121,7 +114,7 @@ export async function createMedicineForAdmin({
     mediWarning: input.mediWarning ?? null,
     mediStore: input.mediStore ?? null,
     mediPicture: input.mediPicturePath ?? null,
-    adminId: admin.userId,
+    adminId,
   };
 
   const created = await createMedicine(data);
@@ -358,7 +351,7 @@ export async function listMedicinesForUser({
     take,
   });
 
-  // Return only fields for user (no deletedAt)
+  // Return only fields for user
   const userItems = items.map((item) => ({
     mediId: item.mediId,
     mediPicture: item.mediPicture,
@@ -411,5 +404,40 @@ export async function getMedicineDetailForUser({
       mediStore: medicine.mediStore,
       mediPicture: medicine.mediPicture,
     },
+  };
+}
+
+// ---------- HARD DELETE ----------
+
+export async function hardDeleteMedicineForAdmin({
+  supabaseUser,
+  mediId,
+}: {
+  supabaseUser: User;
+  mediId: number;
+}) {
+  const admin = await getCurrentAdminOrThrow(supabaseUser);
+
+  if (!Number.isInteger(mediId) || mediId <= 0) {
+    throw new ServiceError(400, { error: "mediId must be a positive integer" });
+  }
+
+  const existing = await findMedicineById(mediId);
+  if (!existing) {
+    throw new ServiceError(404, { error: "Medicine not found" });
+  }
+
+  const usageCount = await getMedicineUsageCount(mediId);
+  if (usageCount > 0) {
+    throw new ServiceError(409, {
+      error: "Cannot delete medicine",
+      message: "This medicine is currently used by users in their medicine lists.",
+    });
+  }
+
+  await deleteMedicine(mediId);
+
+  return {
+    message: "Medicine permanently deleted",
   };
 }
