@@ -7,6 +7,7 @@ export async function GET() {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Medi Buddy — API Documentation</title>
+    <link rel="icon" href="/server-logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/swagger-ui/swagger-ui.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -383,7 +384,7 @@ export async function GET() {
     <nav class="api-nav">
       <div class="api-nav-inner">
         <a class="api-logo" href="/api-doc">
-          <span class="api-logo-icon">💊</span>
+          <img src="/server-logo.svg" alt="Medi Buddy Logo" class="api-logo-icon" style="background: transparent;" />
           Medi Buddy API
         </a>
 

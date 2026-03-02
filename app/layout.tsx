@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Medi Buddy",
   description: "Your comprehensive medical companion",
+  icons: {
+    icon: "/server-logo.svg",
+    shortcut: "/server-logo.svg",
+    apple: "/server-logo.svg",
+  },
 };
 
 export default function RootLayout({
