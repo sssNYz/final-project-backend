@@ -1,7 +1,7 @@
-// server/medicationLog/medicationLog.service.ts
 import { ResponseStatus } from "@prisma/client";
 import { ServiceError } from "@/server/common/errors";
 import * as repo from "./medicationLog.repository";
+import { getNativeTimezoneOffset } from "@/server/common/timezone";
 
 const SNOOZE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_SNOOZE_COUNT = 3;
@@ -22,9 +22,28 @@ export async function listMedicationLogs(params: {
         throw new ServiceError(403, { error: "Profile not found or access denied" });
     }
 
+    const rawTz = profile.user.timeZone;
+    const userTimeZone = (rawTz && rawTz.trim() !== "") ? rawTz.replace(/['"]+/g, '').trim() : "Asia/Bangkok";
+
+    let startUtc: Date | undefined = undefined;
+    let endUtc: Date | undefined = undefined;
+
+    if (params.startDate) {
+        // Create an absolute UTC date representation of the local time to bypass string parsing constraints
+        const localDate = new Date(`${params.startDate}T00:00:00Z`);
+        const offset = getNativeTimezoneOffset(userTimeZone, localDate);
+        startUtc = new Date(localDate.getTime() - offset);
+    }
+
+    if (params.endDate) {
+        const localDate = new Date(`${params.endDate}T23:59:59.999Z`);
+        const offset = getNativeTimezoneOffset(userTimeZone, localDate);
+        endUtc = new Date(localDate.getTime() - offset);
+    }
+
     const logs = await repo.listLogsByProfileId(params.profileId, {
-        startDate: params.startDate ? new Date(params.startDate) : undefined,
-        endDate: params.endDate ? new Date(params.endDate) : undefined,
+        startDate: startUtc,
+        endDate: endUtc,
         limit: params.limit,
         offset: params.offset,
     });

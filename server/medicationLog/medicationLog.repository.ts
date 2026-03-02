@@ -7,6 +7,7 @@ import { ResponseStatus } from "@prisma/client";
 export async function findProfileByIdAndUserId(profileId: number, userId: number) {
     return prisma.userProfile.findFirst({
         where: { profileId, userId },
+        include: { user: { select: { timeZone: true } } },
     });
 }
 

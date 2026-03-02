@@ -41,3 +41,15 @@ export function buildDateTimeFromTimeOfDay(
   // toDate interprets the ISO string as being in the specified timezone and returns a UTC Date
   return toDate(isoString, { timeZone });
 }
+
+export function getNativeTimezoneOffset(timeZone: string, date: Date): number {
+  try {
+    const tzString = date.toLocaleString("en-US", { timeZone });
+    const utcString = date.toLocaleString("en-US", { timeZone: "UTC" });
+    const tzTime = new Date(tzString).getTime();
+    const utcTime = new Date(utcString).getTime();
+    return Math.round((tzTime - utcTime) / 60000) * 60000;
+  } catch (e) {
+    return 0; // Fallback to UTC if timezone is invalid
+  }
+}

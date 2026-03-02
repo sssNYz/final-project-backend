@@ -145,6 +145,9 @@ export async function findRelationshipByIdAndViewer(relationshipId: number, view
             ownerUser: {
                 select: { userId: true, email: true },
             },
+            viewerUser: {
+                select: { userId: true, email: true, timeZone: true },
+            },
         },
     });
 }
