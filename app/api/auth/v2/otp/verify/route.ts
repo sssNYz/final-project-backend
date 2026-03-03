@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyOtp } from "@/server/auth/auth-v2.service";
 import { ServiceError } from "@/server/common/errors";
 import { setAuthCookies } from "@/lib/cookies";
+import { verifyAccessToken, extractBearerToken } from "@/lib/jwt";
 
 /**
  * POST /api/auth/v2/otp/verify
@@ -33,8 +34,24 @@ export async function POST(request: Request) {
         // Create response with JSON body
         const response = NextResponse.json(result, { status: 200 });
 
-        // Set HttpOnly cookies if tokens are present (login-like flow)
-        if (result.accessToken) {
+        // Try to read the current user's token from the request
+        const existingToken = extractBearerToken(request);
+        let preventCookieOverride = false;
+
+        if (existingToken) {
+            try {
+                const payload = verifyAccessToken(existingToken);
+                // If the person making the request is ALREADY an Admin, don't override their cookies
+                if (payload.role === "Admin" || payload.role === "SuperAdmin") {
+                    preventCookieOverride = true;
+                }
+            } catch (e) {
+                // Token invalid/expired, ignore
+            }
+        }
+
+        // Set HttpOnly cookies if tokens are present (login-like flow) and it's NOT an existing Admin
+        if (result.accessToken && !preventCookieOverride) {
             setAuthCookies(response, {
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,

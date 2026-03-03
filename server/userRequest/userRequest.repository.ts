@@ -51,6 +51,7 @@ export async function listUserRequests(params: ListUserRequestsParams) {
     where.OR = [
       { requestTitle: { contains: search } },
       { requestDetails: { contains: search } },
+      { user: { email: { contains: search } } },
     ];
   }
 
