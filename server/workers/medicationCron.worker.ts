@@ -54,7 +54,14 @@ async function processRegimen(regimen: {
   if (!scheduleTime) return null;
 
   const medicineList = regimen.medicineList;
-  if (!medicineList) return null;
+  if (!medicineList) {
+    // Disable corrupted regimen to prevent infinite loop
+    await prisma.userMedicineRegimen.update({
+      where: { mediRegimenId: regimen.mediRegimenId },
+      data: { nextOccurrenceAt: null },
+    });
+    return null;
+  }
 
   const profileId = medicineList.profileId;
   const userId = medicineList.profile.userId;

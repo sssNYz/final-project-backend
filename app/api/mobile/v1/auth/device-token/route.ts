@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
+ 
     // Call service
     const result = await saveDeviceToken({
       supabaseUser,

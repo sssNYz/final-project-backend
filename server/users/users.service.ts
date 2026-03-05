@@ -4,6 +4,7 @@ import { ServiceError } from "@/server/common/errors";
 import {
   deleteUserAccount,
   findAllUserAccounts,
+  countAllUserAccounts,
   findUserBySupabaseOrEmail,
   findUserByUserId,
   updateUserAccount,
@@ -92,18 +93,35 @@ function mapRoleToAccountRole(role: string): "admin" | "superadmin" | "member" {
   return "member";
 }
 
-export async function listAdminAccountsForDashboard(): Promise<
-  AdminAccountListItem[]
-> {
-  const users = await findAllUserAccounts();
+export async function listAdminAccountsForDashboard(
+  page: number = 1,
+  pageSize: number = 20
+): Promise<{
+  accounts: AdminAccountListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}> {
+  const skip = (page - 1) * pageSize;
+  const take = pageSize;
 
-  return users.map((user) => ({
-    userId: user.userId,
-    email: user.email,
-    role: mapRoleToAccountRole(user.role),
-    active: user.status === true,
-    lastLogin: user.lastLogin,
-  }));
+  const [users, total] = await Promise.all([
+    findAllUserAccounts(skip, take),
+    countAllUserAccounts(),
+  ]);
+
+  return {
+    accounts: users.map((user) => ({
+      userId: user.userId,
+      email: user.email,
+      role: mapRoleToAccountRole(user.role),
+      active: user.status === true,
+      lastLogin: user.lastLogin,
+    })),
+    total,
+    page,
+    pageSize,
+  };
 }
 
 export async function deleteAdminAccount({

@@ -37,12 +37,18 @@ export async function updateUserAccount(
   });
 }
 
-export async function findAllUserAccounts() {
+export async function findAllUserAccounts(skip?: number, take?: number) {
   return prisma.userAccount.findMany({
+    skip,
+    take,
     orderBy: {
       createdAt: "desc",
     },
   });
+}
+
+export async function countAllUserAccounts() {
+  return prisma.userAccount.count();
 }
 
 export async function deleteUserAccount(
