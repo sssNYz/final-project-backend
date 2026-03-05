@@ -106,7 +106,7 @@ export async function createAdminUser(input: CreateAdminInput) {
             role: "Admin", // Explicitly set role to Admin
             status: true,
             // emailVerifiedAt: null, // Default behavior
-            tutorialDone: true,
+            tutorialDone: false,
         },
     });
 
