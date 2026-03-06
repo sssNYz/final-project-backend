@@ -6,8 +6,12 @@ import { join } from "path";
 // ---------- User Lookup ----------
 
 export async function findUserByEmail(email: string) {
-    return prisma.userAccount.findUnique({
-        where: { email: email.toLowerCase().trim() },
+    // Only users who have at least one profile (active mobile users) can be found
+    return prisma.userAccount.findFirst({
+        where: {
+            email: email.toLowerCase().trim(),
+            profiles: { some: {} } // Must have at least one mobile profile
+        },
         select: {
             userId: true,
             email: true,
@@ -21,7 +25,8 @@ export async function searchUsersByEmailPartial(query: string) {
             email: {
                 contains: query.toLowerCase().trim(),
             },
-            role: "User",
+            // Allow Admins to be searched ONLY IF they use the mobile app (they have a profile)
+            profiles: { some: {} }
         },
         select: {
             email: true,
