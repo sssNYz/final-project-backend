@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requestOtp } from "@/server/auth/auth-v2.service";
+import { validateEmailWithAbstract } from "@/server/common/email-validation";
 import { ServiceError } from "@/server/common/errors";
 
 /**
@@ -23,6 +24,15 @@ export async function POST(request: Request) {
         if (!emailRegex.test(email)) {
             return NextResponse.json(
                 { error: "VALIDATION_ERROR", message: "Invalid email format" },
+                { status: 400 }
+            );
+        }
+
+        // Verify with Abstract API
+        const validationResult = await validateEmailWithAbstract(email);
+        if (!validationResult.isValid) {
+            return NextResponse.json(
+                { error: "VALIDATION_ERROR", message: validationResult.message || "Invalid email address" },
                 { status: 400 }
             );
         }

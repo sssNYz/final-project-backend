@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requestPasswordReset } from "@/server/auth/auth-v2.service";
+import { validateEmailWithAbstract } from "@/server/common/email-validation";
 import { z } from "zod";
 
 const requestResetSchema = z.object({
@@ -24,6 +25,15 @@ export async function POST(request: NextRequest) {
         }
 
         const { email, redirectTo } = parseResult.data;
+
+        // Verify with Abstract API
+        const validationResult = await validateEmailWithAbstract(email);
+        if (!validationResult.isValid) {
+            return NextResponse.json(
+                { error: "VALIDATION_ERROR", message: validationResult.message || "Invalid email address" },
+                { status: 400 }
+            );
+        }
 
         // Process request
         const result = await requestPasswordReset(email, redirectTo);
