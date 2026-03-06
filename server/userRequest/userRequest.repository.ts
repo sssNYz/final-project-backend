@@ -127,3 +127,17 @@ export async function deleteUserRequest(requestId: number) {
     where: { requestId },
   });
 }
+
+// ---------- DATE LIMITS ----------
+
+export async function getUserRequestDateLimits() {
+  const result = await prisma.userRequest.aggregate({
+    _min: { createdAt: true },
+    _max: { createdAt: true },
+  });
+
+  return {
+    earliest: result._min.createdAt,
+    latest: result._max.createdAt,
+  };
+}

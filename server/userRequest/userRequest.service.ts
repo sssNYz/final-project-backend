@@ -9,7 +9,9 @@ import {
   findUserRequestById,
   updateUserRequestStatus,
   deleteUserRequest,
+  getUserRequestDateLimits,
 } from "./userRequest.repository";
+import { formatInTimeZone } from "date-fns-tz";
 
 // ---------- HELPERS ----------
 
@@ -195,13 +197,16 @@ export async function listUserRequestsForAdmin(input: ListUserRequestsInput) {
     type = input.type as RequestType;
   }
 
-  const { items, total } = await listUserRequests({
-    status,
-    type,
-    search: input.search ?? undefined,
-    skip,
-    take: pageSize,
-  });
+  const [{ items, total }, dateLimits] = await Promise.all([
+    listUserRequests({
+      status,
+      type,
+      search: input.search ?? undefined,
+      skip,
+      take: pageSize,
+    }),
+    getUserRequestDateLimits(),
+  ]);
 
   return {
     items,
@@ -210,6 +215,10 @@ export async function listUserRequestsForAdmin(input: ListUserRequestsInput) {
       pageSize,
       total,
       totalPages: Math.ceil(total / pageSize),
+    },
+    dateLimits: {
+      earliest: dateLimits.earliest ? formatInTimeZone(dateLimits.earliest, 'Asia/Bangkok', "yyyy-MM-dd'T'HH:mm:ssXXX") : null,
+      latest: dateLimits.latest ? formatInTimeZone(dateLimits.latest, 'Asia/Bangkok', "yyyy-MM-dd'T'HH:mm:ssXXX") : null,
     },
   };
 }
@@ -292,3 +301,4 @@ export async function deleteUserRequestForAdmin(input: DeleteUserRequestInput) {
     message: "Request deleted",
   };
 }
+
