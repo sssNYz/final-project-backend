@@ -693,6 +693,13 @@ export async function requestPasswordReset(email: string, redirectTo: string) {
         return { error: "Email not found in our system." };
     }
 
+    if (user.provider && !user.provider.includes("email")) {
+        throw new ServiceError(403, {
+            error: "INVALID_LOGIN_METHOD",
+            message: "This account does not use a password. Please log in with your social provider.",
+        });
+    }
+
     // --- Security Check: Requesting Role vs Destination ---
     const isAdminPath = redirectTo.includes("admin.medi-buddy.xyz") || redirectTo.includes(":3001");
 

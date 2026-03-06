@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requestPasswordReset } from "@/server/auth/auth-v2.service";
 import { validateEmailWithAbstract } from "@/server/common/email-validation";
+import { ServiceError } from "@/server/common/errors";
 import { z } from "zod";
 
 const requestResetSchema = z.object({
@@ -46,14 +47,13 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error("[AuthV2] Password Reset Request Error:", error);
 
-        // Assume any thrown ServiceError is handled via global error middleware or handled here
-        // If your codebase has a standard error handler, use that. Otherwise, generic 500 or 400.
-        const status = error.statusCode || 500;
-        const payload = {
-            error: error.error || "INTERNAL_SERVER_ERROR",
-            message: error.message || "An unexpected error occurred",
-        };
+        if (error instanceof ServiceError) {
+            return NextResponse.json(error.body, { status: error.statusCode });
+        }
 
-        return NextResponse.json(payload, { status });
+        return NextResponse.json(
+            { error: "INTERNAL_SERVER_ERROR", message: "An unexpected error occurred" },
+            { status: 500 }
+        );
     }
 }
