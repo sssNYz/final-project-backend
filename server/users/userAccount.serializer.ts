@@ -3,7 +3,6 @@ import { Role, UserAccount } from "@prisma/client";
 export interface PublicUserAccount {
   userId: number;
   email: string;
-  supabaseUserId: string | null;
   provider: string | null;
   role: Role;
   tutorialDone: boolean;
@@ -28,7 +27,6 @@ export function serializeUserAccount(user: UserAccount): PublicUserAccount {
   return {
     userId: user.userId,
     email: user.email,
-    supabaseUserId: user.supabaseUserId,
     provider: normalizeProviderForPublic(user.provider),
     role: user.role,
     tutorialDone: user.tutorialDone,

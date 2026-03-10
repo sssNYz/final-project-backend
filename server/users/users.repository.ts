@@ -1,29 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-function buildUserLookupWhere(
-  supabaseUserId: string,
-  email?: string | null
-): Prisma.UserAccountWhereInput {
-  const conditions: Prisma.UserAccountWhereInput[] = [];
-
-  if (supabaseUserId) {
-    conditions.push({ supabaseUserId });
-  }
-
-  if (email) {
-    conditions.push({ email });
-  }
-
-  return conditions.length > 0 ? { OR: conditions } : {};
-}
-
-export async function findUserBySupabaseOrEmail(
-  supabaseUserId: string,
-  email?: string | null
-) {
+export async function findUserByEmail(email: string) {
   return prisma.userAccount.findFirst({
-    where: buildUserLookupWhere(supabaseUserId, email),
+    where: { email },
   });
 }
 

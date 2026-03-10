@@ -5,7 +5,7 @@ import {
   deleteUserAccount,
   findAllUserAccounts,
   countAllUserAccounts,
-  findUserBySupabaseOrEmail,
+  findUserByEmail,
   findUserByUserId,
   updateUserAccount,
 } from "@/server/users/users.repository";
@@ -45,10 +45,13 @@ export async function updateCurrentUserProfile({
   body: Record<string, unknown>;
 }): Promise<{ message: string; user: PublicUserAccount }> {
   const normalizedEmail = normalizeEmail(supabaseUser.email);
-  const user = await findUserBySupabaseOrEmail(
-    supabaseUser.id,
-    normalizedEmail
-  );
+  if (!normalizedEmail) {
+    throw new ServiceError(400, {
+      error: "User email is missing from token",
+    });
+  }
+
+  const user = await findUserByEmail(normalizedEmail);
 
   if (!user) {
     throw new ServiceError(404, {
@@ -147,21 +150,7 @@ export async function deleteAdminAccount({
   }
 
   try {
-    const deletedUser = await deleteUserAccount(where);
-
-    if (deletedUser.supabaseUserId) {
-      const { error } = await deleteSupabaseUser(deletedUser.supabaseUserId);
-
-      if (
-        error &&
-        (!(error instanceof AuthApiError) || error.status !== 404)
-      ) {
-        throw new ServiceError(502, {
-          error: "ไม่สามารถลบบัญชีบน Supabase ได้",
-          supabaseError: error.message,
-        });
-      }
-    }
+    await deleteUserAccount(where);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

@@ -14,7 +14,7 @@ import {
   getMedicineUsageCount,
   deleteMedicine,
 } from "@/server/medicine/medicine.repository";
-import { findUserBySupabaseOrEmail } from "@/server/users/users.repository";
+import { findUserByEmail } from "@/server/users/users.repository";
 
 function normalizeEmail(email?: string | null): string | null {
   return typeof email === "string" ? email.toLowerCase().trim() : null;
@@ -57,10 +57,12 @@ function getSafeMedicineUploadAbsolutePath(
 
 async function getCurrentAdminOrThrow(supabaseUser: User) {
   const normalizedEmail = normalizeEmail(supabaseUser.email);
-  const user = await findUserBySupabaseOrEmail(
-    supabaseUser.id,
-    normalizedEmail
-  );
+  if (!normalizedEmail) {
+    throw new ServiceError(400, {
+      error: "User email is missing from token",
+    });
+  }
+  const user = await findUserByEmail(normalizedEmail);
 
   if (!user) {
     throw new ServiceError(404, {

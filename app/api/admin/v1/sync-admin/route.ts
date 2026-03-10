@@ -19,7 +19,6 @@ export async function GET() {
         "Content-Type": "application/json",
       },
       requiredBody: {
-        supabaseUserId: "string (required) - Supabase user ID",
         email: "string (required) - User email address",
         provider: "string (required) - one of: 'email', 'google', 'email,google' (legacy 'both' also accepted)",
         allowMerge: "boolean (optional) - Legacy flag (accepted but no longer required)",
@@ -31,7 +30,6 @@ export async function GET() {
           "Content-Type": "application/json",
         },
         body: {
-          supabaseUserId: "user-id-from-supabase",
           email: "admin@example.com",
           provider: "email",
           allowMerge: false,
@@ -60,12 +58,12 @@ export async function POST(request: Request) {
 
     // 2) อ่าน body
     const body = await request.json();
-    const { supabaseUserId, email, provider, allowMerge } = body;
+    const { email, provider, allowMerge } = body;
 
     // 3) ตรวจสอบค่าที่จำเป็น
-    if (!supabaseUserId || !email || !provider) {
+    if (!email || !provider) {
       return NextResponse.json(
-        { error: "supabaseUserId, email, and provider are required" },
+        { error: "email and provider are required" },
         { status: 400 }
       );
     }
@@ -83,7 +81,6 @@ export async function POST(request: Request) {
     // 5) call service → this will also set bigger role (Admin / SuperAdmin)
     const result = await syncAdminAccount({
       supabaseUser,
-      supabaseUserId,
       email,
       provider: providerValue,
       allowMerge,

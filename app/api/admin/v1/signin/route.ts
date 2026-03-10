@@ -40,7 +40,6 @@ export async function POST(request: Request) {
     // 3) sync บัญชีแอดมินใน Prisma และอัปเดต lastLogin
     const result = await syncAdminAccount({
       supabaseUser,
-      supabaseUserId: supabaseUser.id,
       email: supabaseUser.email ?? email,
       provider: EMAIL_PROVIDER,
       allowMerge: true,

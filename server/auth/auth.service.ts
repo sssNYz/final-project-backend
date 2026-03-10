@@ -2,8 +2,7 @@ import { User } from "@supabase/supabase-js";
 import {
   createUserAccount,
   findUserByEmail,
-  findUserBySupabaseOrEmail,
-  findUserWithProfilesBySupabaseOrEmail,
+  findUserWithProfilesByEmail,
   updateUserAccount,
 } from "@/server/auth/auth.repository";
 import { ServiceError } from "@/server/common/errors";
@@ -59,10 +58,13 @@ export async function getAuthenticatedUserProfile(
 ): Promise<PublicUserAccountWithProfiles> {
   const normalizedEmail = normalizeEmail(supabaseUser.email);
 
-  const user = await findUserWithProfilesBySupabaseOrEmail(
-    supabaseUser.id,
-    normalizedEmail
-  );
+  if (!normalizedEmail) {
+    throw new ServiceError(400, {
+      error: "Email is required",
+    });
+  }
+
+  const user = await findUserWithProfilesByEmail(normalizedEmail);
 
   if (!user) {
     throw new ServiceError(404, {
@@ -76,7 +78,6 @@ export async function getAuthenticatedUserProfile(
 
 export interface SyncUserInput {
   supabaseUser: User;
-  supabaseUserId: string;
   email: string;
   provider: AuthProvider;
   allowMerge?: boolean;
@@ -90,7 +91,6 @@ export interface SyncUserResult {
 
 export async function syncUserAccount({
   supabaseUser,
-  supabaseUserId,
   email,
   provider,
 }: SyncUserInput): Promise<SyncUserResult> {
@@ -107,20 +107,13 @@ export async function syncUserAccount({
     throw new ServiceError(400, { error: "Email is required" });
   }
 
-  if (!supabaseUserId) {
-    throw new ServiceError(400, { error: "supabaseUserId is required" });
-  }
-
-  if (!normalizedTokenEmail || normalizedTokenEmail !== normalizedEmail || supabaseUser.id !== supabaseUserId) {
+  if (!normalizedTokenEmail || normalizedTokenEmail !== normalizedEmail) {
     throw new ServiceError(403, {
       error: "Token does not match provided user data",
     });
   }
 
-  const existingUser = await findUserBySupabaseOrEmail(
-    supabaseUserId,
-    normalizedEmail
-  );
+  const existingUser = await findUserByEmail(normalizedEmail);
 
 
   const incomingProvider = normalizeProviderInput(provider);
@@ -128,7 +121,6 @@ export async function syncUserAccount({
   if (!existingUser) {
     const createdUser = await createUserAccount({
       email: normalizedEmail,
-      supabaseUserId,
       provider: incomingProvider,
     });
 
@@ -152,7 +144,6 @@ export async function syncUserAccount({
   const didMerge = existingProvider !== null && existingProvider !== newProvider;
 
   const updatedUser = await updateUserAccount(existingUser.userId, {
-    supabaseUserId,
     provider: newProvider,
     lastLogin: new Date(),
   });

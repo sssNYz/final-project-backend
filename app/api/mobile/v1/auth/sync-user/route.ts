@@ -20,7 +20,6 @@ export async function GET() {
       "Content-Type": "application/json"
     },
     requiredBody: {
-      supabaseUserId: "string (required) - Supabase user ID",
       email: "string (required) - User email address",
       provider: "string (required) - One of: 'email', 'google', 'email,google' (legacy 'both' also accepted)",
       allowMerge: "boolean (optional) - Legacy flag (accepted but no longer required)"
@@ -32,7 +31,6 @@ export async function GET() {
         "Content-Type": "application/json"
       },
       body: {
-        supabaseUserId: "user-id-from-supabase",
         email: "user@example.com",
         provider: "google",
         allowMerge: true
@@ -61,12 +59,12 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body = await request.json();
-    const { supabaseUserId, email, provider, allowMerge } = body;
+    const { email, provider, allowMerge } = body;
 
     // Validate required fields
-    if (!supabaseUserId || !email || !provider) {
+    if (!email || !provider) {
       return NextResponse.json(
-        { error: "supabaseUserId, email, and provider are required" },
+        { error: "email and provider are required" },
         { status: 400 }
       );
     }
@@ -83,7 +81,6 @@ export async function POST(request: Request) {
 
     const result = await syncUserAccount({
       supabaseUser,
-      supabaseUserId,
       email,
       provider: providerValue,
       allowMerge,
@@ -103,7 +100,7 @@ export async function POST(request: Request) {
     // Handle auth errors
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json(
-        { 
+        {
           error: "Unauthorized - Invalid or missing token",
           message: "Please include a valid Authorization header with your Supabase access token",
           help: "Add header: Authorization: Bearer <your_supabase_access_token>",

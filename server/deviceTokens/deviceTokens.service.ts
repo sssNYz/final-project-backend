@@ -1,7 +1,7 @@
 import { User } from "@supabase/supabase-js";
 import { DeviceToken } from "@prisma/client";
 import { ServiceError } from "@/server/common/errors";
-import { findUserBySupabaseOrEmail } from "@/server/auth/auth.repository";
+import { findUserByEmail } from "@/server/auth/auth.repository";
 import { upsertDeviceToken } from "@/server/deviceTokens/deviceTokens.repository";
 
 function normalizeEmail(email?: string | null): string | null {
@@ -37,7 +37,12 @@ export async function saveDeviceToken(
 
   // Find user in DB
   const normalizedEmail = normalizeEmail(supabaseUser.email);
-  const user = await findUserBySupabaseOrEmail(supabaseUser.id, normalizedEmail);
+  if (!normalizedEmail) {
+    throw new ServiceError(400, {
+      error: "User email is missing from token",
+    });
+  }
+  const user = await findUserByEmail(normalizedEmail);
 
   if (!user) {
     throw new ServiceError(404, {

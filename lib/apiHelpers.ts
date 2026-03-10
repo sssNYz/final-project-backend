@@ -12,7 +12,6 @@ export interface AuthenticatedUserContext {
   prismaUser: {
     userId: number;
     email: string;
-    supabaseUserId: string | null;
     provider: string | null;
     role: string;
     tutorialDone: boolean;
@@ -45,15 +44,11 @@ export async function withAuth(
     // Find user in Prisma database
     const prismaUser = await prisma.userAccount.findFirst({
       where: {
-        OR: [
-          { supabaseUserId: supabaseUser.id },
-          { email: supabaseUser.email }
-        ]
+        email: supabaseUser.email
       },
       select: {
         userId: true,
         email: true,
-        supabaseUserId: true,
         provider: true,
         role: true,
         status: true,
