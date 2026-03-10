@@ -14,8 +14,6 @@ export function calculateNextOccurrence(params: {
   endDate: Date | null;
   daysOfWeek: string | null;
   intervalDays: number | null;
-  cycleOnDays: number | null;
-  cycleBreakDays: number | null;
   intervalHour: number | null;
   times: Array<{ timeOfDay: string }>;
   userTimeZone: string;
@@ -27,8 +25,6 @@ export function calculateNextOccurrence(params: {
     endDate,
     daysOfWeek,
     intervalDays,
-    cycleOnDays,
-    cycleBreakDays,
     intervalHour,
     times,
     userTimeZone,
@@ -41,8 +37,6 @@ export function calculateNextOccurrence(params: {
     endDate: endDate?.toISOString(),
     daysOfWeek,
     intervalDays,
-    cycleOnDays,
-    cycleBreakDays,
     intervalHour,
     timesCount: times.length,
     now: now.toISOString(),
@@ -80,18 +74,6 @@ export function calculateNextOccurrence(params: {
     return diffDays >= 0 && diffDays % intervalDays === 0;
   }
 
-  function isValidCycleDay(day: Date): boolean {
-    if (!cycleOnDays || cycleOnDays < 1 || !cycleBreakDays || cycleBreakDays < 1) {
-      return false;
-    }
-    const cyclePeriod = cycleOnDays + cycleBreakDays;
-    const startMs = new Date(startDate).setHours(0, 0, 0, 0);
-    const dayMs = new Date(day).setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((dayMs - startMs) / (24 * 60 * 60 * 1000));
-    if (diffDays < 0) return false;
-    const positionInCycle = diffDays % cyclePeriod;
-    return positionInCycle < cycleOnDays;
-  }
 
   function isDayValid(day: Date): boolean {
     const dayDateOnly = new Date(day).setHours(0, 0, 0, 0);
@@ -105,8 +87,6 @@ export function calculateNextOccurrence(params: {
         return isValidWeeklyDay(day);
       case "INTERVAL":
         return isValidIntervalDay(day);
-      case "CYCLE":
-        return isValidCycleDay(day);
       default:
         return false;
     }

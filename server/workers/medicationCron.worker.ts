@@ -40,8 +40,6 @@ async function processRegimen(regimen: {
   endDate: Date | null;
   daysOfWeek: string | null;
   intervalDays: number | null;
-  cycleOnDays: number | null;
-  cycleBreakDays: number | null;
   intervalHour: number | null;
   times: { timeOfDay: string; dose: number; unit: string; mealRelation: MealRelation }[];
   medicineList: null | {
@@ -118,8 +116,6 @@ async function processRegimen(regimen: {
     endDate: regimen.endDate,
     daysOfWeek: regimen.daysOfWeek,
     intervalDays: regimen.intervalDays,
-    cycleOnDays: regimen.cycleOnDays,
-    cycleBreakDays: regimen.cycleBreakDays,
     intervalHour: regimen.intervalHour,
     times: regimen.times,
     userTimeZone,

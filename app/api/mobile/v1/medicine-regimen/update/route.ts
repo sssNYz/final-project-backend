@@ -64,14 +64,6 @@ export async function PATCH(request: Request) {
         updateData.intervalDays = body.intervalDays;
       }
 
-      if (body.cycleOnDays !== undefined) {
-        updateData.cycleOnDays = body.cycleOnDays;
-      }
-
-      if (body.cycleBreakDays !== undefined) {
-        updateData.cycleBreakDays = body.cycleBreakDays;
-      }
-
       if (body.intervalHour !== undefined) {
         updateData.intervalHour = body.intervalHour;
       }

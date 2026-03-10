@@ -234,8 +234,6 @@ model UserMedicineRegimen {
   endDate          DateTime?    @map("END_DATE")
   daysOfWeek       String?      @map("DAYS_OF_WEEK")
   intervalDays     Int?         @map("INTERVAL_DAYS")
-  cycleOnDays      Int?         @map("CYCLE_ON_DAYS")
-  cycleBreakDays   Int?         @map("CYCLE_BREAK_DAYS")
   intervalHour     Int?         @map("INTERVAL_HOUR")
   nextOccurrenceAt DateTime?    @map("NEXT_OCCURRENCE_AT")
 
@@ -306,7 +304,6 @@ enum ScheduleType {
   DAILY
   WEEKLY
   INTERVAL
-  CYCLE
 }
 
 enum MealRelation {

@@ -27,8 +27,6 @@ export async function POST(request: Request) {
 
       const daysOfWeek = body.scheduleType === "WEEKLY" ? body.daysOfWeek : null;
       const intervalDays = body.scheduleType === "INTERVAL" ? body.intervalDays : null;
-      const cycleOnDays = body.scheduleType === "CYCLE" ? body.cycleOnDays : null;
-      const cycleBreakDays = body.scheduleType === "CYCLE" ? body.cycleBreakDays : null;
       const intervalHour = body.intervalHour ?? null;
 
       const result = await createMedicineRegimen({
@@ -39,8 +37,6 @@ export async function POST(request: Request) {
         endDate: body.endDate ?? null,
         daysOfWeek,
         intervalDays,
-        cycleOnDays,
-        cycleBreakDays,
         intervalHour,
         times: body.times.map((t) => ({
           time: t.time,

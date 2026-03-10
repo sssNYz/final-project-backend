@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const scheduleTypeValues = ["DAILY", "WEEKLY", "INTERVAL", "CYCLE"] as const;
+const scheduleTypeValues = ["DAILY", "WEEKLY", "INTERVAL"] as const;
 const mealRelationValues = ["BEFORE_MEAL", "AFTER_MEAL", "WITH_MEAL", "NONE"] as const;
 const dayOfWeekValues = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
 
@@ -90,22 +90,13 @@ const MedicineRegimenCreateIntervalSchema = z
   })
   .strict();
 
-const MedicineRegimenCreateCycleSchema = z
-  .object({
-    ...commonCreateFields,
-    scheduleType: z.literal("CYCLE"),
-    endDate: z.coerce.date().nullable().optional(),
-    cycleOnDays: z.coerce.number().int().min(1),
-    cycleBreakDays: z.coerce.number().int().min(1),
-  })
-  .strict();
+
 
 export const MedicineRegimenCreateBodySchema = z
   .discriminatedUnion("scheduleType", [
     MedicineRegimenCreateDailySchema,
     MedicineRegimenCreateWeeklySchema,
     MedicineRegimenCreateIntervalSchema,
-    MedicineRegimenCreateCycleSchema,
   ])
   .superRefine((val, ctx) => {
     if (val.endDate && val.endDate.getTime() < val.startDate.getTime()) {
@@ -132,8 +123,6 @@ export const MedicineRegimenUpdateBodySchema = z
     endDate: z.coerce.date().nullable().optional(),
     daysOfWeek: DaysOfWeekInputSchema.nullable().optional(),
     intervalDays: z.coerce.number().int().min(1).nullable().optional(),
-    cycleOnDays: z.coerce.number().int().min(1).nullable().optional(),
-    cycleBreakDays: z.coerce.number().int().min(1).nullable().optional(),
     intervalHour: z.coerce.number().int().min(1).max(23).nullable().optional(),
     times: z.array(MedicineRegimenTimeInputSchema).min(1).optional(),
   })

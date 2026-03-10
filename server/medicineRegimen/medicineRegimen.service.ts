@@ -51,8 +51,6 @@ function assertNoForbiddenScheduleFieldsProvided(
   patch: {
     daysOfWeek?: string | null;
     intervalDays?: number | null;
-    cycleOnDays?: number | null;
-    cycleBreakDays?: number | null;
   }
 ) {
   const hasNonNull = (v: unknown) => v !== null && v !== undefined;
@@ -64,44 +62,17 @@ function assertNoForbiddenScheduleFieldsProvided(
     if (patch.intervalDays !== undefined && hasNonNull(patch.intervalDays)) {
       throw new ServiceError(400, { error: "intervalDays must be null/omitted when scheduleType is DAILY" });
     }
-    if (patch.cycleOnDays !== undefined && hasNonNull(patch.cycleOnDays)) {
-      throw new ServiceError(400, { error: "cycleOnDays must be null/omitted when scheduleType is DAILY" });
-    }
-    if (patch.cycleBreakDays !== undefined && hasNonNull(patch.cycleBreakDays)) {
-      throw new ServiceError(400, { error: "cycleBreakDays must be null/omitted when scheduleType is DAILY" });
-    }
   }
 
   if (scheduleType === "WEEKLY") {
     if (patch.intervalDays !== undefined && hasNonNull(patch.intervalDays)) {
       throw new ServiceError(400, { error: "intervalDays must be null/omitted when scheduleType is WEEKLY" });
     }
-    if (patch.cycleOnDays !== undefined && hasNonNull(patch.cycleOnDays)) {
-      throw new ServiceError(400, { error: "cycleOnDays must be null/omitted when scheduleType is WEEKLY" });
-    }
-    if (patch.cycleBreakDays !== undefined && hasNonNull(patch.cycleBreakDays)) {
-      throw new ServiceError(400, { error: "cycleBreakDays must be null/omitted when scheduleType is WEEKLY" });
-    }
   }
 
   if (scheduleType === "INTERVAL") {
     if (patch.daysOfWeek !== undefined && hasNonNull(patch.daysOfWeek)) {
       throw new ServiceError(400, { error: "daysOfWeek must be null/omitted when scheduleType is INTERVAL" });
-    }
-    if (patch.cycleOnDays !== undefined && hasNonNull(patch.cycleOnDays)) {
-      throw new ServiceError(400, { error: "cycleOnDays must be null/omitted when scheduleType is INTERVAL" });
-    }
-    if (patch.cycleBreakDays !== undefined && hasNonNull(patch.cycleBreakDays)) {
-      throw new ServiceError(400, { error: "cycleBreakDays must be null/omitted when scheduleType is INTERVAL" });
-    }
-  }
-
-  if (scheduleType === "CYCLE") {
-    if (patch.daysOfWeek !== undefined && hasNonNull(patch.daysOfWeek)) {
-      throw new ServiceError(400, { error: "daysOfWeek must be null/omitted when scheduleType is CYCLE" });
-    }
-    if (patch.intervalDays !== undefined && hasNonNull(patch.intervalDays)) {
-      throw new ServiceError(400, { error: "intervalDays must be null/omitted when scheduleType is CYCLE" });
     }
   }
 }
@@ -111,38 +82,25 @@ function normalizeAndValidateScheduleFields(
   data: {
     daysOfWeek: string | null;
     intervalDays: number | null;
-    cycleOnDays: number | null;
-    cycleBreakDays: number | null;
   }
 ): {
   daysOfWeek: string | null;
   intervalDays: number | null;
-  cycleOnDays: number | null;
-  cycleBreakDays: number | null;
 } {
   switch (scheduleType) {
     case "DAILY":
-      return { daysOfWeek: null, intervalDays: null, cycleOnDays: null, cycleBreakDays: null };
+      return { daysOfWeek: null, intervalDays: null };
     case "WEEKLY": {
       if (!data.daysOfWeek || data.daysOfWeek.trim() === "") {
         throw new ServiceError(400, { error: "daysOfWeek is required when scheduleType is WEEKLY" });
       }
-      return { daysOfWeek: normalizeDaysOfWeek(data.daysOfWeek), intervalDays: null, cycleOnDays: null, cycleBreakDays: null };
+      return { daysOfWeek: normalizeDaysOfWeek(data.daysOfWeek), intervalDays: null };
     }
     case "INTERVAL": {
       if (!Number.isInteger(data.intervalDays) || (data.intervalDays ?? 0) < 1) {
         throw new ServiceError(400, { error: "intervalDays is required and must be >= 1 when scheduleType is INTERVAL" });
       }
-      return { daysOfWeek: null, intervalDays: data.intervalDays, cycleOnDays: null, cycleBreakDays: null };
-    }
-    case "CYCLE": {
-      if (!Number.isInteger(data.cycleOnDays) || (data.cycleOnDays ?? 0) < 1) {
-        throw new ServiceError(400, { error: "cycleOnDays is required and must be >= 1 when scheduleType is CYCLE" });
-      }
-      if (!Number.isInteger(data.cycleBreakDays) || (data.cycleBreakDays ?? 0) < 1) {
-        throw new ServiceError(400, { error: "cycleBreakDays is required and must be >= 1 when scheduleType is CYCLE" });
-      }
-      return { daysOfWeek: null, intervalDays: null, cycleOnDays: data.cycleOnDays, cycleBreakDays: data.cycleBreakDays };
+      return { daysOfWeek: null, intervalDays: data.intervalDays };
     }
     default:
       throw new ServiceError(400, { error: "Invalid scheduleType" });
@@ -224,8 +182,6 @@ export async function createMedicineRegimen(params: {
   endDate?: Date | null;
   daysOfWeek?: string | null;
   intervalDays?: number | null;
-  cycleOnDays?: number | null;
-  cycleBreakDays?: number | null;
   intervalHour?: number | null;
   times: Array<{
     time: string;
@@ -235,7 +191,7 @@ export async function createMedicineRegimen(params: {
     mealOffsetMin?: number | null;
   }>;
 }) {
-  const { userId, mediListId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays, intervalHour, times } = params;
+  const { userId, mediListId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, intervalHour, times } = params;
 
   // 1) Check medicine list exists and belongs to user's profile
   const medicineList = await findMedicineListById(mediListId);
@@ -252,12 +208,10 @@ export async function createMedicineRegimen(params: {
   validateStartEndDate(scheduleType, startDate, finalEndDate);
 
   // 2) Validate schedule fields based on scheduleType (and block irrelevant fields)
-  assertNoForbiddenScheduleFieldsProvided(scheduleType, { daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays });
+  assertNoForbiddenScheduleFieldsProvided(scheduleType, { daysOfWeek, intervalDays });
   const schedule = normalizeAndValidateScheduleFields(scheduleType, {
     daysOfWeek: daysOfWeek ?? null,
     intervalDays: intervalDays ?? null,
-    cycleOnDays: cycleOnDays ?? null,
-    cycleBreakDays: cycleBreakDays ?? null,
   });
 
   // 3) Validate times
@@ -286,8 +240,6 @@ export async function createMedicineRegimen(params: {
     endDate: finalEndDate,
     daysOfWeek: schedule.daysOfWeek,
     intervalDays: schedule.intervalDays,
-    cycleOnDays: schedule.cycleOnDays,
-    cycleBreakDays: schedule.cycleBreakDays,
     intervalHour: intervalHour ?? null,
     times: timesWithTimeOfDay,
     userTimeZone,
@@ -301,8 +253,6 @@ export async function createMedicineRegimen(params: {
     endDate: finalEndDate,
     daysOfWeek: schedule.daysOfWeek,
     intervalDays: schedule.intervalDays,
-    cycleOnDays: schedule.cycleOnDays,
-    cycleBreakDays: schedule.cycleBreakDays,
     intervalHour: intervalHour ?? null,
     nextOccurrenceAt,
     times: timesWithTimeOfDay,
@@ -317,8 +267,6 @@ export async function createMedicineRegimen(params: {
     endDate: created.endDate,
     daysOfWeek: created.daysOfWeek,
     intervalDays: created.intervalDays,
-    cycleOnDays: created.cycleOnDays,
-    cycleBreakDays: created.cycleBreakDays,
     intervalHour: created.intervalHour,
     nextOccurrenceAt: created.nextOccurrenceAt,
     times: created.times.map((t) => ({
@@ -355,8 +303,6 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
       nextOccurrenceAt: regimen.nextOccurrenceAt,
       daysOfWeek: regimen.daysOfWeek,
       intervalDays: regimen.intervalDays,
-      cycleOnDays: regimen.cycleOnDays,
-      cycleBreakDays: regimen.cycleBreakDays,
       intervalHour: regimen.intervalHour,
       medicineList: regimen.medicineList
         ? {
@@ -406,8 +352,6 @@ export async function listMedicineRegimensByListId(params: { userId: number; med
       nextOccurrenceAt: regimen.nextOccurrenceAt,
       daysOfWeek: regimen.daysOfWeek,
       intervalDays: regimen.intervalDays,
-      cycleOnDays: regimen.cycleOnDays,
-      cycleBreakDays: regimen.cycleBreakDays,
       intervalHour: regimen.intervalHour,
       medicineList: regimen.medicineList
         ? {
@@ -459,8 +403,6 @@ export async function getMedicineRegimenById(params: { userId: number; mediRegim
     nextOccurrenceAt: regimen.nextOccurrenceAt,
     daysOfWeek: regimen.daysOfWeek,
     intervalDays: regimen.intervalDays,
-    cycleOnDays: regimen.cycleOnDays,
-    cycleBreakDays: regimen.cycleBreakDays,
     intervalHour: regimen.intervalHour,
     medicineList: regimen.medicineList
       ? {
@@ -491,8 +433,6 @@ export async function updateMedicineRegimen(params: {
   endDate?: Date | null;
   daysOfWeek?: string | null;
   intervalDays?: number | null;
-  cycleOnDays?: number | null;
-  cycleBreakDays?: number | null;
   intervalHour?: number | null;
   times?: Array<{
     time: string;
@@ -502,7 +442,7 @@ export async function updateMedicineRegimen(params: {
     mealOffsetMin?: number | null;
   }>;
 }) {
-  const { userId, mediRegimenId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays, intervalHour, times } = params;
+  const { userId, mediRegimenId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, intervalHour, times } = params;
 
   // 1) Find regimen
   const existing = await findRegimenById(mediRegimenId);
@@ -529,8 +469,6 @@ export async function updateMedicineRegimen(params: {
     endDate !== undefined ||
     daysOfWeek !== undefined ||
     intervalDays !== undefined ||
-    cycleOnDays !== undefined ||
-    cycleBreakDays !== undefined ||
     intervalHour !== undefined ||
     times !== undefined;
 
@@ -539,7 +477,7 @@ export async function updateMedicineRegimen(params: {
   }
 
   // 4) Block irrelevant schedule fields in the request (allow null to clear)
-  assertNoForbiddenScheduleFieldsProvided(finalScheduleType, { daysOfWeek, intervalDays, cycleOnDays, cycleBreakDays });
+  assertNoForbiddenScheduleFieldsProvided(finalScheduleType, { daysOfWeek, intervalDays });
 
   // 5) Validate times if provided
   if (times !== undefined) {
@@ -553,8 +491,6 @@ export async function updateMedicineRegimen(params: {
     endDate?: Date | null;
     daysOfWeek?: string | null;
     intervalDays?: number | null;
-    cycleOnDays?: number | null;
-    cycleBreakDays?: number | null;
     intervalHour?: number | null;
     nextOccurrenceAt?: Date | null;
   } = {};
@@ -564,8 +500,6 @@ export async function updateMedicineRegimen(params: {
   if (endDate !== undefined) updateData.endDate = endDate;
   if (daysOfWeek !== undefined) updateData.daysOfWeek = daysOfWeek;
   if (intervalDays !== undefined) updateData.intervalDays = intervalDays;
-  if (cycleOnDays !== undefined) updateData.cycleOnDays = cycleOnDays;
-  if (cycleBreakDays !== undefined) updateData.cycleBreakDays = cycleBreakDays;
   if (intervalHour !== undefined) updateData.intervalHour = intervalHour;
 
   // 7) Get user timezone (default to Asia/Bangkok)
@@ -580,23 +514,17 @@ export async function updateMedicineRegimen(params: {
   const finalEndDate = endDate !== undefined ? endDate : existing.endDate;
   const finalDaysOfWeek = daysOfWeek !== undefined ? daysOfWeek : existing.daysOfWeek;
   const finalIntervalDays = intervalDays !== undefined ? intervalDays : existing.intervalDays;
-  const finalCycleOnDays = cycleOnDays !== undefined ? cycleOnDays : existing.cycleOnDays;
-  const finalCycleBreakDays = cycleBreakDays !== undefined ? cycleBreakDays : existing.cycleBreakDays;
   const finalIntervalHour = intervalHour !== undefined ? intervalHour : existing.intervalHour;
 
   validateStartEndDate(finalScheduleType, finalStartDate, finalEndDate);
   const schedule = normalizeAndValidateScheduleFields(finalScheduleType, {
     daysOfWeek: finalDaysOfWeek ?? null,
     intervalDays: finalIntervalDays ?? null,
-    cycleOnDays: finalCycleOnDays ?? null,
-    cycleBreakDays: finalCycleBreakDays ?? null,
   });
 
   // Always persist normalized schedule fields so the DB cannot end up with mixed schedule settings.
   updateData.daysOfWeek = schedule.daysOfWeek;
   updateData.intervalDays = schedule.intervalDays;
-  updateData.cycleOnDays = schedule.cycleOnDays;
-  updateData.cycleBreakDays = schedule.cycleBreakDays;
 
   // 9) Determine which times to use for nextOccurrenceAt calculation
   // If new times are provided, use them; otherwise use existing times
@@ -622,8 +550,6 @@ export async function updateMedicineRegimen(params: {
     endDate: finalEndDate,
     daysOfWeek: schedule.daysOfWeek,
     intervalDays: schedule.intervalDays,
-    cycleOnDays: schedule.cycleOnDays,
-    cycleBreakDays: schedule.cycleBreakDays,
     intervalHour: finalIntervalHour ?? null,
     times: timesForCalculation,
     userTimeZone,
@@ -650,8 +576,6 @@ export async function updateMedicineRegimen(params: {
     endDate: updated.endDate,
     daysOfWeek: updated.daysOfWeek,
     intervalDays: updated.intervalDays,
-    cycleOnDays: updated.cycleOnDays,
-    cycleBreakDays: updated.cycleBreakDays,
     intervalHour: updated.intervalHour,
     nextOccurrenceAt: updated.nextOccurrenceAt,
     medicineList: updated.medicineList

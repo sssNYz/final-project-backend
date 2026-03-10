@@ -724,8 +724,6 @@ export async function getFollowingRegimensV2(params: {
         endDate: r.endDate,
         daysOfWeek: r.daysOfWeek,
         intervalDays: r.intervalDays,
-        cycleOnDays: r.cycleOnDays,
-        cycleBreakDays: r.cycleBreakDays,
         times: r.times.map((t) => ({
             timeId: t.timeId,
             timeOfDay: t.timeOfDay,
