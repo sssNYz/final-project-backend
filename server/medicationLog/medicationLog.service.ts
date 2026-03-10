@@ -115,6 +115,7 @@ export async function handleMedicationResponse(params: {
 
         // Calculate next snooze time
         const nextSnoozeAt = new Date(now.getTime() + SNOOZE_INTERVAL_MS);
+        nextSnoozeAt.setSeconds(0, 0); // truncate seconds so cron trigger works exactly at the 5-minute minute mark
 
         const updatedLog = await repo.updateLogResponse(params.logId, {
             responseStatus: "SNOOZE",

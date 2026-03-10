@@ -6,10 +6,11 @@ interface NotificationJobData {
     logIds?: number[];
     logId?: number; // Support old jobs still in queue
     isSnooze?: boolean;
+    nextSnoozeAts?: Record<string, string>; // logId -> nextSnoozeAt ISO string
 }
 
 export async function processNotificationJob(job: Job<NotificationJobData>) {
-    const { isSnooze } = job.data;
+    const { isSnooze, nextSnoozeAts } = job.data;
 
     let logIds: number[] = [];
     if (job.data.logIds && Array.isArray(job.data.logIds)) {
@@ -106,6 +107,7 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
         timestamp: new Date().toISOString(),
         isSnoozeReminder: isSnooze ? "true" : "false",
         snoozedCount: String(log.snoozedCount ?? 0),
+        nextSnoozeAt: nextSnoozeAts?.[log.logId] ?? "",
     }));
 
     const dataPayload = isGroup ? {

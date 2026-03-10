@@ -28,6 +28,9 @@ async function processSnoozeLog(log: Awaited<ReturnType<typeof repo.findLogsForS
         return;
     }
 
+    // Grab the value before we erase it
+    const nextSnoozeAtISO = log.nextSnoozeAt ? log.nextSnoozeAt.toISOString() : null;
+
     // Clear nextSnoozeAt so we don't pick it up again immediately.
     // We assume the worker will successfully send the notification.
     await repo.updateLogAfterSnoozeReminder(log.logId, {
@@ -39,7 +42,8 @@ async function processSnoozeLog(log: Awaited<ReturnType<typeof repo.findLogsForS
     // We just return the logId and userId for grouping in the main tick.
     return {
         logId: log.logId,
-        userId: log.profile.userId
+        userId: log.profile.userId,
+        nextSnoozeAt: nextSnoozeAtISO,
     };
 }
 
@@ -56,22 +60,26 @@ async function tick() {
 
     const validLogs = results
         .filter(r => r.status === "fulfilled" && r.value)
-        .map(r => (r as PromiseFulfilledResult<{ logId: number; userId: number }>).value);
+        .map(r => (r as PromiseFulfilledResult<{ logId: number; userId: number; nextSnoozeAt: string | null }>).value);
 
     if (validLogs.length > 0) {
         // Group by userId
-        const groups: Record<number, number[]> = {};
-        for (const { logId, userId } of validLogs) {
-            if (!groups[userId]) groups[userId] = [];
-            groups[userId].push(logId);
+        const groups: Record<number, { logIds: number[], snoozeMap: Record<string, string> }> = {};
+        for (const { logId, userId, nextSnoozeAt } of validLogs) {
+            if (!groups[userId]) groups[userId] = { logIds: [], snoozeMap: {} };
+            groups[userId].logIds.push(logId);
+            if (nextSnoozeAt) {
+                groups[userId].snoozeMap[String(logId)] = nextSnoozeAt;
+            }
         }
 
         // Add to Queue
         let enqueued = 0;
-        for (const [userId, logIds] of Object.entries(groups)) {
+        for (const [userId, groupData] of Object.entries(groups)) {
             await notificationQueue.add("send-notification-group", {
-                logIds,
+                logIds: groupData.logIds,
                 isSnooze: true,
+                nextSnoozeAts: groupData.snoozeMap,
             });
             enqueued++;
         }
