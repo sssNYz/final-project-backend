@@ -49,7 +49,6 @@ model DeviceToken {
   platform      String?   @map("PLATFORM")
   deviceId      String?   @map("DEVICE_ID")
   lastSeenAt    DateTime  @default(now()) @map("LAST_SEEN_AT")
-  revokedAt     DateTime? @map("REVOKED_AT")
   createdAt     DateTime  @default(now()) @map("CREATED_AT")
   updatedAt     DateTime  @updatedAt @map("UPDATED_AT")
 
@@ -65,7 +64,6 @@ model RefreshToken {
   token     String   @unique @map("TOKEN") @db.VarChar(512)
   userId    Int      @map("USER_ID")
   expiresAt DateTime @map("EXPIRES_AT")
-  revoked   Boolean  @default(false) @map("REVOKED")
   createdAt DateTime @default(now()) @map("CREATED_AT")
 
   // Relations
@@ -182,7 +180,7 @@ model UserRelationship {
   relationshipId  Int                @id @default(autoincrement()) @map("RELATIONSHIP_ID")
   ownerUserId     Int                @map("OWNER_USER_ID")
   viewerUserId    Int                @map("VIEWER_USER_ID")
-  isReceiverEmail String             @map("IS_RECEIVER_EMAIL")
+  receiverEmail   String             @map("RECEIVER_EMAIL")
   profileIds      Json?              @map("PROFILE_IDS")
   status          RelationshipStatus @default(PENDING) @map("STATUS")
   viewerNickname  String?            @map("VIEWER_NICKNAME")

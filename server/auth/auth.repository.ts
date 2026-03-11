@@ -22,6 +22,21 @@ export async function findUserWithProfilesByEmail(email: string) {
   });
 }
 
+export async function findUserWithProfilesById(userId: number) {
+  return prisma.userAccount.findUnique({
+    where: { userId },
+    include: {
+      profiles: {
+        select: {
+          profileId: true,
+          profileName: true,
+          profilePicture: true,
+        },
+      },
+    },
+  });
+}
+
 export async function createUserAccount(data: {
   email: string;
   provider: string;

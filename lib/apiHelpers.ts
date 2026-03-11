@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "./auth";
-import { User } from "@supabase/supabase-js";
+import { requireAuth, JwtPayload } from "./auth";
 import { prisma } from "@/lib/prisma";
 
 /**
  * Interface for authenticated user context
- * Contains both Supabase user and Prisma UserAccount
+ * Contains both Custom JWT payload and Prisma UserAccount
  */
 export interface AuthenticatedUserContext {
-  supabaseUser: User;
+  jwtPayload: JwtPayload;
   prismaUser: {
     userId: number;
     email: string;
@@ -38,13 +37,13 @@ export async function withAuth(
   handler: (context: AuthenticatedUserContext) => Promise<NextResponse>
 ): Promise<NextResponse> {
   try {
-    // Verify Supabase token
-    const supabaseUser = await requireAuth(request);
+    // Verify token
+    const jwtPayload = await requireAuth(request);
 
     // Find user in Prisma database
     const prismaUser = await prisma.userAccount.findFirst({
       where: {
-        email: supabaseUser.email
+        userId: jwtPayload.userId
       },
       select: {
         userId: true,
@@ -79,7 +78,7 @@ export async function withAuth(
     }
 
     // Call the handler with authenticated context
-    return await handler({ supabaseUser, prismaUser });
+    return await handler({ jwtPayload, prismaUser });
 
   } catch (error: unknown) {
     console.error("Error in withAuth:", error);

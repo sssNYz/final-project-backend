@@ -94,7 +94,7 @@ export async function sendInvite(params: {
     const relationship = await repo.createRelationship({
         ownerUserId,
         viewerUserId: targetUser.userId,
-        isReceiverEmail: email.toLowerCase().trim(),
+        receiverEmail: email.toLowerCase().trim(),
         profileIds: validProfileIds,
         viewerNickname: name || undefined,
         viewerPicture: initialPicture,

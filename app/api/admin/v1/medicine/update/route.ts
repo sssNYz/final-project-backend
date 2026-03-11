@@ -61,7 +61,7 @@ async function saveMedicinePicture(file: File | null): Promise<string | null> {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const supabaseUser = await requireAuth(request);
+    const jwtPayload = await requireAuth(request);
     const formData = await request.formData();
 
     const mediIdRaw = formData.get("mediId");
@@ -118,7 +118,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const result = await updateMedicineForAdmin({
-      supabaseUser,
+      userId: jwtPayload.userId,
       input,
     });
 

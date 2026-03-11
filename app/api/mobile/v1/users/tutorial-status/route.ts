@@ -11,7 +11,7 @@ import { ServiceError } from "@/server/common/errors";
 export async function PATCH(request: Request) {
     try {
         // Verify user token
-        const supabaseUser = await requireAuth(request);
+        const jwtPayload = await requireAuth(request);
 
         // Parse request body
         const body = await request.json();
@@ -25,7 +25,7 @@ export async function PATCH(request: Request) {
 
         // Call service to update
         const result = await updateCurrentUserProfile({
-            supabaseUser,
+            userId: jwtPayload.userId,
             body: { tutorialDone: body.tutorialDone },
         });
 

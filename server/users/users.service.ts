@@ -1,15 +1,12 @@
-import { AuthApiError, User } from "@supabase/supabase-js";
 import { Prisma } from "@prisma/client";
 import { ServiceError } from "@/server/common/errors";
 import {
   deleteUserAccount,
   findAllUserAccounts,
   countAllUserAccounts,
-  findUserByEmail,
   findUserByUserId,
   updateUserAccount,
 } from "@/server/users/users.repository";
-import { deleteSupabaseUser } from "@/server/supabase/admin";
 import {
   PublicUserAccount,
   serializeUserAccount,
@@ -38,25 +35,18 @@ function buildUpdatePayload(
 }
 
 export async function updateCurrentUserProfile({
-  supabaseUser,
+  userId,
   body,
 }: {
-  supabaseUser: User;
+  userId: number;
   body: Record<string, unknown>;
 }): Promise<{ message: string; user: PublicUserAccount }> {
-  const normalizedEmail = normalizeEmail(supabaseUser.email);
-  if (!normalizedEmail) {
-    throw new ServiceError(400, {
-      error: "User email is missing from token",
-    });
-  }
 
-  const user = await findUserByEmail(normalizedEmail);
+  const user = await findUserByUserId(userId);
 
   if (!user) {
     throw new ServiceError(404, {
       error: "User not found in database",
-      message: "Please call /api/mobile/v1/auth/sync-user to create your account",
     });
   }
 

@@ -9,10 +9,10 @@ import { ServiceError } from "@/server/common/errors";
  */
 export async function GET(request: Request) {
   try {
-    // Verify Supabase token
-    const supabaseUser = await requireAuth(request);
+    // Verify token
+    const jwtPayload = await requireAuth(request);
 
-    const user = await getAuthenticatedUserProfile(supabaseUser);
+    const user = await getAuthenticatedUserProfile(jwtPayload.userId);
 
     // Return user profile (safe fields only, no password)
     return NextResponse.json({ user });

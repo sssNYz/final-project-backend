@@ -22,7 +22,7 @@ function toErrorResponse(error: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabaseUser = await requireAuth(request);
+    const jwtPayload = await requireAuth(request);
 
     const url = new URL(request.url);
     const mediIdParam = url.searchParams.get("mediId");
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await getMedicineDetailForAdmin({
-      supabaseUser,
+      userId: jwtPayload.userId,
       mediId,
     });
 

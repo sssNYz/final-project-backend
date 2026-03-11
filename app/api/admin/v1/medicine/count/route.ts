@@ -23,7 +23,7 @@ function toErrorResponse(error: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabaseUser = await requireAuth(request);
+    const jwtPayload = await requireAuth(request);
 
     const url = new URL(request.url);
     const includeDeletedParam = url.searchParams.get("includeDeleted");
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       includeDeletedParam === "true" || includeDeletedParam === "1";
 
     const result = await getMedicineCountForAdmin({
-      supabaseUser,
+      userId: jwtPayload.userId,
       includeDeleted,
     });
 

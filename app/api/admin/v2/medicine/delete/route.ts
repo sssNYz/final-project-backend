@@ -20,7 +20,7 @@ function toErrorResponse(error: unknown) {
 
 export async function DELETE(request: NextRequest) {
     try {
-        const supabaseUser = await requireAuth(request);
+        const jwtPayload = await requireAuth(request);
 
         let body;
         try {
@@ -37,7 +37,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         const result = await hardDeleteMedicineForAdmin({
-            supabaseUser,
+            userId: jwtPayload.userId,
             mediId: id,
         });
 

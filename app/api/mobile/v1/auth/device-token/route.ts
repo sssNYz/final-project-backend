@@ -54,8 +54,8 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    // Verify Supabase token
-    const supabaseUser = await requireAuth(request);
+    // Verify token
+    const jwtPayload = await requireAuth(request);
 
     // Parse request body
     let body: unknown;
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
  
     // Call service
     const result = await saveDeviceToken({
-      supabaseUser,
+      userId: jwtPayload.userId,
       token,
       platform: typeof platform === "string" ? platform : null,
       deviceId: typeof deviceId === "string" ? deviceId : null,

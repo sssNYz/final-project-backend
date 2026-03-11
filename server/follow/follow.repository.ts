@@ -40,7 +40,7 @@ export async function searchUsersByEmailPartial(query: string) {
 export async function createRelationship(data: {
     ownerUserId: number;
     viewerUserId: number;
-    isReceiverEmail: string;
+    receiverEmail: string;
     profileIds: number[];
     viewerNickname?: string;
     viewerPicture?: string;
@@ -49,7 +49,7 @@ export async function createRelationship(data: {
         data: {
             ownerUserId: data.ownerUserId,
             viewerUserId: data.viewerUserId,
-            isReceiverEmail: data.isReceiverEmail,
+            receiverEmail: data.receiverEmail,
             profileIds: data.profileIds,
             status: "PENDING",
             viewerNickname: data.viewerNickname,

@@ -10,14 +10,14 @@ import { ServiceError } from "@/server/common/errors";
  */
 export async function PATCH(request: Request) {
   try {
-    // Verify Supabase token
-    const supabaseUser = await requireAuth(request);
+    // Verify token
+    const jwtPayload = await requireAuth(request);
 
     // Parse request body
     const body = await request.json();
 
     const result = await updateCurrentUserProfile({
-      supabaseUser,
+      userId: jwtPayload.userId,
       body,
     });
 

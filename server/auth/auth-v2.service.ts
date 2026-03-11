@@ -410,13 +410,6 @@ export async function refreshAccessToken(refreshTokenValue: string) {
     });
   }
 
-  if (tokenRecord.revoked) {
-    throw new ServiceError(401, {
-      error: "TOKEN_REVOKED",
-      message: "This refresh token has been revoked",
-    });
-  }
-
   if (tokenRecord.expiresAt < new Date()) {
     throw new ServiceError(401, {
       error: "TOKEN_EXPIRED",
@@ -446,19 +439,26 @@ export async function refreshAccessToken(refreshTokenValue: string) {
 // ============ Logout ============dsxccccc
 
 export async function logoutUser(refreshTokenValue: string) {
+  console.log("============ LOGOUT DEBUG ============");
+  console.log("Received token string:", refreshTokenValue);
+  
   // Find and revoke the token
   const tokenRecord = await prisma.refreshToken.findUnique({
     where: { token: refreshTokenValue },
   });
 
   if (!tokenRecord) {
+    console.log("Result: TOKEN NOT FOUND IN DATABASE");
+    console.log("======================================");
     // Silently succeed – token may already be gone
     return { message: "Logged out successfully" };
   }
 
-  await prisma.refreshToken.update({
+  console.log("Result: TOKEN FOUND! ID:", tokenRecord.id);
+  console.log("======================================");
+
+  await prisma.refreshToken.delete({
     where: { id: tokenRecord.id },
-    data: { revoked: true },
   });
 
   return { message: "Logged out successfully" };
@@ -473,7 +473,7 @@ export async function logoutUser(refreshTokenValue: string) {
 export async function cleanupExpiredTokens() {
   const result = await prisma.refreshToken.deleteMany({
     where: {
-      OR: [{ expiresAt: { lt: new Date() } }, { revoked: true }],
+      expiresAt: { lt: new Date() },
     },
   });
 
@@ -867,9 +867,8 @@ export async function resetPassword(token: string, newPassword: string) {
   await prisma.passwordResetToken.delete({ where: { id: record.id } });
 
   // 5. Security: Revoke all existing RefreshTokens and DeviceTokens for this user
-  await prisma.refreshToken.updateMany({
-    where: { userId: record.userId, revoked: false },
-    data: { revoked: true },
+  await prisma.refreshToken.deleteMany({
+    where: { userId: record.userId },
   });
 
   // Also delete device tokens so mobile users are forcefully logged out

@@ -1,5 +1,5 @@
 // server/medicine/medicine.service.ts
-import { User } from "@supabase/supabase-js";
+
 import { MedicineType, Prisma } from "@prisma/client";
 import fs from "fs";
 import path from "path";
@@ -14,11 +14,7 @@ import {
   getMedicineUsageCount,
   deleteMedicine,
 } from "@/server/medicine/medicine.repository";
-import { findUserByEmail } from "@/server/users/users.repository";
-
-function normalizeEmail(email?: string | null): string | null {
-  return typeof email === "string" ? email.toLowerCase().trim() : null;
-}
+import { findUserByUserId } from "@/server/users/users.repository";
 
 function getSafeMedicineUploadAbsolutePath(
   storedPath: string
@@ -55,14 +51,8 @@ function getSafeMedicineUploadAbsolutePath(
   return { absolutePath, uploadsDir };
 }
 
-async function getCurrentAdminOrThrow(supabaseUser: User) {
-  const normalizedEmail = normalizeEmail(supabaseUser.email);
-  if (!normalizedEmail) {
-    throw new ServiceError(400, {
-      error: "User email is missing from token",
-    });
-  }
-  const user = await findUserByEmail(normalizedEmail);
+async function getCurrentAdminOrThrow(userId: number) {
+  const user = await findUserByUserId(userId);
 
   if (!user) {
     throw new ServiceError(404, {
@@ -130,7 +120,7 @@ export async function createMedicineForAdmin({
 // ---------- LIST ----------
 
 export async function listMedicinesForAdmin({
-  supabaseUser,
+  userId,
   search,
   type,
   page = 1,
@@ -138,7 +128,7 @@ export async function listMedicinesForAdmin({
   order = "asc",
   includeDeleted = false,
 }: {
-  supabaseUser: User;
+  userId: number;
   search?: string | null;
   type?: MedicineType | null;
   page?: number;
@@ -146,7 +136,7 @@ export async function listMedicinesForAdmin({
   order?: "asc" | "desc";
   includeDeleted?: boolean;
 }) {
-  await getCurrentAdminOrThrow(supabaseUser);
+  await getCurrentAdminOrThrow(userId);
 
   const currentPage = page > 0 ? page : 1;
   const take = pageSize > 0 ? pageSize : 10;
@@ -175,13 +165,13 @@ export async function listMedicinesForAdmin({
 // ---------- DETAIL ----------
 
 export async function getMedicineDetailForAdmin({
-  supabaseUser,
+  userId,
   mediId,
 }: {
-  supabaseUser: User;
+  userId: number;
   mediId: number;
 }) {
-  await getCurrentAdminOrThrow(supabaseUser);
+  await getCurrentAdminOrThrow(userId);
 
   if (!Number.isInteger(mediId) || mediId <= 0) {
     throw new ServiceError(400, { error: "mediId must be a positive integer" });
@@ -198,13 +188,13 @@ export async function getMedicineDetailForAdmin({
 // ---------- COUNT ----------
 
 export async function getMedicineCountForAdmin({
-  supabaseUser,
+  userId,
   includeDeleted = false,
 }: {
-  supabaseUser: User;
+  userId: number;
   includeDeleted?: boolean;
 }) {
-  await getCurrentAdminOrThrow(supabaseUser);
+  await getCurrentAdminOrThrow(userId);
 
   const total = await countMedicines({ includeDeleted });
   return { total };
@@ -229,13 +219,13 @@ export interface UpdateMedicineInput {
 }
 
 export async function updateMedicineForAdmin({
-  supabaseUser,
+  userId,
   input,
 }: {
-  supabaseUser: User;
+  userId: number;
   input: UpdateMedicineInput;
 }) {
-  const admin = await getCurrentAdminOrThrow(supabaseUser);
+  const admin = await getCurrentAdminOrThrow(userId);
 
   const existing = await findMedicineById(input.mediId);
   // Allow updating even if status is false (so we can enable it back)
@@ -301,13 +291,13 @@ export async function updateMedicineForAdmin({
 // ---------- DELETE (SOFT) ----------
 
 export async function deleteMedicineForAdmin({
-  supabaseUser,
+  userId,
   mediId,
 }: {
-  supabaseUser: User;
+  userId: number;
   mediId: number;
 }) {
-  const admin = await getCurrentAdminOrThrow(supabaseUser);
+  const admin = await getCurrentAdminOrThrow(userId);
 
   const existing = await findMedicineById(mediId);
   if (!existing || (existing.mediStatus === false)) {
@@ -412,13 +402,13 @@ export async function getMedicineDetailForUser({
 // ---------- HARD DELETE ----------
 
 export async function hardDeleteMedicineForAdmin({
-  supabaseUser,
+  userId,
   mediId,
 }: {
-  supabaseUser: User;
+  userId: number;
   mediId: number;
 }) {
-  const admin = await getCurrentAdminOrThrow(supabaseUser);
+  const admin = await getCurrentAdminOrThrow(userId);
 
   if (!Number.isInteger(mediId) || mediId <= 0) {
     throw new ServiceError(400, { error: "mediId must be a positive integer" });

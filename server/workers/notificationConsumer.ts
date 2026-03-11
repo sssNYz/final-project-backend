@@ -61,7 +61,7 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
 
     // 2. Fetch Tokens
     const deviceTokens = await prisma.deviceToken.findMany({
-        where: { userId, revokedAt: null },
+        where: { userId },
         select: { deviceTokenId: true, token: true },
     });
 
@@ -156,9 +156,8 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
                 }
             });
             if (revokeIds.length > 0) {
-                await prisma.deviceToken.updateMany({
-                    where: { deviceTokenId: { in: revokeIds } },
-                    data: { revokedAt: new Date() }
+                await prisma.deviceToken.deleteMany({
+                    where: { deviceTokenId: { in: revokeIds } }
                 });
             }
         }

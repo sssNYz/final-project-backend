@@ -1,15 +1,10 @@
-import { User } from "@supabase/supabase-js";
 import { DeviceToken } from "@prisma/client";
 import { ServiceError } from "@/server/common/errors";
-import { findUserByEmail } from "@/server/auth/auth.repository";
+import { findUserByUserId } from "@/server/users/users.repository";
 import { upsertDeviceToken } from "@/server/deviceTokens/deviceTokens.repository";
 
-function normalizeEmail(email?: string | null): string | null {
-  return typeof email === "string" ? email.toLowerCase().trim() : null;
-}
-
 export interface SaveDeviceTokenInput {
-  supabaseUser: User;
+  userId: number;
   token: string;
   platform?: string | null;
   deviceId?: string | null;
@@ -26,7 +21,7 @@ export interface SaveDeviceTokenResult {
 export async function saveDeviceToken(
   input: SaveDeviceTokenInput
 ): Promise<SaveDeviceTokenResult> {
-  const { supabaseUser, token, platform, deviceId } = input;
+  const { userId, token, platform, deviceId } = input;
 
   // Validate token
   if (!token || typeof token !== "string" || token.trim().length < 10) {
@@ -36,18 +31,11 @@ export async function saveDeviceToken(
   }
 
   // Find user in DB
-  const normalizedEmail = normalizeEmail(supabaseUser.email);
-  if (!normalizedEmail) {
-    throw new ServiceError(400, {
-      error: "User email is missing from token",
-    });
-  }
-  const user = await findUserByEmail(normalizedEmail);
+  const user = await findUserByUserId(userId);
 
   if (!user) {
     throw new ServiceError(404, {
       error: "User not found in database",
-      message: "Please call /api/mobile/v1/auth/sync-user first",
     });
   }
 

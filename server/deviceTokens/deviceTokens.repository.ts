@@ -10,7 +10,6 @@ export async function findDeviceTokensByUserId(
   return prisma.deviceToken.findMany({
     where: {
       userId,
-      revokedAt: null,
     },
   });
 }
@@ -40,18 +39,7 @@ export async function upsertDeviceToken(data: {
       platform: data.platform ?? null,
       deviceId: data.deviceId ?? null,
       lastSeenAt: new Date(),
-      revokedAt: null, // Clear revoked if token is used again
     },
-  });
-}
-
-/**
- * Revoke a device token (soft delete)
- */
-export async function revokeDeviceToken(token: string): Promise<DeviceToken> {
-  return prisma.deviceToken.update({
-    where: { token },
-    data: { revokedAt: new Date() },
   });
 }
 

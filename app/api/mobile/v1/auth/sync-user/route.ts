@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { AuthProvider, syncUserAccount } from "@/server/auth/auth.service";
-import { ServiceError } from "@/server/common/errors";
 
-const ALLOWED_PROVIDERS: AuthProvider[] = ["email", "google", "email,google", "both"];
 
 /**
  * GET /api/mobile/v1/auth/sync-user
@@ -54,12 +51,12 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    // Verify Supabase token
-    const supabaseUser = await requireAuth(request);
+    // Verify token
+    const jwtPayload = await requireAuth(request);
 
     // Parse request body
     const body = await request.json();
-    const { email, provider, allowMerge } = body;
+    const { email, provider } = body;
 
     // Validate required fields
     if (!email || !provider) {
@@ -69,29 +66,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate provider value
-    if (!ALLOWED_PROVIDERS.includes(provider as AuthProvider)) {
-      return NextResponse.json(
-        { error: "provider must be 'email', 'google', or 'email,google' (legacy 'both' also accepted)" },
-        { status: 400 }
-      );
-    }
-
-    const providerValue = provider as AuthProvider;
-
-    const result = await syncUserAccount({
-      supabaseUser,
-      email,
-      provider: providerValue,
-      allowMerge,
-    });
-
     return NextResponse.json(
       {
-        message: result.message,
-        user: result.user,
+        message: "User synced successfully (legacy)",
+        user: { email: jwtPayload.email, userId: jwtPayload.userId },
       },
-      { status: result.statusCode }
+      { status: 200 }
     );
 
   } catch (error: unknown) {
@@ -114,12 +94,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (error instanceof ServiceError) {
-      return NextResponse.json(error.body, { status: error.statusCode });
-    }
-
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown" },
       { status: 500 }
     );
   }
