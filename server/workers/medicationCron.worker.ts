@@ -101,7 +101,6 @@ async function processRegimen(regimen: {
       profileId,
       mediListId,
       scheduleTime,
-      isReceived: false,
       dose,
       unit,
       mealRelation,

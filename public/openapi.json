@@ -1608,9 +1608,6 @@
             "type": "string",
             "format": "date-time"
           },
-          "isReceived": {
-            "type": "boolean"
-          },
           "pushSentAt": {
             "type": "string",
             "format": "date-time",
@@ -1647,8 +1644,7 @@
           "logId",
           "profileId",
           "mediListId",
-          "scheduleTime",
-          "isReceived"
+          "scheduleTime"
         ]
       },
       "MedicationLogListResponse": {
