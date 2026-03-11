@@ -127,7 +127,6 @@ export async function createRegimenWithTimes(params: {
     dose: number;
     unit: string;
     mealRelation: MealRelation;
-    mealOffsetMin: number | null;
   }>;
 }) {
   return prisma.$transaction(async (tx) => {
@@ -155,7 +154,6 @@ export async function createRegimenWithTimes(params: {
             dose: timeData.dose,
             unit: timeData.unit,
             mealRelation: timeData.mealRelation,
-            mealOffsetMin: timeData.mealOffsetMin,
           },
         })
       )
@@ -227,7 +225,6 @@ export async function replaceRegimenTimes(
     dose: number;
     unit: string;
     mealRelation: MealRelation;
-    mealOffsetMin: number | null;
   }>
 ) {
   return prisma.$transaction(async (tx) => {
@@ -246,7 +243,6 @@ export async function replaceRegimenTimes(
             dose: timeData.dose,
             unit: timeData.unit,
             mealRelation: timeData.mealRelation,
-            mealOffsetMin: timeData.mealOffsetMin,
           },
         })
       )

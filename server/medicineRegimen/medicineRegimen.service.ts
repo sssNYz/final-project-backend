@@ -125,7 +125,6 @@ function validateTimes(times: Array<{
   dose: number;
   unit: string;
   mealRelation: MealRelation;
-  mealOffsetMin?: number | null;
 }>) {
   if (!times || times.length === 0) {
     throw new ServiceError(400, { error: "At least one time is required" });
@@ -152,21 +151,6 @@ function validateTimes(times: Array<{
     if (!timeData.mealRelation || !["BEFORE_MEAL", "AFTER_MEAL", "WITH_MEAL", "NONE"].includes(timeData.mealRelation)) {
       throw new ServiceError(400, { error: "mealRelation must be one of: BEFORE_MEAL, AFTER_MEAL, WITH_MEAL, NONE" });
     }
-
-    // Validate mealOffsetMin based on mealRelation
-    if (timeData.mealRelation !== "NONE") {
-      if (timeData.mealOffsetMin === null || timeData.mealOffsetMin === undefined) {
-        throw new ServiceError(400, { error: "mealOffsetMin is required when mealRelation is not NONE" });
-      }
-      if (!Number.isFinite(timeData.mealOffsetMin) || !Number.isInteger(timeData.mealOffsetMin) || timeData.mealOffsetMin < 0) {
-        throw new ServiceError(400, { error: "mealOffsetMin must be an integer >= 0" });
-      }
-    } else {
-      // mealRelation is NONE, mealOffsetMin must be null or not provided
-      if (timeData.mealOffsetMin !== null && timeData.mealOffsetMin !== undefined) {
-        throw new ServiceError(400, { error: "mealOffsetMin must be null or not provided when mealRelation is NONE" });
-      }
-    }
   }
 }
 
@@ -188,7 +172,6 @@ export async function createMedicineRegimen(params: {
     dose: number;
     unit: string;
     mealRelation: MealRelation;
-    mealOffsetMin?: number | null;
   }>;
 }) {
   const { userId, mediListId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, intervalHour, times } = params;
@@ -230,7 +213,6 @@ export async function createMedicineRegimen(params: {
     dose: t.dose,
     unit: t.unit,
     mealRelation: t.mealRelation,
-    mealOffsetMin: t.mealRelation !== "NONE" ? t.mealOffsetMin! : null,
   }));
 
   // 6) Calculate next occurrence
@@ -275,7 +257,6 @@ export async function createMedicineRegimen(params: {
       dose: t.dose,
       unit: t.unit,
       mealRelation: t.mealRelation,
-      mealOffsetMin: t.mealOffsetMin,
     })),
   };
 }
@@ -318,7 +299,6 @@ export async function listMedicineRegimens(params: { userId: number; profileId: 
         dose: t.dose,
         unit: t.unit,
         mealRelation: t.mealRelation,
-        mealOffsetMin: t.mealOffsetMin,
       })),
     })),
   };
@@ -367,7 +347,6 @@ export async function listMedicineRegimensByListId(params: { userId: number; med
         dose: t.dose,
         unit: t.unit,
         mealRelation: t.mealRelation,
-        mealOffsetMin: t.mealOffsetMin,
       })),
     })),
   };
@@ -418,7 +397,6 @@ export async function getMedicineRegimenById(params: { userId: number; mediRegim
       dose: t.dose,
       unit: t.unit,
       mealRelation: t.mealRelation,
-      mealOffsetMin: t.mealOffsetMin,
     })),
   };
 }
@@ -439,7 +417,6 @@ export async function updateMedicineRegimen(params: {
     dose: number;
     unit: string;
     mealRelation: MealRelation;
-    mealOffsetMin?: number | null;
   }>;
 }) {
   const { userId, mediRegimenId, scheduleType, startDate, endDate, daysOfWeek, intervalDays, intervalHour, times } = params;
@@ -534,14 +511,12 @@ export async function updateMedicineRegimen(params: {
       dose: t.dose,
       unit: t.unit,
       mealRelation: t.mealRelation,
-      mealOffsetMin: t.mealRelation !== "NONE" ? t.mealOffsetMin! : null,
     }))
     : existing.times.map((t) => ({
       timeOfDay: t.timeOfDay,
       dose: t.dose,
       unit: t.unit,
       mealRelation: t.mealRelation,
-      mealOffsetMin: t.mealOffsetMin,
     }));
 
   const nextOccurrenceAt = calculateNextOccurrence({
@@ -592,7 +567,6 @@ export async function updateMedicineRegimen(params: {
       dose: t.dose,
       unit: t.unit,
       mealRelation: t.mealRelation,
-      mealOffsetMin: t.mealOffsetMin,
     })),
   };
 }

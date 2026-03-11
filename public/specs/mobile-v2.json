@@ -845,10 +845,6 @@
                                 },
                                 "mealRelation": {
                                   "type": "string"
-                                },
-                                "mealOffsetMin": {
-                                  "type": "integer",
-                                  "nullable": true
                                 }
                               }
                             }

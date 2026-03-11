@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           dose: t.dose,
           unit: t.unit,
           mealRelation: t.mealRelation as MealRelation,
-          mealOffsetMin: t.mealOffsetMin ?? null,
+
         })),
       });
 

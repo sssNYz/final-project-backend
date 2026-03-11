@@ -252,7 +252,7 @@ model UserMedicineRegimenTime {
   dose          Int          @map("DOSE")
   unit          String       @map("UNIT")
   mealRelation  MealRelation @map("MEAL_RELATION")
-  mealOffsetMin Int?         @map("MEAL_OFFSET_MINUTES")
+
 
   // Relations
   regimen UserMedicineRegimen @relation(fields: [mediRegimenId], references: [mediRegimenId])

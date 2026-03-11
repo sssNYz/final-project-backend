@@ -40,7 +40,7 @@ export async function PATCH(request: Request) {
           dose: number;
           unit: string;
           mealRelation: MealRelation;
-          mealOffsetMin?: number | null;
+
         }>;
       } = {};
 
@@ -74,7 +74,7 @@ export async function PATCH(request: Request) {
           dose: t.dose,
           unit: t.unit,
           mealRelation: t.mealRelation as MealRelation,
-          mealOffsetMin: t.mealOffsetMin ?? null,
+
         }));
       }
 

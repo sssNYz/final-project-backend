@@ -33,29 +33,8 @@ export const MedicineRegimenTimeInputSchema = z
     dose: z.coerce.number().int().min(1),
     unit: z.string().trim().min(1),
     mealRelation: z.enum(mealRelationValues),
-    mealOffsetMin: z.coerce.number().int().min(0).nullable().optional(),
   })
-  .strict()
-  .superRefine((val, ctx) => {
-    if (val.mealRelation === "NONE") {
-      if (val.mealOffsetMin !== null && val.mealOffsetMin !== undefined) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["mealOffsetMin"],
-          message: "mealOffsetMin must be null or omitted when mealRelation is NONE",
-        });
-      }
-      return;
-    }
-
-    if (val.mealOffsetMin === null || val.mealOffsetMin === undefined) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["mealOffsetMin"],
-        message: "mealOffsetMin is required when mealRelation is not NONE",
-      });
-    }
-  });
+  .strict();
 
 const commonCreateFields = {
   mediListId: z.coerce.number().int().positive(),

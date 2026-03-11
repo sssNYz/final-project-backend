@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withRole } from "@/lib/apiHelpers";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { deleteSupabaseUser } from "@/server/supabase/admin";
+
 
 const BulkDeleteUserV2Schema = z.object({
     userIds: z.array(z.number()),
@@ -47,7 +47,7 @@ export async function DELETE(request: NextRequest) {
             // Fetch users to get Supabase IDs for later deletion
             const usersToDelete = await prisma.userAccount.findMany({
                 where: { userId: { in: userIds } },
-                select: { userId: true, supabaseUserId: true }
+                select: { userId: true }
             });
 
             if (usersToDelete.length === 0) {
@@ -147,19 +147,7 @@ export async function DELETE(request: NextRequest) {
                 });
             });
 
-            // 13. Delete from Supabase in parallel
-            // We do this after transaction success. If this fails, DB is already clean.
-            const supabaseDeletionPromises = usersToDelete
-                .filter((u) => u.supabaseUserId)
-                .map((u) => deleteSupabaseUser(u.supabaseUserId!)); // ! is safe because of filter
 
-            const results = await Promise.allSettled(supabaseDeletionPromises);
-
-            const failed = results.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error));
-
-            if (failed.length > 0) {
-                console.warn(`Some Supabase users could not be deleted involved in bulk delete.`, failed);
-            }
 
             return NextResponse.json(
                 { message: `Successfully deleted ${usersToDelete.length} users and associated data.` },

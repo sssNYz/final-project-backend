@@ -1016,11 +1016,6 @@
           },
           "mealRelation": {
             "$ref": "#/components/schemas/MealRelation"
-          },
-          "mealOffsetMin": {
-            "type": "integer",
-            "nullable": true,
-            "description": "Required when mealRelation is not NONE; must be null/omitted when mealRelation is NONE"
           }
         },
         "required": [
@@ -1048,12 +1043,6 @@
           },
           "mealRelation": {
             "$ref": "#/components/schemas/MealRelation"
-          },
-          "mealOffsetMin": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0,
-            "description": "Required when mealRelation is not NONE; must be null/omitted when mealRelation is NONE"
           }
         },
         "required": [
@@ -5280,7 +5269,7 @@
           "Mobile - MedicineRegimen"
         ],
         "summary": "Create medicine regimen",
-        "description": "Create a new medicine regimen with schedule settings and multiple times. Schedule type determines which fields are required: DAILY requires endDate, WEEKLY requires daysOfWeek, INTERVAL requires intervalDays, CYCLE requires cycleOnDays and cycleBreakDays. Fields not applicable to the selected scheduleType are rejected. Each time must have mealOffsetMin when mealRelation is not NONE (and must be null/omitted when mealRelation is NONE).",
+        "description": "Create a new medicine regimen with schedule settings and multiple times. Schedule type determines which fields are required: DAILY requires endDate, WEEKLY requires daysOfWeek, INTERVAL requires intervalDays, CYCLE requires cycleOnDays and cycleBreakDays. Fields not applicable to the selected scheduleType are rejected.",
         "security": [
           {
             "bearerAuth": []
@@ -5306,8 +5295,7 @@
                         "time": "09:00",
                         "dose": 1,
                         "unit": "tablet",
-                        "mealRelation": "BEFORE_MEAL",
-                        "mealOffsetMin": 30
+                        "mealRelation": "BEFORE_MEAL"
                       }
                     ]
                   }
@@ -5347,8 +5335,7 @@
                         "time": "09:00",
                         "dose": 1,
                         "unit": "tablet",
-                        "mealRelation": "WITH_MEAL",
-                        "mealOffsetMin": 0
+                        "mealRelation": "WITH_MEAL"
                       }
                     ]
                   }
@@ -5367,8 +5354,7 @@
                         "time": "09:00",
                         "dose": 1,
                         "unit": "tablet",
-                        "mealRelation": "AFTER_MEAL",
-                        "mealOffsetMin": 30
+                        "mealRelation": "AFTER_MEAL"
                       }
                     ]
                   }
@@ -5758,15 +5744,13 @@
                         "time": "09:00",
                         "dose": 1,
                         "unit": "tablet",
-                        "mealRelation": "BEFORE_MEAL",
-                        "mealOffsetMin": 30
+                        "mealRelation": "BEFORE_MEAL"
                       },
                       {
                         "time": "21:00",
                         "dose": 1,
                         "unit": "tablet",
-                        "mealRelation": "AFTER_MEAL",
-                        "mealOffsetMin": 15
+                        "mealRelation": "AFTER_MEAL"
                       }
                     ]
                   }
@@ -8081,10 +8065,6 @@
                                 },
                                 "mealRelation": {
                                   "type": "string"
-                                },
-                                "mealOffsetMin": {
-                                  "type": "integer",
-                                  "nullable": true
                                 }
                               }
                             }

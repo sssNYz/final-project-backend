@@ -730,7 +730,6 @@ export async function getFollowingRegimensV2(params: {
             dose: t.dose,
             unit: t.unit,
             mealRelation: t.mealRelation,
-            mealOffsetMin: t.mealOffsetMin,
         })),
     }));
 
