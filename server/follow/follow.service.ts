@@ -23,12 +23,12 @@ function validateImageFile(file: { buffer: Buffer; originalFilename: string }) {
 }
 // ---------- User Search ----------
 
-export async function searchUser(query: string) {
+export async function searchUser(query: string, currentUserId: number) {
     if (!query || query.length < 3) {
         throw new ServiceError(400, { error: "Search query must be at least 3 characters long" });
     }
 
-    const users = await repo.searchUsersByEmailPartial(query);
+    const users = await repo.searchUsersByEmailPartial(query, currentUserId);
     return {
         users: users.map((u) => u.email),
     };

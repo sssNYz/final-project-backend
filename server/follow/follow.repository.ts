@@ -19,11 +19,20 @@ export async function findUserByEmail(email: string) {
     });
 }
 
-export async function searchUsersByEmailPartial(query: string) {
+export async function searchUsersByEmailPartial(query: string, currentUserId: number) {
     return prisma.userAccount.findMany({
         where: {
             email: {
                 contains: query.toLowerCase().trim(),
+            },
+            userId: {
+                not: currentUserId,
+            },
+            viewedRelationships: {
+                none: {
+                    ownerUserId: currentUserId,
+                    status: { in: ["PENDING", "APPROVED"] }
+                }
             },
             // Allow Admins to be searched ONLY IF they use the mobile app (they have a profile)
             profiles: { some: {} }

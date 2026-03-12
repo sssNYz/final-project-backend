@@ -7,7 +7,7 @@ import { ServiceError } from "@/server/common/errors";
 // GET /api/mobile/v1/follow/search-user?query=...
 // Search for users by partial email match
 export async function GET(request: Request) {
-    return withAuth(request, async () => {
+    return withAuth(request, async (context) => {
         try {
             const url = new URL(request.url);
             const query = url.searchParams.get("query");
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
                 );
             }
 
-            const result = await searchUser(query);
+            const result = await searchUser(query, context.prismaUser.userId);
             return NextResponse.json(result, { status: 200 });
         } catch (error: unknown) {
             console.error("Error searching user:", error);
