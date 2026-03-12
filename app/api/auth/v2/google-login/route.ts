@@ -9,7 +9,7 @@ import { ServiceError } from "@/server/common/errors";
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { idToken } = body;
+        const { idToken, timezone } = body;
 
         // Validate
         if (!idToken) {
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const result = await googleLoginUser(idToken);
+        const result = await googleLoginUser(idToken, timezone);
 
         // Create response with JSON body
         return NextResponse.json(result, { status: 200 });

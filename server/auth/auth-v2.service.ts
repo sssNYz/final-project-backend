@@ -148,7 +148,7 @@ export async function createAdminUser(input: CreateAdminInput) {
 
 // ============ Google Login ============
 
-export async function googleLoginUser(idToken: string) {
+export async function googleLoginUser(idToken: string, timezone?: string) {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken,
@@ -256,7 +256,10 @@ export async function googleLoginUser(idToken: string) {
     // Update last login
     await prisma.userAccount.update({
       where: { userId: user.userId },
-      data: { lastLogin: new Date() },
+      data: {
+        lastLogin: new Date(),
+        ...(timezone && { timeZone: timezone }),
+      },
     });
 
     return {
@@ -284,10 +287,11 @@ export async function googleLoginUser(idToken: string) {
 interface LoginInput {
   email: string;
   password: string;
+  timezone?: string;
 }
 
 export async function loginUser(input: LoginInput) {
-  const { email, password } = input;
+  const { email, password, timezone } = input;
 
   // ... (rest of logic)
   // Find user
@@ -370,7 +374,10 @@ export async function loginUser(input: LoginInput) {
   // Update last login
   await prisma.userAccount.update({
     where: { userId: user.userId },
-    data: { lastLogin: new Date() },
+    data: {
+      lastLogin: new Date(),
+      ...(timezone && { timeZone: timezone }),
+    },
   });
 
   return {

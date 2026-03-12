@@ -194,6 +194,11 @@
           },
           "password": {
             "type": "string"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone string (e.g. Asia/Bangkok). Optional — used to persist the user's timezone for scheduling.",
+            "example": "Asia/Bangkok"
           }
         },
         "required": [
@@ -267,6 +272,11 @@
         "properties": {
           "idToken": {
             "type": "string"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone string (e.g. Asia/Bangkok). Optional — used to persist the user's timezone for scheduling.",
+            "example": "Asia/Bangkok"
           }
         },
         "required": [

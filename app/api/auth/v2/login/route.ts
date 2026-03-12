@@ -11,7 +11,7 @@ import { setAuthCookies } from "@/lib/cookies";
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email, password } = body;
+        const { email, password, timezone } = body;
 
         // Validate
         if (!email || !password) {
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const result = await loginUser({ email, password });
+        const result = await loginUser({ email, password, timezone });
 
         // Create response with JSON body (for mobile/header-based clients)
         const response = NextResponse.json(result, { status: 200 });
