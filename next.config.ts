@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: [
     "sharri-unpatted-cythia.ngrok-free.dev",
     "82.26.104.199",

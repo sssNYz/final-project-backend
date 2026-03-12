@@ -1,4 +1,17 @@
+# ==========================================================
+# Unified Docker Compose — Infrastructure + Applications
+# ==========================================================
+# Usage:
+#   docker compose up -d --build     (build & start everything)
+#   docker compose logs -f backend   (follow logs for a service)
+#   docker compose restart backend   (restart a single service)
+#   docker compose down              (stop all)
+# ==========================================================
+
 services:
+
+  # ── Infrastructure ──────────────────────────────────────
+
   db:
     image: mysql:8.4
     container_name: final_project_mysql
@@ -10,29 +23,8 @@ services:
       - "3306:3306"
     volumes:
       - db-data:/var/lib/mysql
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    restart: unless-stopped
-    environment:
-      - PMA_HOST=db
-    ports:
-      - "8080:80"
-    depends_on:
-      - db
-
-  caddy:
-    image: caddy:latest
-    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
-    container_name: final_project_caddy
-    restart: unless-stopped
-    network_mode: "host"  # Use host network to access localhost:3000 (ports 80/443 automatically available)
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - phpmyadmin
+    networks:
+      - app-network
 
   redis:
     image: redis:alpine
@@ -43,13 +35,181 @@ services:
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: final_project_phpmyadmin
+    restart: unless-stopped
+    environment:
+      - PMA_HOST=db
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  caddy:
+    image: caddy:latest
+    container_name: final_project_caddy
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # ── Backend (Next.js API) ───────────────────────────────
+
+  backend:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: runner
+    container_name: final_project_backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      # Override DB & Redis URLs to use Docker service names
+      - DATABASE_URL=mysql://root:s31122546@db:3306/final_project_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - backend-uploads:/app/public/uploads
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
+  # ── Frontend (Next.js Web) ─────────────────────────────
+
+  frontend:
+    build:
+      context: ../../final-project-frontend
+      dockerfile: Dockerfile
+    container_name: final_project_frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - ../../final-project-frontend/.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  # ── Background Workers ─────────────────────────────────
+
+  medication-worker:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: worker
+    container_name: final_project_medication_worker
+    restart: unless-stopped
+    command: ["npx", "tsx", "server/workers/medicationCron.worker.ts"]
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:s31122546@db:3306/final_project_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
+  snooze-worker:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: worker
+    container_name: final_project_snooze_worker
+    restart: unless-stopped
+    command: ["npx", "tsx", "server/workers/snoozeCron.worker.ts"]
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:s31122546@db:3306/final_project_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
+  queue-worker:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: worker
+    container_name: final_project_queue_worker
+    restart: unless-stopped
+    command: ["npx", "tsx", "server/workers/queueWorker.ts"]
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:s31122546@db:3306/final_project_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
+  discord-bot:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: worker
+    container_name: final_project_discord_bot
+    restart: unless-stopped
+    command: ["npx", "tsx", "src/discord-bot/tarotBot.ts"]
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:s31122546@db:3306/final_project_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
+# ── Volumes ──────────────────────────────────────────────
 
 volumes:
   db-data:
+    driver: local
+  redis-data:
     driver: local
   caddy-data:
     driver: local
   caddy-config:
     driver: local
-  redis-data:
+  backend-uploads:
     driver: local
+
+# ── Networks ─────────────────────────────────────────────
+
+networks:
+  app-network:
+    driver: bridge
