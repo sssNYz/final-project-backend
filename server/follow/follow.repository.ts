@@ -28,17 +28,20 @@ export async function searchUsersByEmailPartial(query: string, currentUserId: nu
             userId: {
                 not: currentUserId,
             },
-            viewedRelationships: {
-                none: {
-                    ownerUserId: currentUserId,
-                    status: { in: ["PENDING", "APPROVED"] }
-                }
-            },
             // Allow Admins to be searched ONLY IF they use the mobile app (they have a profile)
             profiles: { some: {} }
         },
         select: {
             email: true,
+            viewedRelationships: {
+                where: {
+                    ownerUserId: currentUserId,
+                    status: { in: ["PENDING", "APPROVED"] }
+                },
+                select: {
+                    status: true
+                }
+            }
         },
         take: 10,
     });

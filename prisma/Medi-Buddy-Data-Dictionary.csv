@@ -77,7 +77,7 @@ Attribute Name,Description,Data Types,Domain,Detail
 USER_ID,รหัสประจำตัวสมาชิก,int,,"Primary Key, Auto Increment"
 USER_EMAIL,อีเมลสมาชิก,varchar(191),,"Not Null, Unique"
 USER_PASSWORD,รหัสผ่านสมาชิก,varchar(191),,
-LAST_LOGIN,เวลาล็อกอินล่าสุด,datetime(3),,
+LAST_LOGIN_AT,เวลาล็อกอินล่าสุด,datetime(3),,
 CREATE_AT,วันที่สร้างบัญชีสมาชิก,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"
 UPDATE_AT,วันและเวลาที่ทำการแก้ไขข้อมูลล่าสุด,datetime(3),,Not Null
 TUTORIAL_DONE,สถานะการดู Tutorial,boolean,"{True, False}","Not Null, Default: False"
@@ -152,5 +152,5 @@ Attribute Name,Description,Data Types,Domain,Detail
 VT_ID,รหัสการยืนยันตัวตน,int,,"Primary Key, Auto Increment"
 IDENTIFIER,ข้อมูลอ้างอิงสำหรับการยืนยัน,varchar(255),,Not Null
 TOKEN,รหัสโทเค็นสำหรับยืนยัน,varchar(10),,Not Null
-EXPIRES,เวลาที่หมดอายุ,datetime(3),,Not Null
+EXPIRES_AT,เวลาที่หมดอายุ,datetime(3),,Not Null
 CREATED_AT,วันและเวลาที่สร้างโทเค็น,datetime(3),,"Not Null, Default: CURRENT_TIMESTAMP"

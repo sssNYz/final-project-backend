@@ -139,7 +139,7 @@ Table "USER_ACCOUNT" {
   "USER_ID" int [pk, not null]
   "USER_EMAIL" varchar(191) [not null]
   "USER_PASSWORD" varchar(191)
-  "LAST_LOGIN" datetime(3)
+  "LAST_LOGIN_AT" datetime(3)
   "CREATE_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
   "UPDATE_AT" datetime(3) [not null]
   "TUTORIAL_DONE" tinyint(1) [not null, default: '0']
@@ -214,7 +214,7 @@ Table "VERIFICATION_TOKEN" {
   "VT_ID" int [pk, not null]
   "IDENTIFIER" varchar(255) [not null]
   "TOKEN" varchar(10) [not null]
-  "EXPIRES" datetime(3) [not null]
+  "EXPIRES_AT" datetime(3) [not null]
   "CREATED_AT" datetime(3) [not null, default: `CURRENT_TIMESTAMP(3)`]
 }
 

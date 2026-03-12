@@ -30,7 +30,13 @@ export async function searchUser(query: string, currentUserId: number) {
 
     const users = await repo.searchUsersByEmailPartial(query, currentUserId);
     return {
-        users: users.map((u) => u.email),
+        users: users.map((u) => {
+            const relationship = u.viewedRelationships[0];
+            return {
+                email: u.email,
+                status: relationship ? relationship.status : null
+            };
+        }),
     };
 }
 

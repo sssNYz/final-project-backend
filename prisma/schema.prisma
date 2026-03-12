@@ -14,7 +14,7 @@ model UserAccount {
   email           String    @unique @map("USER_EMAIL")
   password        String?   @map("USER_PASSWORD")
   provider        String?   @map("PROVIDER") // "email", "google", or "email,google" (legacy "both" may exist in old rows)
-  lastLogin       DateTime? @map("LAST_LOGIN")
+  lastLogin       DateTime? @map("LAST_LOGIN_AT")
   createdAt       DateTime  @default(now()) @map("CREATE_AT")
   updatedAt       DateTime  @updatedAt @map("UPDATE_AT")
   tutorialDone    Boolean   @default(false) @map("TUTORIAL_DONE")
@@ -72,7 +72,7 @@ model VerificationToken {
   id         Int      @id @default(autoincrement()) @map("VT_ID")
   identifier String   @map("IDENTIFIER") @db.VarChar(255) // email address
   token      String   @map("TOKEN") @db.VarChar(10) // 6-digit code
-  expires    DateTime @map("EXPIRES")
+  expires    DateTime @map("EXPIRES_AT")
   createdAt  DateTime @default(now()) @map("CREATED_AT")
 
   @@unique([identifier, token])
