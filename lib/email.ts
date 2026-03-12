@@ -11,31 +11,33 @@ export async function sendOtpEmail(email: string, code: string) {
     const { data, error } = await resend.emails.send({
         from: FROM_ADDRESS,
         to: email,
-        subject: "Your Medi Buddy login code",
+        subject: "รหัสเข้าสู่ระบบ MEDI-BUDDY",
         html: `
             <div style="max-width: 460px; margin: auto; padding: 24px; font-family: Arial, sans-serif; color: #222; background: #ffffff; border-radius: 12px; border: 1px solid #e0e0e0;">
-                <!-- Header -->
+                
                 <div style="background: linear-gradient(135deg, #4da9ff, #2eccb0); padding: 18px; border-radius: 10px; text-align: center; color: white; margin-bottom: 20px;">
                     <h2 style="margin: 0; font-size: 22px;">MEDI-BUDDy</h2>
-                    <p style="margin: 4px 0 0; font-size: 14px;">One-Time Login Code</p>
+                    <p style="margin: 4px 0 0; font-size: 14px;">รหัสเข้าสู่ระบบแบบใช้ครั้งเดียว</p>
                 </div>
 
-                <!-- Body -->
-                <p>Hello,</p>
+                <p>สวัสดี,</p>
 
-                <p>Please use this code to login your MEDI-BUDDy app:</p>
+                <p>กรุณาใช้รหัสด้านล่างเพื่อเข้าสู่ระบบแอป MEDI-BUDDy</p>
 
-                <div style="margin: 22px 0; padding: 16px 24px; background: #f0fbff; border-left: 6px solid #4da9ff; border-radius: 6px; font-size: 30px; font-weight: bold; letter-spacing: 6px; text-align: center; color: #1a1a1a;">
+                <div style="margin: 22px 0; padding: 16px 24px; background: #f0fbff; border-left: 6px solid #4da9ff; border-radius: 6px; font-size: 30px; font-weight: bold; letter-spacing: 6px; text-align: center;">
                     ${code}
                 </div>
 
-                <p>This code works for a short time only.</p>
-                <p>Thank you for using MEDI-BUDDy.</p>
+                <p style="color:#cc0000;">
+                    รหัสนี้จะหมดอายุภายใน <b>5 นาที</b>
+                </p>
 
-                <!-- Footer -->
+                <p>หากคุณไม่ได้เป็นผู้ร้องขอรหัสนี้ สามารถละเลยอีเมลฉบับนี้ได้</p>
+
                 <div style="margin-top: 25px; text-align: center; font-size: 12px; color: #888;">
-                    © 2025 MEDI-BUDDy — Stay healthy.
+                    © ${new Date().getFullYear()} MEDI-BUDDY — ผู้ช่วยแจ้งเตือน
                 </div>
+
             </div>
         `,
     });
@@ -55,33 +57,39 @@ export async function sendPasswordResetEmail(email: string, resetLink: string) {
     const { data, error } = await resend.emails.send({
         from: FROM_ADDRESS,
         to: email,
-        subject: "Reset your Medi Buddy password",
+        subject: "รีเซ็ตรหัสผ่าน MEDI-BUDDY",
         html: `
             <div style="max-width: 460px; margin: auto; padding: 24px; font-family: Arial, sans-serif; color: #222; background: #ffffff; border-radius: 12px; border: 1px solid #e0e0e0;">
-                <!-- Header -->
+                
                 <div style="background: linear-gradient(135deg, #4da9ff, #2eccb0); padding: 18px; border-radius: 10px; text-align: center; color: white; margin-bottom: 20px;">
                     <h2 style="margin: 0; font-size: 22px;">MEDI-BUDDy</h2>
-                    <p style="margin: 4px 0 0; font-size: 14px;">Password Reset Request</p>
+                    <p style="margin: 4px 0 0; font-size: 14px;">คำขอรีเซ็ตรหัสผ่าน</p>
                 </div>
 
-                <!-- Body -->
-                <p>Hello,</p>
+                <p>สวัสดี,</p>
 
-                <p>We received a request to reset your password. Click the button below to choose a new one:</p>
+                <p>เราได้รับคำขอรีเซ็ตรหัสผ่านของคุณ</p>
+
+                <p>กรุณากดปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่</p>
 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="${resetLink}" style="background-color: #4da9ff; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold; display: inline-block;">Reset Password</a>
+                    <a href="${resetLink}" style="background-color: #4da9ff; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold; display: inline-block;">
+                        รีเซ็ตรหัสผ่าน
+                    </a>
                 </div>
 
-                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-                <p style="font-size: 12px; color: #555; word-break: break-all;">${resetLink}</p>
+                <p style="color:#cc0000;">
+                    ลิงก์นี้จะหมดอายุภายใน <b>5 นาที</b>
+                </p>
 
-                <p style="margin-top: 30px;">If you didn't request a password reset, you can safely ignore this email.</p>
+                <p style="margin-top: 30px;">
+                    หากคุณไม่ได้เป็นผู้ร้องขอการรีเซ็ตรหัสผ่าน สามารถละเลยอีเมลฉบับนี้ได้
+                </p>
 
-                <!-- Footer -->
                 <div style="margin-top: 25px; text-align: center; font-size: 12px; color: #888;">
-                    © ${new Date().getFullYear()} MEDI-BUDDy — Stay healthy.
+                    © ${new Date().getFullYear()} MEDI-BUDDY — ผู้ช่วยแจ้งเตือน
                 </div>
+
             </div>
         `,
     });

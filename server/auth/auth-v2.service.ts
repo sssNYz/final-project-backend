@@ -742,7 +742,7 @@ export async function verifyOtpWithPassword(
 import { sendPasswordResetEmail } from "@/lib/email";
 import crypto from "crypto";
 
-const RESET_TOKEN_EXPIRY_MINUTES = 15;
+const RESET_TOKEN_EXPIRY_MINUTES = 5;
 
 /**
  * 1) Request Password Reset
