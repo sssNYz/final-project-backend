@@ -74,23 +74,15 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
     // 3. Construct Payload
     const isGroup = validLogs.length > 1;
 
-    let title = "Medication Reminder";
-    let body = "";
+    let title = "ถึงเวลากินยาแล้ว";
+    let body = "กรุณาแตะการแจ้งเตือนเพื่อดำเนินการ";
 
     if (isGroup) {
-        const uniqueNames = Array.from(new Set(validLogs.map(l => l.medicineList?.profile?.profileName)));
-        title = `Medications Due (${validLogs.length})`;
-        body = `You have ${validLogs.length} medications due for ${uniqueNames.join(" & ")}.`;
+        body = "มียาหลายรายการ กรุณาแตะการแจ้งเตือนเพื่อดำเนินการ";
     } else {
-        const medicineName = firstLog.medicineList?.mediNickname
-            || firstLog.medicineList?.medicine?.mediEnName
-            || "Configuration Error";
-        body = `It's time to take ${medicineName} for ${profile.profileName}.`;
-
         if (isSnooze) {
             const snoozedCount = firstLog.snoozedCount ?? 0;
-            title = `Reminder (${snoozedCount}/3)`;
-            body = `Time to take ${medicineName}. You snoozed this earlier.`;
+            title = `ถึงเวลากินยาแล้ว (เลื่อนแล้ว ${snoozedCount}/3 ครั้ง)`;
         }
     }
 
@@ -130,14 +122,14 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
             android: {
                 priority: "high" as const,
                 notification: {
-                    sound: "default",
+                    sound: "cat_noti.mp3",
                 },
             },
             apns: {
                 payload: {
                     aps: {
                         contentAvailable: true,
-                        sound: "default",
+                        sound: "cat_noti.mp3",
                     },
                 },
             },
