@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loginUser } from "@/server/auth/auth-v2.service";
 import { ServiceError } from "@/server/common/errors";
+import { getRequestTimeZone } from "@/server/common/request-timezone";
 import { setAuthCookies } from "@/lib/cookies";
 
 /**
@@ -11,7 +12,8 @@ import { setAuthCookies } from "@/lib/cookies";
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email, password, timezone } = body;
+        const { email, password } = body;
+        const timezone = getRequestTimeZone(body, request);
 
         // Validate
         if (!email || !password) {

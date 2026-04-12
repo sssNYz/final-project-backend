@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { googleLoginUser } from "@/server/auth/auth-v2.service";
 import { ServiceError } from "@/server/common/errors";
+import { getRequestTimeZone } from "@/server/common/request-timezone";
 
 /**
  * POST /api/auth/v2/google-login
@@ -9,7 +10,8 @@ import { ServiceError } from "@/server/common/errors";
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { idToken, timezone } = body;
+        const { idToken } = body;
+        const timezone = getRequestTimeZone(body, request);
 
         // Validate
         if (!idToken) {

@@ -173,6 +173,30 @@ services:
     networks:
       - app-network
 
+  auth-cleanup-worker:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+      target: worker
+    container_name: final_project_auth_cleanup_worker
+    restart: unless-stopped
+    command: ["npx", "tsx", "server/workers/authCleanup.worker.ts"]
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:s31122546@db:3306/final_project_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - "AUTH_CLEANUP_CRON=*/10 * * * *"
+      - AUTH_UNVERIFIED_USER_GRACE_HOURS=24
+      - AUTH_UNVERIFIED_USER_BATCH_SIZE=500
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
   discord-bot:
     build:
       context: ../

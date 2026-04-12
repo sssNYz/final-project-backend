@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
-RUN npm ci
+RUN npm install --legacy-peer-deps
 RUN npm i @next/swc-linux-x64-gnu || true
 RUN npx prisma generate
 
