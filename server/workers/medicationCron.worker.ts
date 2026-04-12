@@ -71,9 +71,10 @@ async function processRegimen(regimen: {
   let unit: string | null = null;
   let mealRelation: MealRelation | null = null;
 
-  if (regimen.intervalHour && regimen.intervalHour >= 1) {
-    // intervalHour mode: use the first time entry as the dose template
-    // (the actual scheduled time is dynamically generated and won't match any stored timeOfDay)
+  const useIntervalTemplateMode = Boolean(regimen.intervalHour && regimen.intervalHour >= 1 && regimen.times.length === 1);
+
+  if (useIntervalTemplateMode) {
+    // Server-generated interval mode uses the only stored time as the template.
     const template = regimen.times[0];
     if (template) {
       dose = template.dose;

@@ -92,17 +92,13 @@ export function calculateNextOccurrence(params: {
     }
   }
 
-  // ---------- intervalHour mode ----------
-  // When intervalHour is set, times[0].timeOfDay is the "start time" for each active day.
-  // We generate virtual slots: startTime, startTime + intervalHour, startTime + 2*intervalHour, ...
-  // until the slot exceeds 23:59 of that day.
-  // ---------- intervalHour mode ----------
-  // When intervalHour is set, we want strict continuous intervals (previous + interval).
-  // E.g. Mon 23:00 + 5h -> Tue 04:00.
-  // We check if the resulting day is "valid". If so, that's the next slot.
-  // If not, we keep adding intervalHour until we land on a valid day.
-  if (intervalHour && intervalHour >= 1) {
-    const freqHours = intervalHour;
+  const useIntervalTemplateMode = Boolean(intervalHour && intervalHour >= 1 && sortedTimes.length === 1);
+
+  // ---------- intervalHour template mode ----------
+  // Legacy server-driven interval scheduling only applies when there is one template time.
+  // If multiple times are stored, those explicit times are authoritative and handled below.
+  if (useIntervalTemplateMode) {
+    const freqHours = intervalHour as number;
 
     // 1. Determine the "Next Candidate".
     // If 'now' (the last scheduled time) is effectively "start of time" (before startDate), we need to bootstrap.

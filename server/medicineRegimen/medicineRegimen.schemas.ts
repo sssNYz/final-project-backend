@@ -85,13 +85,6 @@ export const MedicineRegimenCreateBodySchema = z
         message: "endDate must be on or after startDate",
       });
     }
-    if (val.intervalHour && val.times.length !== 1) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["times"],
-        message: "When intervalHour is set, exactly one time entry (start time template) is required",
-      });
-    }
   });
 
 export const MedicineRegimenUpdateBodySchema = z
