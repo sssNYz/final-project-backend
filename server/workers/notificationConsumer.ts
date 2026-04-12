@@ -100,6 +100,7 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
         isSnoozeReminder: isSnooze ? "true" : "false",
         snoozedCount: String(log.snoozedCount ?? 0),
         nextSnoozeAt: nextSnoozeAts?.[log.logId] ?? "",
+        mealRelation: log.mealRelation || "",
     }));
 
     const dataPayload = isGroup ? {
@@ -108,6 +109,8 @@ export async function processNotificationJob(job: Job<NotificationJobData>) {
         payload: JSON.stringify(payloadItems), // Pack array here
         timestamp: new Date().toISOString(),
     } : payloadItems[0]; // Exactly map the single item if length 1
+
+    console.log(`[NotificationWorker] Sending payload to ${tokens.length} devices:`, JSON.stringify(dataPayload, null, 2));
 
     try {
         const response = await sendFcmMulticast({
